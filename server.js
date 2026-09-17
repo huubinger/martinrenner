@@ -147,6 +147,7 @@ function renderChoerlePage(itemsHtml) {
   <div class="legal-footer">
     <a href="/impressum.html">Impressum</a>
     <a href="/datenschutz.html">Datenschutz</a>
+    <a href="/apps.html">Apps</a>
   </div>
 </body>
 </html>`;
