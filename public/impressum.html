@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impressum – martinrenner.de</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    color: #f8fafc;
+    min-height: 100vh;
+    padding: 2.5rem 1rem 5rem;
+  }
+  .container { max-width: 680px; margin: 0 auto; }
+  h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); margin-bottom: 1.5rem; }
+  h2 { font-size: 1.15rem; margin-top: 2rem; margin-bottom: 0.6rem; color: #38bdf8; }
+  p { line-height: 1.6; color: #e2e8f0; margin-bottom: 0.6rem; }
+  a { color: #38bdf8; }
+  .home-link { display: inline-block; margin-top: 2.5rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
+  .home-link:hover { text-decoration: underline; }
+
+  form { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.75rem; max-width: 420px; }
+  label { font-size: 0.85rem; color: #94a3b8; }
+  input, textarea {
+    width: 100%;
+    padding: 0.65rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: #f8fafc;
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+  textarea { min-height: 100px; resize: vertical; }
+  button {
+    align-self: flex-start;
+    padding: 0.7rem 1.4rem;
+    border-radius: 8px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  button:hover { background: #0ea5e9; }
+  .note { font-size: 0.8rem; color: #94a3b8; margin-top: 0.3rem; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Impressum</h1>
+
+    <h2>Angaben gemäß § 5 DDG</h2>
+    <p>Martin Renner<br>
+    Berliner Straße 26<br>
+    74172 Neckarsulm<br>
+    Deutschland</p>
+
+    <h2>Kontakt</h2>
+    <p>E-Mail: <a href="mailto:martin.renner@gmail.com">martin.renner@gmail.com</a></p>
+    <p>Alternativ über das Kontaktformular unten.</p>
+
+    <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+    <p>Martin Renner (Anschrift wie oben)</p>
+
+    <h2>Hinweis zur Website</h2>
+    <p>Diese Website dient privaten, nicht-kommerziellen Zwecken. Es werden über sie keine Waren oder Dienstleistungen verkauft.</p>
+
+    <h2>Haftung für Inhalte</h2>
+    <p>Als Diensteanbieter bin ich gemäß § 7 Abs. 1 DDG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 DDG bin ich als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt.</p>
+
+    <h2>Haftung für Links</h2>
+    <p>Mein Angebot enthält gegebenenfalls Links zu externen Websites Dritter, auf deren Inhalte ich keinen Einfluss habe. Deshalb kann ich für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.</p>
+
+    <h2>Urheberrecht</h2>
+    <p>Die durch mich erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen meiner schriftlichen Zustimmung.</p>
+
+    <h2>Kontaktformular</h2>
+    <p class="note">Beim Absenden öffnet sich dein E-Mail-Programm mit einer vorausgefüllten Nachricht an martin.renner@gmail.com.</p>
+    <form id="contact-form">
+      <div>
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div>
+        <label for="email">Deine E-Mail-Adresse</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div>
+        <label for="message">Nachricht</label>
+        <textarea id="message" name="message" required></textarea>
+      </div>
+      <button type="submit">Nachricht senden</button>
+    </form>
+
+    <a class="home-link" href="/">&larr; zurück zur Startseite</a>
+  </div>
+
+  <script>
+    document.getElementById('contact-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = encodeURIComponent(document.getElementById('name').value);
+      var email = encodeURIComponent(document.getElementById('email').value);
+      var message = encodeURIComponent(document.getElementById('message').value);
+      var subject = encodeURIComponent('Kontaktanfrage von ' + document.getElementById('name').value);
+      var body = 'Name: ' + name + '%0D%0AE-Mail: ' + email + '%0D%0A%0D%0ANachricht:%0D%0A' + message;
+      window.location.href = 'mailto:martin.renner@gmail.com?subject=' + subject + '&body=' + body;
+    });
+  </script>
+</body>
+</html>

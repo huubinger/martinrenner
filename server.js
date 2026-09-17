@@ -125,6 +125,16 @@ function renderChoerlePage(itemsHtml) {
   .home-link { display: inline-block; margin-top: 2rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
   .home-link:hover { text-decoration: underline; }
   .empty { color: #94a3b8; }
+  .legal-footer {
+    position: fixed;
+    right: 1rem;
+    bottom: 0.75rem;
+    display: flex;
+    gap: 0.9rem;
+    font-size: 0.78rem;
+  }
+  .legal-footer a { color: #64748b; text-decoration: none; }
+  .legal-footer a:hover { color: #94a3b8; }
 </style>
 </head>
 <body>
@@ -133,6 +143,10 @@ function renderChoerlePage(itemsHtml) {
     <p class="subtitle">Noten &amp; Unterlagen</p>
     <ul>${itemsHtml}</ul>
     <a class="home-link" href="/">&larr; zurück zur Startseite</a>
+  </div>
+  <div class="legal-footer">
+    <a href="/impressum.html">Impressum</a>
+    <a href="/datenschutz.html">Datenschutz</a>
   </div>
 </body>
 </html>`;
