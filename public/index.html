@@ -9,79 +9,341 @@
   html, body {
     height: 100%;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    background: #0f172a;
     color: #f8fafc;
+    overflow: hidden;
+  }
+
+  .slideshow {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+    background-size: cover;
+    background-position: center;
+  }
+  .slide.active { opacity: 1; z-index: 1; }
+
+  /* Platzhalter-Grafik je Kategorie, solange keine echten Fotos hinterlegt sind */
+  .slide-placeholder {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
+    gap: 0.75rem;
   }
-  .container {
-    text-align: center;
-    padding: 2rem;
-    max-width: 640px;
+  .slide-placeholder .ph-icon {
+    font-size: 3rem;
+    opacity: 0.35;
   }
-  h1 {
-    font-size: clamp(1.8rem, 5vw, 2.8rem);
-    font-weight: 700;
-    margin-bottom: 1rem;
-    letter-spacing: -0.02em;
+  .slide-placeholder .ph-label {
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
   }
-  a {
+
+  /* Abdunklung für Lesbarkeit des Banners */
+  .slide::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.35) 100%);
+  }
+
+  /* Sechs Farbwelten als Platzhalter-Hintergrund je Kategorie */
+  .slide[data-key="martin-renner"] .slide-placeholder { background: linear-gradient(135deg, #1e293b, #334155); }
+  .slide[data-key="kreatief-musical"] .slide-placeholder { background: linear-gradient(135deg, #4c1d95, #7c3aed); }
+  .slide[data-key="voctails"] .slide-placeholder { background: linear-gradient(135deg, #0e7490, #06b6d4); }
+  .slide[data-key="lauter-maenner"] .slide-placeholder { background: linear-gradient(135deg, #7c2d12, #ea580c); }
+  .slide[data-key="fruehstuecks-choerle"] .slide-placeholder { background: linear-gradient(135deg, #14532d, #22c55e); }
+  .slide[data-key="veranstaltungstechnik"] .slide-placeholder { background: linear-gradient(135deg, #1e293b, #0f172a); }
+
+  .banner {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    padding: 2.5rem 2rem 3.5rem;
+    max-width: 720px;
+  }
+  .banner .eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: #38bdf8;
+    margin-bottom: 0.6rem;
+  }
+  .banner h1 {
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+  }
+  .banner p.info {
+    font-size: clamp(0.95rem, 2vw, 1.1rem);
+    color: #e2e8f0;
+    margin-bottom: 1.1rem;
+    max-width: 560px;
+  }
+  .banner .actions {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+  }
+  .banner .link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 999px;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.9rem;
     text-decoration: none;
   }
-  a:hover {
-    text-decoration: underline;
-  }
-  p.subtitle {
-    font-size: clamp(1rem, 2.5vw, 1.25rem);
-    color: #cbd5e1;
-    margin-top: 0.5rem;
-  }
-  .dots {
-    margin-top: 2.5rem;
+  .banner .link-btn:hover { background: #0ea5e9; }
+  .banner .socials {
     display: flex;
-    gap: 8px;
-    justify-content: center;
+    gap: 0.7rem;
   }
-  .dots span {
-    width: 8px;
-    height: 8px;
+  .banner .socials a {
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    background: #38bdf8;
-    animation: pulse 1.4s infinite ease-in-out;
+    border: 1px solid rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f8fafc;
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: background 0.15s ease, border-color 0.15s ease;
   }
-  .dots span:nth-child(2) { animation-delay: 0.2s; }
-  .dots span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes pulse {
-    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-    40% { opacity: 1; transform: scale(1.2); }
+  .banner .socials a:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.6);
   }
+
+  .dots {
+    position: absolute;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    display: flex;
+    gap: 0.5rem;
+  }
+  .dots button {
+    width: 28px;
+    height: 4px;
+    border-radius: 2px;
+    border: none;
+    background: rgba(255,255,255,0.3);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s ease;
+  }
+  .dots button.active { background: #38bdf8; }
+
   .legal-footer {
     position: fixed;
     right: 1rem;
     bottom: 0.75rem;
+    z-index: 10;
     display: flex;
     gap: 0.9rem;
     font-size: 0.78rem;
   }
   .legal-footer a {
-    color: #64748b;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
   }
-  .legal-footer a:hover {
-    color: #94a3b8;
+  .legal-footer a:hover { color: #f8fafc; }
+
+  @media (max-width: 560px) {
+    .banner { padding: 1.8rem 1.2rem 4.5rem; }
   }
 </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Herzlich Willkommen auf <a href="https://www.martinrenner.de">www.martinrenner.de</a></h1>
-    <p class="subtitle">Hier entsteht eine neue Homepage.</p>
-    <div class="dots"><span></span><span></span><span></span></div>
+
+  <div class="slideshow" id="slideshow"></div>
+
+  <div class="dots" id="dots"></div>
+
+  <div class="banner">
+    <div class="eyebrow" id="banner-eyebrow">Projekt</div>
+    <h1 id="banner-title"></h1>
+    <p class="info" id="banner-info"></p>
+    <div class="actions">
+      <a class="link-btn" id="banner-link" href="#">Mehr erfahren →</a>
+      <div class="socials" id="banner-socials"></div>
+    </div>
   </div>
+
   <div class="legal-footer">
     <a href="/impressum.html">Impressum</a>
     <a href="/datenschutz.html">Datenschutz</a>
   </div>
+
+  <script>
+    // Datenquelle für die Slideshow. Sobald echte Fotos vorhanden sind, hier
+    // "image": "/images/<datei>.jpg" ergänzen – die Platzhaltergrafik
+    // verschwindet dann automatisch, sobald ein Foto hinterlegt ist.
+    const slides = [
+      {
+        key: 'martin-renner',
+        icon: '👤',
+        eyebrow: 'Über mich',
+        title: 'Martin Renner',
+        info: 'Kurzer Platzhaltertext über dich – wer du bist und was dich ausmacht.',
+        link: '#',
+        image: null,
+        socials: [
+          { label: 'Instagram', href: '#' },
+          { label: 'LinkedIn', href: '#' }
+        ]
+      },
+      {
+        key: 'kreatief-musical',
+        icon: '🎭',
+        eyebrow: 'Projekt',
+        title: 'Kreatief-Musical',
+        info: 'Platzhaltertext: kurze Beschreibung des Projekts Kreatief-Musical.',
+        link: '#',
+        image: null,
+        socials: [
+          { label: 'Instagram', href: '#' },
+          { label: 'Facebook', href: '#' }
+        ]
+      },
+      {
+        key: 'voctails',
+        icon: '🎤',
+        eyebrow: 'Projekt',
+        title: 'Voctails',
+        info: 'Platzhaltertext: kurze Beschreibung des Projekts Voctails.',
+        link: '#',
+        image: null,
+        socials: [
+          { label: 'Instagram', href: '#' },
+          { label: 'YouTube', href: '#' }
+        ]
+      },
+      {
+        key: 'lauter-maenner',
+        icon: '🎶',
+        eyebrow: 'Projekt',
+        title: 'Lauter Männer',
+        info: 'Platzhaltertext: kurze Beschreibung des Projekts Lauter Männer.',
+        link: '#',
+        image: null,
+        socials: [
+          { label: 'Instagram', href: '#' },
+          { label: 'Facebook', href: '#' }
+        ]
+      },
+      {
+        key: 'fruehstuecks-choerle',
+        icon: '☀️',
+        eyebrow: 'Projekt',
+        title: 'Frühstücks-Chörle',
+        info: 'Noten & Unterlagen für das Frühstückschörle findest du direkt hier.',
+        link: '/choerle',
+        image: null,
+        socials: [
+          { label: 'Instagram', href: '#' }
+        ]
+      },
+      {
+        key: 'veranstaltungstechnik',
+        icon: '🎛️',
+        eyebrow: 'Dienstleistung',
+        title: 'Veranstaltungstechnik',
+        info: 'Platzhaltertext: kurze Beschreibung des Angebots Veranstaltungstechnik.',
+        link: '#',
+        image: null,
+        socials: [
+          { label: 'Instagram', href: '#' }
+        ]
+      }
+    ];
+
+    const slideshowEl = document.getElementById('slideshow');
+    const dotsEl = document.getElementById('dots');
+    const bannerEyebrow = document.getElementById('banner-eyebrow');
+    const bannerTitle = document.getElementById('banner-title');
+    const bannerInfo = document.getElementById('banner-info');
+    const bannerLink = document.getElementById('banner-link');
+    const bannerSocials = document.getElementById('banner-socials');
+
+    slides.forEach((s, i) => {
+      const div = document.createElement('div');
+      div.className = 'slide' + (i === 0 ? ' active' : '');
+      div.dataset.key = s.key;
+      if (s.image) {
+        div.style.backgroundImage = `url(${s.image})`;
+      } else {
+        div.innerHTML = `<div class="slide-placeholder">
+          <div class="ph-icon">${s.icon}</div>
+          <div class="ph-label">Foto-Platzhalter · ${s.title}</div>
+        </div>`;
+      }
+      slideshowEl.appendChild(div);
+
+      const dot = document.createElement('button');
+      dot.addEventListener('click', () => goTo(i));
+      dotsEl.appendChild(dot);
+    });
+
+    const slideEls = document.querySelectorAll('.slide');
+    const dotEls = document.querySelectorAll('.dots button');
+    let current = 0;
+    let timer = null;
+
+    function render() {
+      slideEls.forEach((el, i) => el.classList.toggle('active', i === current));
+      dotEls.forEach((el, i) => el.classList.toggle('active', i === current));
+      const s = slides[current];
+      bannerEyebrow.textContent = s.eyebrow;
+      bannerTitle.textContent = s.title;
+      bannerInfo.textContent = s.info;
+      bannerLink.href = s.link || '#';
+      bannerSocials.innerHTML = s.socials.map(soc =>
+        `<a href="${soc.href}" target="_blank" rel="noopener" title="${soc.label}">${soc.label.charAt(0)}</a>`
+      ).join('');
+    }
+
+    function goTo(i) {
+      current = i;
+      render();
+      restart();
+    }
+
+    function next() {
+      current = (current + 1) % slides.length;
+      render();
+    }
+
+    function restart() {
+      if (timer) clearInterval(timer);
+      timer = setInterval(next, 6000);
+    }
+
+    render();
+    restart();
+  </script>
 </body>
 </html>
