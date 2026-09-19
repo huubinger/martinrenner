@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
+const { Readable } = require('stream');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -458,6 +459,11 @@ async function listChoerleSongFolders() {
   return folders;
 }
 
+// Listet die Dateien in einem Lied-Ordner. Statt Dropbox-Temp-Links (die von
+// Dropbox mit "Content-Disposition: attachment" ausgeliefert werden und sich
+// deshalb nicht in einem <iframe> anzeigen lassen) liefern wir hier nur die
+// Dateinamen zurück – der eigentliche Datei-Inhalt läuft über die eigene
+// Proxy-Route /choerle/:slug/file/:filename weiter unten.
 async function getSongFiles(folderPathLower) {
   const token = await getDropboxAccessToken();
 
@@ -477,33 +483,41 @@ async function getSongFiles(folderPathLower) {
   const listData = await listRes.json();
   const files = listData.entries.filter((entry) => entry['.tag'] === 'file');
 
-  const withLinks = await Promise.all(
-    files.map(async (file) => {
-      try {
-        const linkRes = await fetch('https://api.dropboxapi.com/2/files/get_temporary_link', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ path: file.path_lower }),
-        });
-        if (!linkRes.ok) return { name: file.name, link: null };
-        const linkData = await linkRes.json();
-        return { name: file.name, link: linkData.link };
-      } catch {
-        return { name: file.name, link: null };
-      }
-    })
-  );
-
-  const pdf = withLinks.find((f) => /\.pdf$/i.test(f.name)) || null;
-  const audio = withLinks
+  const pdf = files.find((f) => /\.pdf$/i.test(f.name)) || null;
+  const audio = files
     .filter((f) => /\.(mp3|wav|m4a|ogg)$/i.test(f.name))
     .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
-  return { pdf, audio };
+  return {
+    pdf: pdf ? { name: pdf.name } : null,
+    audio: audio.map((a) => ({ name: a.name })),
+  };
 }
+
+async function findSongFile(folderPathLower, filename) {
+  const token = await getDropboxAccessToken();
+  const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ path: folderPathLower, recursive: false }),
+  });
+  if (!listRes.ok) {
+    throw new Error(`Dropbox list_folder fehlgeschlagen: ${listRes.status} ${await listRes.text()}`);
+  }
+  const listData = await listRes.json();
+  return listData.entries.find((e) => e['.tag'] === 'file' && e.name === filename) || null;
+}
+
+const CHOERLE_MIME_TYPES = {
+  '.pdf': 'application/pdf',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+  '.ogg': 'audio/ogg',
+};
 
 const CHOERLE_STYLE = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -651,12 +665,14 @@ function renderChoerleSongPage(song, notFound) {
   if (notFound || !song) {
     body = `<h1>🎶 Frühstückschörle</h1><p class="subtitle empty">Dieses Lied wurde nicht gefunden.</p>`;
   } else {
-    const pdfSection = song.pdf && song.pdf.link
-      ? `<iframe class="pdf-viewer" src="${song.pdf.link}"></iframe>
+    const fileUrl = (filename) => `/choerle/${song.slug}/file/${encodeURIComponent(filename)}`;
+
+    const pdfSection = song.pdf
+      ? `<iframe class="pdf-viewer" src="${fileUrl(song.pdf.name)}"></iframe>
          <p class="pdf-fallback">
-           <a href="${song.pdf.link}" target="_blank" rel="noopener">PDF ansehen (neuer Tab)</a>
+           <a href="${fileUrl(song.pdf.name)}" target="_blank" rel="noopener">PDF ansehen (neuer Tab)</a>
            &nbsp;·&nbsp;
-           <a href="${song.pdf.link}" download="${escapeAttr(song.pdf.name)}">PDF herunterladen</a>
+           <a href="${fileUrl(song.pdf.name)}?download=1">PDF herunterladen</a>
          </p>`
       : `<p class="empty">PDF derzeit nicht verfügbar.</p>`;
 
@@ -665,9 +681,8 @@ function renderChoerleSongPage(song, notFound) {
           .map(
             (a) => `<div class="audio-item">
               <span class="audio-name">${escapeHtml(a.name)}</span>
-              ${a.link
-                ? `<audio controls src="${a.link}"></audio><a class="download-link" href="${a.link}" download="${escapeAttr(a.name)}">Herunterladen</a>`
-                : '<span class="empty">Audio nicht verfügbar</span>'}
+              <audio controls preload="none" src="${fileUrl(a.name)}"></audio>
+              <a class="download-link" href="${fileUrl(a.name)}?download=1">Herunterladen</a>
             </div>`
           )
           .join('')}</div>`
@@ -726,10 +741,61 @@ app.get('/choerle/:slug', async (req, res) => {
       return;
     }
     const { pdf, audio } = await getSongFiles(folder.path_lower);
-    res.send(renderChoerleSongPage({ title: folder.title, pdf, audio }));
+    res.send(renderChoerleSongPage({ title: folder.title, slug: folder.slug, pdf, audio }));
   } catch (err) {
     console.error(err);
     res.status(500).send(renderChoerleSongPage(null, true));
+  }
+});
+
+// Proxy: liefert PDF/MP3-Inhalte direkt von Dropbox aus, mit korrektem
+// Content-Type und "inline" (Ansehen/Abspielen) oder "attachment" (?download=1)
+// als Content-Disposition. Unterstützt HTTP-Range-Requests fürs Vor-/Zurückspulen
+// bei Audiodateien.
+app.get('/choerle/:slug/file/:filename', async (req, res) => {
+  try {
+    const folders = await listChoerleSongFolders();
+    const folder = folders.find((f) => f.slug === req.params.slug);
+    if (!folder) return res.status(404).send('Lied nicht gefunden.');
+
+    const file = await findSongFile(folder.path_lower, req.params.filename);
+    if (!file) return res.status(404).send('Datei nicht gefunden.');
+
+    const token = await getDropboxAccessToken();
+    const dropboxHeaders = {
+      Authorization: `Bearer ${token}`,
+      'Dropbox-API-Arg': JSON.stringify({ path: file.path_lower }),
+    };
+    if (req.headers.range) dropboxHeaders.Range = req.headers.range;
+
+    const dropboxRes = await fetch('https://content.dropboxapi.com/2/files/download', {
+      method: 'POST',
+      headers: dropboxHeaders,
+    });
+
+    if (!dropboxRes.ok && dropboxRes.status !== 206) {
+      console.error('Dropbox download fehlgeschlagen:', dropboxRes.status, await dropboxRes.text());
+      return res.status(502).send('Fehler beim Laden der Datei.');
+    }
+
+    const ext = path.extname(file.name).toLowerCase();
+    const mime = CHOERLE_MIME_TYPES[ext] || 'application/octet-stream';
+    const disposition = req.query.download ? 'attachment' : 'inline';
+    const safeName = file.name.replace(/[^\w.\- ]/g, '_');
+
+    res.status(dropboxRes.status);
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Disposition', `${disposition}; filename="${safeName}"`);
+    const contentRange = dropboxRes.headers.get('content-range');
+    if (contentRange) res.setHeader('Content-Range', contentRange);
+    const contentLength = dropboxRes.headers.get('content-length');
+    if (contentLength) res.setHeader('Content-Length', contentLength);
+
+    Readable.fromWeb(dropboxRes.body).pipe(res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Fehler beim Laden der Datei.');
   }
 });
 
