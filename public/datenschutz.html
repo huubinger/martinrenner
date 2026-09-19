@@ -31,6 +31,40 @@
     color: #cbd5e1;
     margin-bottom: 1.5rem;
   }
+
+  .cookie-banner {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 20;
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    background: rgba(15,23,42,0.97);
+    border-top: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(6px);
+  }
+  .cookie-banner p {
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    max-width: 640px;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .cookie-banner button {
+    padding: 0.55rem 1.2rem;
+    border-radius: 999px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .cookie-banner button:hover { background: #0ea5e9; }
 </style>
 </head>
 <body>
@@ -50,7 +84,7 @@
     <p>Ich erhebe und verwende personenbezogene Daten meiner Nutzer grundsätzlich nur, soweit dies zur Bereitstellung einer funktionsfähigen Website sowie meiner Inhalte und Leistungen erforderlich ist. Die Verarbeitung erfolgt nur mit Einwilligung des Nutzers oder auf Grundlage einer gesetzlichen Erlaubnis (Art. 6 DSGVO).</p>
 
     <h2>3. Bereitstellung der Website und Erstellung von Server-Logfiles</h2>
-    <p>Diese Website wird bei Railway (Railway Corporation) gehostet. Beim Aufruf der Website erhebt der Hosting-Provider automatisch technische Verbindungsdaten, u. a.:</p>
+    <p>Diese Website wird bei Railway (Railway Corporation) gehostet. Zusätzlich wird der Netzwerkverkehr über den Dienst Cloudflare (Cloudflare, Inc., USA, bzw. Cloudflare Germany GmbH) geleitet, der als Content-Delivery-Network (CDN) und Sicherheits-/DNS-Dienst vorgeschaltet ist. Beim Aufruf der Website erheben Cloudflare und der Hosting-Provider automatisch technische Verbindungsdaten, u. a.:</p>
     <ul>
       <li>IP-Adresse des anfragenden Geräts</li>
       <li>Datum und Uhrzeit des Zugriffs</li>
@@ -58,8 +92,8 @@
       <li>Browsertyp und -version, verwendetes Betriebssystem</li>
       <li>Referrer-URL (zuvor besuchte Seite)</li>
     </ul>
-    <p>Diese Daten werden ausschließlich zum technischen Betrieb und zur Absicherung der Website (Fehleranalyse, IT-Sicherheit) verarbeitet und nicht mit anderen Datenquellen zusammengeführt. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und stabilen Betrieb der Website). Die Daten werden nach Zweckfortfall gelöscht bzw. anonymisiert.</p>
-    <p>Da der Hosting-Anbieter seinen Sitz bzw. Teile seiner Infrastruktur außerhalb der EU/des EWR (insbesondere in den USA) haben kann, ist eine Datenübermittlung in ein Drittland nicht auszuschließen. Ich achte bei der Auswahl meiner Dienstleister auf angemessene Garantien (z. B. EU-Standardvertragsklauseln).</p>
+    <p>Diese Daten werden ausschließlich zum technischen Betrieb, zur Absicherung der Website (Fehleranalyse, IT-Sicherheit, Schutz vor Missbrauch/DDoS) verarbeitet und nicht zu Marketingzwecken genutzt oder mit anderen Datenquellen zusammengeführt. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und stabilen Betrieb der Website). Die Daten werden nach Zweckfortfall gelöscht bzw. anonymisiert.</p>
+    <p>Da die eingesetzten Dienstleister ihren Sitz bzw. Teile ihrer Infrastruktur außerhalb der EU/des EWR (insbesondere in den USA) haben können, ist eine Datenübermittlung in ein Drittland nicht auszuschließen. Ich achte bei der Auswahl meiner Dienstleister auf angemessene Garantien (z. B. EU-Standardvertragsklauseln nach Art. 46 DSGVO).</p>
 
     <h2>4. Kontaktaufnahme</h2>
     <p>Wenn du mich per E-Mail oder über das Kontaktformular kontaktierst, werden deine Angaben (Name, E-Mail-Adresse, Nachrichtentext) zur Bearbeitung deiner Anfrage sowie für den Fall von Anschlussfragen bei mir gespeichert. Das Kontaktformular auf dieser Website übermittelt die Angaben nicht an einen Server, sondern öffnet lediglich eine vorausgefüllte E-Mail in deinem eigenen E-Mail-Programm, die du selbst absendest. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen) bzw. Art. 6 Abs. 1 lit. b DSGVO, sofern die Anfrage der Anbahnung eines Vertrags dient. Diese Daten gebe ich nicht ohne deine Einwilligung weiter.</p>
@@ -68,7 +102,9 @@
     <p>Im Bereich „/choerle" werden Dateien (z. B. Noten) angezeigt, die serverseitig über die API des Cloud-Speicherdienstes Dropbox (Dropbox Inc., USA bzw. Dropbox International Unlimited Company, Irland) abgerufen werden. Dabei werden ausschließlich Dateiinformationen aus einem dediziert für diese Website angelegten Dropbox-Ordner abgerufen – es werden keine personenbezogenen Daten von Besuchern der Website an Dropbox übermittelt. Der Abruf erfolgt serverseitig über einen Zugriffstoken; Besucher der Seite treten mit Dropbox nicht in direkten Kontakt.</p>
 
     <h2>6. Cookies und Tracking</h2>
-    <p>Diese Website setzt keine Cookies und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es findet kein Tracking des Nutzerverhaltens statt.</p>
+    <p>Diese Website setzt keine Cookies und keine Analyse- oder Trackingdienste (z. B. Google Analytics) zu Marketing- oder Analysezwecken ein. Es findet kein Tracking des Nutzerverhaltens statt.</p>
+    <p>Lediglich für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TDDDG). Eine Einwilligung ist hierfür nach § 25 TDDDG nicht erforderlich, da keine nicht-notwendigen Cookies gesetzt werden.</p>
+    <p>Solltest du künftig Funktionen mit nicht-technisch-notwendigen Cookies (z. B. Statistik- oder Einbettungsdienste) hinzufügen, wird vor deren Einsatz eine Einwilligung über den Cookie-Banner eingeholt.</p>
 
     <h2>7. Deine Rechte als betroffene Person</h2>
     <p>Dir stehen gegenüber mir folgende Rechte hinsichtlich der dich betreffenden personenbezogenen Daten zu:</p>
@@ -87,5 +123,26 @@
 
     <a class="home-link" href="/">&larr; zurück zur Startseite</a>
   </div>
+
+  <div class="cookie-banner" id="cookie-banner">
+    <p>Diese Website verwendet ausschließlich technisch notwendige Funktionen – keine Cookies zu Tracking- oder Marketingzwecken. Mehr dazu oben in Abschnitt 6.</p>
+    <button id="cookie-banner-ok">Verstanden</button>
+  </div>
+  <script>
+    (function () {
+      var KEY = 'cookie_notice_ack_v1';
+      var banner = document.getElementById('cookie-banner');
+      if (banner && !localStorage.getItem(KEY)) {
+        banner.style.display = 'flex';
+      }
+      var btn = document.getElementById('cookie-banner-ok');
+      if (btn) {
+        btn.addEventListener('click', function () {
+          try { localStorage.setItem(KEY, '1'); } catch (e) {}
+          banner.style.display = 'none';
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

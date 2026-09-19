@@ -204,6 +204,41 @@
   }
   .legal-footer a:hover { color: #f8fafc; }
 
+  .cookie-banner {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 20;
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    background: rgba(15,23,42,0.97);
+    border-top: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(6px);
+  }
+  .cookie-banner p {
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    max-width: 640px;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .cookie-banner a { color: #38bdf8; }
+  .cookie-banner button {
+    padding: 0.55rem 1.2rem;
+    border-radius: 999px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .cookie-banner button:hover { background: #0ea5e9; }
+
   @media (max-width: 560px) {
     .banner { padding: 1.8rem 1.2rem 4.5rem; }
   }
@@ -230,6 +265,27 @@
     <a href="/datenschutz.html">Datenschutz</a>
     <a href="/apps.html">Apps</a>
   </div>
+
+  <div class="cookie-banner" id="cookie-banner">
+    <p>Diese Website verwendet ausschließlich technisch notwendige Funktionen – keine Cookies zu Tracking- oder Marketingzwecken. Mehr dazu in der <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
+    <button id="cookie-banner-ok">Verstanden</button>
+  </div>
+  <script>
+    (function () {
+      var KEY = 'cookie_notice_ack_v1';
+      var banner = document.getElementById('cookie-banner');
+      if (banner && !localStorage.getItem(KEY)) {
+        banner.style.display = 'flex';
+      }
+      var btn = document.getElementById('cookie-banner-ok');
+      if (btn) {
+        btn.addEventListener('click', function () {
+          try { localStorage.setItem(KEY, '1'); } catch (e) {}
+          banner.style.display = 'none';
+        });
+      }
+    })();
+  </script>
 
   <script>
     // Datenquelle für die Slideshow. Sobald echte Fotos vorhanden sind, hier
