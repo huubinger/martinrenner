@@ -430,7 +430,9 @@ function slugifyChoerle(str) {
   return slugify(str);
 }
 
-async function listChoerleSongs() {
+// In Dropbox liegt pro Lied ein eigener Ordner (Ordnername = Liedtitel),
+// darin die PDF-Noten und die MP3-Übe-Tracks.
+async function listChoerleSongFolders() {
   const token = await getDropboxAccessToken();
   const folderPath = process.env.DROPBOX_FOLDER_PATH || '';
 
@@ -448,9 +450,34 @@ async function listChoerleSongs() {
   }
 
   const listData = await listRes.json();
+  const folders = listData.entries
+    .filter((entry) => entry['.tag'] === 'folder')
+    .map((f) => ({ title: f.name, path_lower: f.path_lower, slug: slugifyChoerle(f.name) }));
+
+  folders.sort((a, b) => a.title.localeCompare(b.title, 'de'));
+  return folders;
+}
+
+async function getSongFiles(folderPathLower) {
+  const token = await getDropboxAccessToken();
+
+  const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ path: folderPathLower, recursive: false }),
+  });
+
+  if (!listRes.ok) {
+    throw new Error(`Dropbox list_folder fehlgeschlagen: ${listRes.status} ${await listRes.text()}`);
+  }
+
+  const listData = await listRes.json();
   const files = listData.entries.filter((entry) => entry['.tag'] === 'file');
 
-  const filesWithLinks = await Promise.all(
+  const withLinks = await Promise.all(
     files.map(async (file) => {
       try {
         const linkRes = await fetch('https://api.dropboxapi.com/2/files/get_temporary_link', {
@@ -470,25 +497,12 @@ async function listChoerleSongs() {
     })
   );
 
-  const pdfs = filesWithLinks.filter((f) => /\.pdf$/i.test(f.name));
-  const audios = filesWithLinks.filter((f) => /\.(mp3|wav|m4a|ogg)$/i.test(f.name));
+  const pdf = withLinks.find((f) => /\.pdf$/i.test(f.name)) || null;
+  const audio = withLinks
+    .filter((f) => /\.(mp3|wav|m4a|ogg)$/i.test(f.name))
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
-  const songs = pdfs.map((pdf) => {
-    const title = pdf.name.replace(/\.pdf$/i, '');
-    const titleLower = title.toLowerCase();
-    const audio = audios
-      .filter((a) => a.name.toLowerCase().startsWith(titleLower))
-      .sort((a, b) => a.name.localeCompare(b.name, 'de'));
-    return {
-      title,
-      slug: slugifyChoerle(title),
-      pdf,
-      audio,
-    };
-  });
-
-  songs.sort((a, b) => a.title.localeCompare(b.title, 'de'));
-  return songs;
+  return { pdf, audio };
 }
 
 const CHOERLE_STYLE = `
@@ -539,6 +553,8 @@ const CHOERLE_STYLE = `
   }
   .audio-name { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 0.5rem; }
   audio { width: 100%; }
+  .download-link { display: inline-block; margin-top: 0.5rem; font-size: 0.8rem; color: #38bdf8; text-decoration: none; }
+  .download-link:hover { text-decoration: underline; }
   .legal-footer {
     position: fixed;
     right: 1rem;
@@ -635,9 +651,13 @@ function renderChoerleSongPage(song, notFound) {
   if (notFound || !song) {
     body = `<h1>🎶 Frühstückschörle</h1><p class="subtitle empty">Dieses Lied wurde nicht gefunden.</p>`;
   } else {
-    const pdfSection = song.pdf.link
+    const pdfSection = song.pdf && song.pdf.link
       ? `<iframe class="pdf-viewer" src="${song.pdf.link}"></iframe>
-         <p class="pdf-fallback"><a href="${song.pdf.link}" target="_blank" rel="noopener">PDF in neuem Tab öffnen</a>, falls die Vorschau nicht lädt.</p>`
+         <p class="pdf-fallback">
+           <a href="${song.pdf.link}" target="_blank" rel="noopener">PDF ansehen (neuer Tab)</a>
+           &nbsp;·&nbsp;
+           <a href="${song.pdf.link}" download="${escapeAttr(song.pdf.name)}">PDF herunterladen</a>
+         </p>`
       : `<p class="empty">PDF derzeit nicht verfügbar.</p>`;
 
     const audioSection = song.audio.length
@@ -645,7 +665,9 @@ function renderChoerleSongPage(song, notFound) {
           .map(
             (a) => `<div class="audio-item">
               <span class="audio-name">${escapeHtml(a.name)}</span>
-              ${a.link ? `<audio controls src="${a.link}"></audio>` : '<span class="empty">Audio nicht verfügbar</span>'}
+              ${a.link
+                ? `<audio controls src="${a.link}"></audio><a class="download-link" href="${a.link}" download="${escapeAttr(a.name)}">Herunterladen</a>`
+                : '<span class="empty">Audio nicht verfügbar</span>'}
             </div>`
           )
           .join('')}</div>`
@@ -678,13 +700,13 @@ function renderChoerleSongPage(song, notFound) {
 
 app.get('/choerle', async (req, res) => {
   try {
-    const songs = await listChoerleSongs();
-    if (songs.length === 0) {
-      res.send(renderChoerleListPage('<li class="empty">Noch keine Lieder im Ordner.</li>'));
+    const folders = await listChoerleSongFolders();
+    if (folders.length === 0) {
+      res.send(renderChoerleListPage('<li class="empty">Noch keine Lieder-Ordner vorhanden.</li>'));
       return;
     }
-    const items = songs
-      .map((s) => `<li><a class="file-link" href="/choerle/${s.slug}">${escapeHtml(s.title)}</a></li>`)
+    const items = folders
+      .map((f) => `<li><a class="file-link" href="/choerle/${f.slug}">${escapeHtml(f.title)}</a></li>`)
       .join('\n');
     res.send(renderChoerleListPage(items));
   } catch (err) {
@@ -697,13 +719,14 @@ app.get('/choerle', async (req, res) => {
 
 app.get('/choerle/:slug', async (req, res) => {
   try {
-    const songs = await listChoerleSongs();
-    const song = songs.find((s) => s.slug === req.params.slug);
-    if (!song) {
+    const folders = await listChoerleSongFolders();
+    const folder = folders.find((f) => f.slug === req.params.slug);
+    if (!folder) {
       res.status(404).send(renderChoerleSongPage(null, true));
       return;
     }
-    res.send(renderChoerleSongPage(song));
+    const { pdf, audio } = await getSongFiles(folder.path_lower);
+    res.send(renderChoerleSongPage({ title: folder.title, pdf, audio }));
   } catch (err) {
     console.error(err);
     res.status(500).send(renderChoerleSongPage(null, true));
