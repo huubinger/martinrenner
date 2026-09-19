@@ -511,6 +511,12 @@ async function findSongFile(folderPathLower, filename) {
   return listData.entries.find((e) => e['.tag'] === 'file' && e.name === filename) || null;
 }
 
+// Dropbox verlangt für HTTP-Header (Dropbox-API-Arg) reines ASCII. Nicht-ASCII-
+// Zeichen (Umlaute etc.) werden als \uXXXX escaped, wie von der Dropbox-API gefordert.
+function asciiSafeJson(obj) {
+  return JSON.stringify(obj).replace(/[-￿]/g, (c) => '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4));
+}
+
 const CHOERLE_MIME_TYPES = {
   '.pdf': 'application/pdf',
   '.mp3': 'audio/mpeg',
@@ -764,7 +770,10 @@ app.get('/choerle/:slug/file/:filename', async (req, res) => {
     const token = await getDropboxAccessToken();
     const dropboxHeaders = {
       Authorization: `Bearer ${token}`,
-      'Dropbox-API-Arg': JSON.stringify({ path: file.path_lower }),
+      // Der Dropbox-API-Arg-Header muss reines ASCII sein; Umlaute & Sonderzeichen
+      // in Dateinamen (z. B. "Über sieben Brücken") müssen als \uXXXX escaped werden,
+      // sonst antwortet Dropbox mit "path/not_found".
+      'Dropbox-API-Arg': asciiSafeJson({ path: file.path_lower }),
     };
     if (req.headers.range) dropboxHeaders.Range = req.headers.range;
 
