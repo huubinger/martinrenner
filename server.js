@@ -554,16 +554,30 @@ const CHOERLE_STYLE = `
   .home-link { display: inline-block; margin-top: 2rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
   .home-link:hover { text-decoration: underline; }
   .empty { color: #94a3b8; }
-  .pdf-viewer {
+  .pdf-viewer-wrap {
     width: 100%;
-    height: 70vh;
-    min-height: 420px;
+    max-width: 100%;
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 12px;
     background: #fff;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
+    padding: 0.6rem;
+    overflow: hidden;
+    text-align: center;
   }
+  .pdf-viewer-wrap canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    margin: 0 auto 0.6rem;
+    border-radius: 4px;
+  }
+  .pdf-viewer-wrap canvas:last-child { margin-bottom: 0; }
+  .pdf-loading { color: #64748b; font-size: 0.9rem; padding: 2rem 0; }
   .pdf-fallback { margin-bottom: 2rem; font-size: 0.85rem; color: #94a3b8; }
+  .pdf-fallback a { color: #38bdf8; text-decoration: none; }
+  .pdf-fallback a:hover { text-decoration: underline; }
   .audio-list { display: flex; flex-direction: column; gap: 0.9rem; margin-bottom: 2rem; }
   .audio-item {
     background: rgba(255,255,255,0.05);
@@ -674,12 +688,49 @@ function renderChoerleSongPage(song, notFound) {
     const fileUrl = (filename) => `/choerle/${song.slug}/file/${encodeURIComponent(filename)}`;
 
     const pdfSection = song.pdf
-      ? `<iframe class="pdf-viewer" src="${fileUrl(song.pdf.name)}"></iframe>
+      ? `<div class="pdf-viewer-wrap">
+           <div id="pdf-pages"></div>
+           <p class="pdf-loading" id="pdf-loading">PDF wird geladen …</p>
+         </div>
          <p class="pdf-fallback">
            <a href="${fileUrl(song.pdf.name)}" target="_blank" rel="noopener">PDF ansehen (neuer Tab)</a>
            &nbsp;·&nbsp;
            <a href="${fileUrl(song.pdf.name)}?download=1">PDF herunterladen</a>
-         </p>`
+         </p>
+         <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+         <script>
+           (function () {
+             var url = ${JSON.stringify(fileUrl(song.pdf.name))};
+             var container = document.getElementById('pdf-pages');
+             var loading = document.getElementById('pdf-loading');
+             if (!window.pdfjsLib) {
+               if (loading) loading.textContent = 'PDF-Vorschau nicht verfügbar. Bitte "PDF ansehen" nutzen.';
+               return;
+             }
+             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+             pdfjsLib.getDocument(url).promise.then(function (pdf) {
+               if (loading) loading.remove();
+               var renderPage = function (num) {
+                 pdf.getPage(num).then(function (page) {
+                   var width = container.clientWidth || 600;
+                   var unscaled = page.getViewport({ scale: 1 });
+                   var scale = width / unscaled.width;
+                   var viewport = page.getViewport({ scale: scale });
+                   var canvas = document.createElement('canvas');
+                   canvas.width = viewport.width;
+                   canvas.height = viewport.height;
+                   container.appendChild(canvas);
+                   page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport });
+                   if (num < pdf.numPages) renderPage(num + 1);
+                 });
+               };
+               renderPage(1);
+             }).catch(function (err) {
+               console.error(err);
+               if (loading) loading.textContent = 'PDF-Vorschau konnte nicht geladen werden. Bitte "PDF ansehen" nutzen.';
+             });
+           })();
+         </script>`
       : `<p class="empty">PDF derzeit nicht verfügbar.</p>`;
 
     const audioSection = song.audio.length
