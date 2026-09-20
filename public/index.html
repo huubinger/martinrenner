@@ -14,6 +14,51 @@
     overflow: hidden;
   }
 
+  .top-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 1.3rem;
+    padding: 1.1rem 1.5rem;
+    background: linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0) 100%);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .top-nav button,
+  .top-nav a {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.65);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    padding: 0.3rem 0;
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .top-nav button:hover,
+  .top-nav a:hover { color: #f8fafc; }
+  .top-nav button.active { color: #38bdf8; }
+  .top-nav button.active::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -4px;
+    height: 2px;
+    background: #38bdf8;
+    border-radius: 1px;
+  }
+  .top-nav .nav-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(255,255,255,0.2);
+    flex: 0 0 auto;
+  }
+
   .slideshow {
     position: relative;
     width: 100vw;
@@ -59,7 +104,7 @@
     background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.35) 100%);
   }
 
-  /* Sechs Farbwelten als Platzhalter-Hintergrund je Kategorie (für Slide + Thumbnail) */
+  /* Sechs Farbwelten als Platzhalter-Hintergrund je Kategorie */
   .grad-martin-renner { background: linear-gradient(135deg, #1e293b, #334155); }
   .grad-kreatief-musical { background: linear-gradient(135deg, #4c1d95, #7c3aed); }
   .grad-voctails { background: linear-gradient(135deg, #0e7490, #06b6d4); }
@@ -105,17 +150,20 @@
     gap: 0.8rem;
     flex-wrap: wrap;
   }
-  .banner .link-btn {
+  .banner .link-btn,
+  .banner .social-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     padding: 0.55rem 1.1rem;
     border-radius: 999px;
-    background: #38bdf8;
-    color: #0f172a;
     font-weight: 600;
     font-size: 0.9rem;
     text-decoration: none;
+  }
+  .banner .link-btn {
+    background: #38bdf8;
+    color: #0f172a;
   }
   .banner .link-btn:hover { background: #0ea5e9; }
   .banner .link-btn svg { display: block; }
@@ -137,70 +185,19 @@
   .banner .info-btn svg { display: block; }
   .banner .socials {
     display: flex;
-    gap: 0.7rem;
+    gap: 0.6rem;
+    flex-wrap: wrap;
   }
-  .banner .socials a {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .banner .social-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.25);
     color: #f8fafc;
-    text-decoration: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
   }
-  .banner .socials a:hover {
-    background: rgba(255,255,255,0.12);
-    border-color: rgba(255,255,255,0.6);
+  .banner .social-btn:hover {
+    background: rgba(255,255,255,0.16);
+    border-color: rgba(255,255,255,0.5);
   }
-
-  .thumb-nav {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1.3rem;
-    padding-bottom: 0.2rem;
-    max-width: 100%;
-    overflow-x: auto;
-  }
-  .thumb {
-    position: relative;
-    width: 58px;
-    height: 40px;
-    border-radius: 7px;
-    overflow: hidden;
-    cursor: pointer;
-    flex: 0 0 auto;
-    border: 2px solid transparent;
-    background-size: cover;
-    background-position: center;
-    transition: border-color 0.2s ease, transform 0.2s ease;
-  }
-  .thumb:hover { transform: translateY(-2px); }
-  .thumb.active { border-color: #38bdf8; }
-  .thumb .thumb-icon {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.95rem;
-    opacity: 0.6;
-  }
-  .thumb .thumb-label {
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    font-size: 0.46rem;
-    line-height: 1.2;
-    padding: 2px 3px;
-    background: rgba(0,0,0,0.6);
-    color: #f8fafc;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .banner .social-btn svg { display: block; }
 
   .info-modal-overlay {
     position: fixed;
@@ -295,10 +292,13 @@
 
   @media (max-width: 560px) {
     .banner { padding: 1.8rem 1.2rem 4.5rem; }
+    .top-nav { padding: 0.9rem 1rem; gap: 1rem; }
   }
 </style>
 </head>
 <body>
+
+  <nav class="top-nav" id="top-nav"></nav>
 
   <div class="slideshow" id="slideshow"></div>
 
@@ -314,7 +314,6 @@
       <button type="button" class="info-btn" id="banner-info-btn" style="display:none;"></button>
       <div class="socials" id="banner-socials"></div>
     </div>
-    <div class="thumb-nav" id="thumb-nav"></div>
   </div>
 
   <div class="info-modal-overlay" id="info-modal-overlay">
@@ -328,7 +327,7 @@
   <div class="legal-footer">
     <a href="/impressum.html">Impressum</a>
     <a href="/datenschutz.html">Datenschutz</a>
-    <a href="/apps.html">Apps</a>
+    <a href="/kontakt">Kontakt</a>
   </div>
 
   <div class="cookie-banner" id="cookie-banner">
@@ -357,7 +356,7 @@
     let slides = [];
 
     const slideshowEl = document.getElementById('slideshow');
-    const thumbNavEl = document.getElementById('thumb-nav');
+    const topNavEl = document.getElementById('top-nav');
     const bannerEyebrow = document.getElementById('banner-eyebrow');
     const bannerTitle = document.getElementById('banner-title');
     const bannerInfo = document.getElementById('banner-info');
@@ -404,15 +403,15 @@
     }
 
     const slideEls = [];
-    const thumbEls = [];
+    const navItemEls = [];
     let current = 0;
     let timer = null;
 
     function buildDOM() {
       slideshowEl.innerHTML = '';
-      thumbNavEl.innerHTML = '';
+      topNavEl.innerHTML = '';
       slideEls.length = 0;
-      thumbEls.length = 0;
+      navItemEls.length = 0;
 
       slides.forEach((s, i) => {
         const key = s.id || s.key || s.title;
@@ -431,19 +430,24 @@
         slideshowEl.appendChild(div);
         slideEls.push(div);
 
-        const thumb = document.createElement('div');
-        thumb.className = 'thumb' + (i === 0 ? ' active' : '');
-        if (s.image) {
-          thumb.style.backgroundImage = `url(${s.image})`;
-        } else {
-          thumb.style.background = placeholderGradient(key);
-        }
-        thumb.innerHTML = `<div class="thumb-icon">${s.image ? '' : escapeHtmlClient(s.icon || '🔹')}</div><div class="thumb-label">${escapeHtmlClient(s.title)}</div>`;
-        thumb.title = s.title;
-        thumb.addEventListener('click', () => goTo(i));
-        thumbNavEl.appendChild(thumb);
-        thumbEls.push(thumb);
+        const navItem = document.createElement('button');
+        navItem.type = 'button';
+        navItem.className = 'nav-item' + (i === 0 ? ' active' : '');
+        navItem.textContent = s.title;
+        navItem.addEventListener('click', () => goTo(i));
+        topNavEl.appendChild(navItem);
+        navItemEls.push(navItem);
       });
+
+      const divider = document.createElement('span');
+      divider.className = 'nav-divider';
+      topNavEl.appendChild(divider);
+
+      const contactLink = document.createElement('a');
+      contactLink.className = 'nav-item nav-contact';
+      contactLink.href = '/kontakt';
+      contactLink.textContent = 'Kontakt';
+      topNavEl.appendChild(contactLink);
     }
 
     function updateInfoAffordance(s) {
@@ -462,14 +466,14 @@
     function render() {
       if (!slides.length) return;
       slideEls.forEach((el, i) => el.classList.toggle('active', i === current));
-      thumbEls.forEach((el, i) => el.classList.toggle('active', i === current));
+      navItemEls.forEach((el, i) => el.classList.toggle('active', i === current));
       const s = slides[current];
       bannerEyebrow.textContent = s.eyebrow || '';
       bannerTitle.textContent = s.title || '';
       bannerInfo.textContent = s.info || '';
       bannerLink.href = s.link || '#';
       bannerSocials.innerHTML = (s.socials || [])
-        .map((soc) => `<a href="${escapeHtmlClient(soc.href)}" target="_blank" rel="noopener" title="${escapeHtmlClient(soc.label)}">${socialIcon(soc.label)}</a>`)
+        .map((soc) => `<a class="social-btn" href="${escapeHtmlClient(soc.href)}" target="_blank" rel="noopener">${socialIcon(soc.label)}<span>${escapeHtmlClient(soc.label)}</span></a>`)
         .join('');
       updateInfoAffordance(s);
     }

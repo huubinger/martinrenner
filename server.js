@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
+const nodemailer = require('nodemailer');
 const { Readable } = require('stream');
 
 const app = express();
@@ -12,7 +13,32 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
+const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// --- Kontakt-/Rechtliches-Einstellungen (Impressum, Datenschutz, Kontaktformular) ---
+const DEFAULT_SETTINGS = {
+  contactName: 'Martin Renner',
+  street: 'Berliner Straße 26',
+  zip: '74172',
+  city: 'Neckarsulm',
+  email: 'martin.renner@gmail.com',
+  phone: '',
+};
+
+function loadSettings() {
+  try {
+    const raw = fs.readFileSync(SETTINGS_FILE, 'utf8');
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    saveSettings(DEFAULT_SETTINGS);
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(settings) {
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+}
 
 const DEFAULT_PROJECTS = [
   {
@@ -145,11 +171,94 @@ const upload = multer({
   },
 });
 
+app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(UPLOADS_DIR));
+
+// --- Rechtliche Seiten & Kontaktformular (dynamisch, siehe unten) ---
+// Diese Routen müssen VOR der Static-Middleware registriert werden, damit sie
+// die alten statischen public/impressum.html & public/datenschutz.html überschreiben.
+app.get('/impressum.html', (req, res) => {
+  res.send(renderImpressumPage(loadSettings()));
+});
+
+app.get('/datenschutz.html', (req, res) => {
+  res.send(renderDatenschutzPage(loadSettings()));
+});
+
+app.get('/apps', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'apps.html'));
+});
+
+app.get('/kontakt', (req, res) => {
+  const { question, token } = createCaptcha();
+  res.send(renderKontaktPage(loadSettings(), { question, token }));
+});
+
+app.post('/kontakt', async (req, res) => {
+  const settings = loadSettings();
+  const { name, email, message, captchaAnswer, captchaToken, website } = req.body;
+
+  // Honeypot: Ein verstecktes Feld, das nur Bots ausfüllen. Wird es befüllt,
+  // tun wir so, als hätte alles geklappt, ohne wirklich etwas zu versenden.
+  if (website) {
+    return res.send(renderKontaktPage(settings, { success: true }));
+  }
+
+  if (!name || !email || !message) {
+    const { question, token } = createCaptcha();
+    return res.send(renderKontaktPage(settings, {
+      error: 'Bitte fülle alle Felder aus.',
+      question,
+      token,
+      values: { name, email, message },
+    }));
+  }
+
+  if (!verifyCaptcha(captchaToken, captchaAnswer)) {
+    const { question, token } = createCaptcha();
+    return res.send(renderKontaktPage(settings, {
+      error: 'Die Rechenaufgabe wurde nicht richtig gelöst (oder ist abgelaufen). Bitte erneut versuchen.',
+      question,
+      token,
+      values: { name, email, message },
+    }));
+  }
+
+  const transporter = getMailTransporter();
+  if (!transporter) {
+    console.error('Kontaktformular: Mailversand ist nicht konfiguriert (SMTP_HOST/SMTP_USER/SMTP_PASS fehlen).');
+    const { question, token } = createCaptcha();
+    return res.send(renderKontaktPage(settings, {
+      error: `Der Mailversand ist aktuell nicht konfiguriert. Bitte schreib mir direkt an ${settings.email}.`,
+      question,
+      token,
+      values: { name, email, message },
+    }));
+  }
+
+  try {
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM || process.env.SMTP_USER,
+      to: process.env.CONTACT_TO || settings.email,
+      replyTo: email,
+      subject: `Kontaktanfrage von ${name} über martinrenner.de`,
+      text: `Name: ${name}\nE-Mail: ${email}\n\nNachricht:\n${message}`,
+    });
+    res.send(renderKontaktPage(settings, { success: true }));
+  } catch (err) {
+    console.error('Kontaktformular: Mailversand fehlgeschlagen:', err);
+    const { question, token } = createCaptcha();
+    res.send(renderKontaktPage(settings, {
+      error: `Beim Versand ist ein Fehler aufgetreten. Bitte schreib mir direkt an ${settings.email}.`,
+      question,
+      token,
+      values: { name, email, message },
+    }));
+  }
+});
 
 // Statische Startseite (public/index.html) und weitere statische Seiten unter "/"
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
 
 // --- Öffentliche API für die Startseiten-Slideshow ---
 app.get('/api/projects', (req, res) => {
@@ -187,7 +296,326 @@ function escapeAttr(str) {
   return escapeHtml(str);
 }
 
-function renderAdminPage(projects, message) {
+// --- Captcha (selbstgehostet, kein Drittanbieter, keine Cookies) ---
+const CAPTCHA_SECRET = process.env.CAPTCHA_SECRET || crypto.randomBytes(32).toString('hex');
+const CAPTCHA_TTL_MS = 15 * 60 * 1000;
+
+function createCaptcha() {
+  const a = crypto.randomInt(1, 10);
+  const b = crypto.randomInt(1, 10);
+  const expires = Date.now() + CAPTCHA_TTL_MS;
+  const payload = `${a}:${b}:${expires}`;
+  const sig = crypto.createHmac('sha256', CAPTCHA_SECRET).update(payload).digest('hex');
+  const token = Buffer.from(payload).toString('base64') + '.' + sig;
+  return { question: `${a} + ${b}`, token };
+}
+
+function verifyCaptcha(token, answer) {
+  if (!token || typeof token !== 'string' || token.indexOf('.') === -1) return false;
+  const [payloadB64, sig] = token.split('.');
+  let payload;
+  try {
+    payload = Buffer.from(payloadB64, 'base64').toString('utf8');
+  } catch {
+    return false;
+  }
+  const expectedSig = crypto.createHmac('sha256', CAPTCHA_SECRET).update(payload).digest('hex');
+  const sigBuf = Buffer.from(sig || '', 'hex');
+  const expectedBuf = Buffer.from(expectedSig, 'hex');
+  if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) return false;
+  const parts = payload.split(':');
+  const a = parseInt(parts[0], 10);
+  const b = parseInt(parts[1], 10);
+  const expires = parseInt(parts[2], 10);
+  if (!Number.isFinite(expires) || Date.now() > expires) return false;
+  return parseInt(answer, 10) === a + b;
+}
+
+// --- Mailversand fürs Kontaktformular (SMTP über Umgebungsvariablen) ---
+let mailTransporter;
+function getMailTransporter() {
+  if (mailTransporter !== undefined) return mailTransporter;
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    mailTransporter = null;
+    return mailTransporter;
+  }
+  mailTransporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+  return mailTransporter;
+}
+
+// --- Gemeinsames Styling für Impressum / Datenschutz / Kontakt ---
+const LEGAL_PAGE_STYLE = `
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    color: #f8fafc;
+    min-height: 100vh;
+    padding: 2.5rem 1rem 5rem;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); margin-bottom: 1.5rem; }
+  h2 { font-size: 1.15rem; margin-top: 2rem; margin-bottom: 0.6rem; color: #38bdf8; }
+  h3 { font-size: 1rem; margin-top: 1.2rem; margin-bottom: 0.4rem; color: #cbd5e1; }
+  p, li { line-height: 1.6; color: #e2e8f0; margin-bottom: 0.6rem; }
+  ul { padding-left: 1.2rem; margin-bottom: 0.6rem; }
+  a { color: #38bdf8; }
+  .home-link { display: inline-block; margin-top: 2.5rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
+  .home-link:hover { text-decoration: underline; }
+  .hint {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    margin-bottom: 1.5rem;
+  }
+  .message-box {
+    background: rgba(56,189,248,0.15);
+    border: 1px solid rgba(56,189,248,0.4);
+    color: #7dd3fc;
+    padding: 0.9rem 1.1rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+  }
+  .message-box.error {
+    background: rgba(239,68,68,0.12);
+    border-color: rgba(239,68,68,0.4);
+    color: #fca5a5;
+  }
+  form { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.9rem; max-width: 480px; }
+  label { font-size: 0.85rem; color: #94a3b8; display: flex; flex-direction: column; gap: 0.3rem; }
+  input, textarea {
+    width: 100%;
+    padding: 0.65rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: #f8fafc;
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+  textarea { min-height: 110px; resize: vertical; }
+  button {
+    align-self: flex-start;
+    padding: 0.7rem 1.4rem;
+    border-radius: 8px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  button:hover { background: #0ea5e9; }
+  .hp-field { position: absolute; left: -9999px; top: -9999px; }
+  .legal-footer {
+    position: fixed;
+    right: 1rem;
+    bottom: 0.75rem;
+    display: flex;
+    gap: 0.9rem;
+    font-size: 0.78rem;
+  }
+  .legal-footer a { color: #64748b; text-decoration: none; }
+  .legal-footer a:hover { color: #94a3b8; }
+  .cookie-banner {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 20;
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    background: rgba(15,23,42,0.97);
+    border-top: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(6px);
+  }
+  .cookie-banner p { color: #e2e8f0; font-size: 0.85rem; max-width: 640px; line-height: 1.5; margin: 0; }
+  .cookie-banner a { color: #38bdf8; }
+  .cookie-banner button {
+    padding: 0.55rem 1.2rem;
+    border-radius: 999px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .cookie-banner button:hover { background: #0ea5e9; }
+`;
+
+function renderImpressumPage(settings) {
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impressum – martinrenner.de</title>
+<style>${LEGAL_PAGE_STYLE}</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Impressum</h1>
+
+    <h2>Angaben gemäß § 5 DDG</h2>
+    <p>${escapeHtml(settings.contactName)}<br>
+    ${escapeHtml(settings.street)}<br>
+    ${escapeHtml(settings.zip)} ${escapeHtml(settings.city)}<br>
+    Deutschland</p>
+
+    <h2>Kontakt</h2>
+    <p>E-Mail: <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a>${settings.phone ? `<br>Telefon: ${escapeHtml(settings.phone)}` : ''}</p>
+    <p>Für Anfragen nutze gerne auch die <a href="/kontakt">Kontakt-Seite</a>.</p>
+
+    <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+    <p>${escapeHtml(settings.contactName)} (Anschrift wie oben)</p>
+
+    <h2>Hinweis zur Website</h2>
+    <p>Diese Website dient privaten, nicht-kommerziellen Zwecken. Es werden über sie keine Waren oder Dienstleistungen verkauft.</p>
+
+    <h2>Haftung für Inhalte</h2>
+    <p>Als Diensteanbieter bin ich gemäß § 7 Abs. 1 DDG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 DDG bin ich als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt.</p>
+
+    <h2>Haftung für Links</h2>
+    <p>Mein Angebot enthält gegebenenfalls Links zu externen Websites Dritter, auf deren Inhalte ich keinen Einfluss habe. Deshalb kann ich für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.</p>
+
+    <h2>Urheberrecht</h2>
+    <p>Die durch mich erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen meiner schriftlichen Zustimmung.</p>
+
+    <a class="home-link" href="/">&larr; zurück zur Startseite</a>
+  </div>
+
+  ${LEGAL_FOOTER_BLOCK}
+  ${COOKIE_BANNER_BLOCK}
+</body>
+</html>`;
+}
+
+function renderDatenschutzPage(settings) {
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datenschutzerklärung – martinrenner.de</title>
+<style>${LEGAL_PAGE_STYLE}</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Datenschutzerklärung</h1>
+
+    <div class="hint">Diese Datenschutzerklärung ersetzt keine individuelle Rechtsberatung. Bei Unsicherheiten empfiehlt sich die Prüfung durch eine fachkundige Stelle.</div>
+
+    <h2>1. Verantwortlicher</h2>
+    <p>${escapeHtml(settings.contactName)}<br>
+    ${escapeHtml(settings.street)}<br>
+    ${escapeHtml(settings.zip)} ${escapeHtml(settings.city)}<br>
+    Deutschland<br>
+    E-Mail: <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a></p>
+
+    <h2>2. Allgemeines zur Datenverarbeitung</h2>
+    <p>Ich erhebe und verwende personenbezogene Daten meiner Nutzer grundsätzlich nur, soweit dies zur Bereitstellung einer funktionsfähigen Website sowie meiner Inhalte und Leistungen erforderlich ist. Die Verarbeitung erfolgt nur mit Einwilligung des Nutzers oder auf Grundlage einer gesetzlichen Erlaubnis (Art. 6 DSGVO).</p>
+
+    <h2>3. Bereitstellung der Website und Erstellung von Server-Logfiles</h2>
+    <p>Diese Website wird bei Railway (Railway Corporation) gehostet. Zusätzlich wird der Netzwerkverkehr über den Dienst Cloudflare (Cloudflare, Inc., USA, bzw. Cloudflare Germany GmbH) geleitet, der als Content-Delivery-Network (CDN) und Sicherheits-/DNS-Dienst vorgeschaltet ist. Beim Aufruf der Website erheben Cloudflare und der Hosting-Provider automatisch technische Verbindungsdaten, u. a.:</p>
+    <ul>
+      <li>IP-Adresse des anfragenden Geräts</li>
+      <li>Datum und Uhrzeit des Zugriffs</li>
+      <li>aufgerufene Seite / Datei</li>
+      <li>Browsertyp und -version, verwendetes Betriebssystem</li>
+      <li>Referrer-URL (zuvor besuchte Seite)</li>
+    </ul>
+    <p>Diese Daten werden ausschließlich zum technischen Betrieb, zur Absicherung der Website (Fehleranalyse, IT-Sicherheit, Schutz vor Missbrauch/DDoS) verarbeitet und nicht zu Marketingzwecken genutzt oder mit anderen Datenquellen zusammengeführt. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und stabilen Betrieb der Website). Die Daten werden nach Zweckfortfall gelöscht bzw. anonymisiert.</p>
+    <p>Da die eingesetzten Dienstleister ihren Sitz bzw. Teile ihrer Infrastruktur außerhalb der EU/des EWR (insbesondere in den USA) haben können, ist eine Datenübermittlung in ein Drittland nicht auszuschließen. Ich achte bei der Auswahl meiner Dienstleister auf angemessene Garantien (z. B. EU-Standardvertragsklauseln nach Art. 46 DSGVO).</p>
+
+    <h2>4. Kontaktaufnahme über das Kontaktformular</h2>
+    <p>Über die <a href="/kontakt">Kontakt-Seite</a> kannst du mir eine Nachricht senden. Die von dir eingegebenen Daten (Name, E-Mail-Adresse, Nachricht) werden dabei an den Server dieser Website (gehostet bei Railway) übermittelt und von dort per E-Mail an mein Postfach weitergeleitet. Es findet keine Speicherung deiner Nachricht in einer Datenbank statt – die Daten werden ausschließlich zur Bearbeitung deiner Anfrage genutzt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen) bzw. Art. 6 Abs. 1 lit. b DSGVO, sofern die Anfrage der Anbahnung eines Vertrags dient.</p>
+    <p>Zum Schutz vor automatisiertem Missbrauch (Spam) enthält das Formular eine einfache Rechenaufgabe ("Captcha"). Diese wird ausschließlich serverseitig auf dieser Website erzeugt und geprüft – es wird kein Drittanbieter-Dienst (z. B. Google reCAPTCHA) eingebunden, es werden dabei keine Cookies gesetzt und keine personenbezogenen Daten an Dritte übermittelt.</p>
+    <p>Alternativ kannst du mich auch direkt per E-Mail unter <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a> kontaktieren; in diesem Fall gelten die Datenschutzhinweise deines E-Mail-Anbieters.</p>
+
+    <h2>5. Bereich „/choerle" – Dropbox-Anbindung</h2>
+    <p>Im Bereich „/choerle" werden Dateien (z. B. Noten) angezeigt, die serverseitig über die API des Cloud-Speicherdienstes Dropbox (Dropbox Inc., USA bzw. Dropbox International Unlimited Company, Irland) abgerufen werden. Dabei werden ausschließlich Dateiinformationen aus einem dediziert für diese Website angelegten Dropbox-Ordner abgerufen – es werden keine personenbezogenen Daten von Besuchern der Website an Dropbox übermittelt. Der Abruf erfolgt serverseitig über einen Zugriffstoken; Besucher der Seite treten mit Dropbox nicht in direkten Kontakt.</p>
+
+    <h2>6. Cookies und Tracking</h2>
+    <p>Diese Website setzt keine Cookies und keine Analyse- oder Trackingdienste (z. B. Google Analytics) zu Marketing- oder Analysezwecken ein. Es findet kein Tracking des Nutzerverhaltens statt.</p>
+    <p>Lediglich für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TDDDG). Eine Einwilligung ist hierfür nach § 25 TDDDG nicht erforderlich, da keine nicht-notwendigen Cookies gesetzt werden.</p>
+    <p>Solltest du künftig Funktionen mit nicht-technisch-notwendigen Cookies (z. B. Statistik- oder Einbettungsdienste) hinzufügen, wird vor deren Einsatz eine Einwilligung über den Cookie-Banner eingeholt.</p>
+
+    <h2>7. Deine Rechte als betroffene Person</h2>
+    <p>Dir stehen gegenüber mir folgende Rechte hinsichtlich der dich betreffenden personenbezogenen Daten zu:</p>
+    <ul>
+      <li>Recht auf Auskunft (Art. 15 DSGVO)</li>
+      <li>Recht auf Berichtigung (Art. 16 DSGVO)</li>
+      <li>Recht auf Löschung (Art. 17 DSGVO)</li>
+      <li>Recht auf Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
+      <li>Recht auf Datenübertragbarkeit (Art. 20 DSGVO)</li>
+      <li>Widerspruchsrecht gegen die Verarbeitung (Art. 21 DSGVO)</li>
+    </ul>
+    <p>Du hast zudem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung deiner personenbezogenen Daten durch mich zu beschweren (Art. 77 DSGVO).</p>
+
+    <h2>8. Aktualität und Änderung dieser Datenschutzerklärung</h2>
+    <p>Diese Datenschutzerklärung ist aktuell gültig (Stand: September 2026). Durch die Weiterentwicklung der Website oder geänderte gesetzliche Vorgaben kann es notwendig werden, diese Erklärung anzupassen.</p>
+
+    <a class="home-link" href="/">&larr; zurück zur Startseite</a>
+  </div>
+
+  ${LEGAL_FOOTER_BLOCK}
+  ${COOKIE_BANNER_BLOCK}
+</body>
+</html>`;
+}
+
+function renderKontaktPage(settings, opts) {
+  opts = opts || {};
+  const values = opts.values || {};
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kontakt – martinrenner.de</title>
+<style>${LEGAL_PAGE_STYLE}</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Kontakt</h1>
+    <p class="hint">Schreib mir eine Nachricht – ich melde mich so schnell wie möglich zurück. Direkt erreichst du mich auch per E-Mail unter <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a>${settings.phone ? ` oder telefonisch unter ${escapeHtml(settings.phone)}` : ''}.</p>
+
+    ${opts.success ? `<div class="message-box">Danke für deine Nachricht! Ich melde mich zeitnah bei dir.</div>` : ''}
+    ${opts.error ? `<div class="message-box error">${escapeHtml(opts.error)}</div>` : ''}
+
+    ${!opts.success ? `<form method="POST" action="/kontakt">
+      <label>Name<input type="text" name="name" value="${escapeAttr(values.name || '')}" required></label>
+      <label>Deine E-Mail-Adresse<input type="email" name="email" value="${escapeAttr(values.email || '')}" required></label>
+      <label>Nachricht<textarea name="message" required>${escapeHtml(values.message || '')}</textarea></label>
+      <label>Zum Nachweis, dass du kein Roboter bist: ${escapeHtml(opts.question || '')} = ?<input type="text" name="captchaAnswer" inputmode="numeric" required></label>
+      <input type="hidden" name="captchaToken" value="${escapeAttr(opts.token || '')}">
+      <label class="hp-field" aria-hidden="true">Bitte freilassen<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+      <button type="submit">Nachricht senden</button>
+    </form>` : ''}
+
+    <a class="home-link" href="/">&larr; zurück zur Startseite</a>
+  </div>
+
+  ${LEGAL_FOOTER_BLOCK}
+  ${COOKIE_BANNER_BLOCK}
+</body>
+</html>`;
+}
+
+function renderAdminPage(projects, settings, message) {
   const rows = projects
     .map(
       (p) => `
@@ -203,7 +631,7 @@ function renderAdminPage(projects, message) {
             <label>Ausführliche Infos (Pop-up, optional)<textarea name="details">${escapeHtml(p.details || '')}</textarea></label>
             <label>Link<input type="text" name="link" value="${escapeAttr(p.link || '')}"></label>
             <label>Social-Media-Links (eine Zeile je Link: Label|URL)<textarea name="socials" placeholder="Instagram|https://instagram.com/...">${escapeHtml(socialsToText(p.socials))}</textarea></label>
-            <label>Foto ersetzen<input type="file" name="photo" accept="image/*"></label>
+            <label>Foto ersetzen<input type="file" name="photo" accept="image/*"><span class="hint">Ideal: mindestens 1920×1080px, Querformat (16:9), JPG oder PNG, unter 3 MB</span></label>
           </div>
         </div>
         <div class="actions">
@@ -273,6 +701,7 @@ function renderAdminPage(projects, message) {
     font-size: 0.9rem;
   }
   textarea { min-height: 60px; resize: vertical; }
+  .hint { font-size: 0.72rem; color: #64748b; font-weight: normal; }
   .actions { margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; }
   button {
     padding: 0.6rem 1.2rem;
@@ -319,10 +748,28 @@ function renderAdminPage(projects, message) {
           <label>Ausführliche Infos (Pop-up, optional)<textarea name="details"></textarea></label>
           <label>Link<input type="text" name="link" placeholder="https://..."></label>
           <label>Social-Media-Links (eine Zeile je Link: Label|URL)<textarea name="socials" placeholder="Instagram|https://instagram.com/..."></textarea></label>
-          <label>Foto<input type="file" name="photo" accept="image/*"></label>
+          <label>Foto<input type="file" name="photo" accept="image/*"><span class="hint">Ideal: mindestens 1920×1080px, Querformat (16:9), JPG oder PNG, unter 3 MB</span></label>
         </div>
         <div class="actions">
           <button type="submit">Projekt hinzufügen</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="new-project">
+      <h2>📇 Kontakt &amp; Rechtliches</h2>
+      <p class="subtitle" style="margin-bottom:1rem;">Diese Angaben erscheinen automatisch im Impressum, in der Datenschutzerklärung und auf der Kontakt-Seite.</p>
+      <form method="POST" action="/admin/settings">
+        <div class="fields">
+          <label>Name<input type="text" name="contactName" value="${escapeAttr(settings.contactName)}" required></label>
+          <label>Straße &amp; Hausnummer<input type="text" name="street" value="${escapeAttr(settings.street)}" required></label>
+          <label>PLZ<input type="text" name="zip" value="${escapeAttr(settings.zip)}" required></label>
+          <label>Ort<input type="text" name="city" value="${escapeAttr(settings.city)}" required></label>
+          <label>E-Mail<input type="email" name="email" value="${escapeAttr(settings.email)}" required></label>
+          <label>Telefon (optional)<input type="text" name="phone" value="${escapeAttr(settings.phone || '')}"></label>
+        </div>
+        <div class="actions">
+          <button type="submit">Speichern</button>
         </div>
       </form>
     </div>
@@ -334,7 +781,21 @@ function renderAdminPage(projects, message) {
 }
 
 app.get('/admin', requireAdminAuth, (req, res) => {
-  res.send(renderAdminPage(loadProjects()));
+  res.send(renderAdminPage(loadProjects(), loadSettings()));
+});
+
+app.post('/admin/settings', requireAdminAuth, (req, res) => {
+  const settings = loadSettings();
+  saveSettings({
+    ...settings,
+    contactName: req.body.contactName || settings.contactName,
+    street: req.body.street || settings.street,
+    zip: req.body.zip || settings.zip,
+    city: req.body.city || settings.city,
+    email: req.body.email || settings.email,
+    phone: req.body.phone !== undefined ? req.body.phone : settings.phone,
+  });
+  res.redirect('/admin');
 });
 
 app.post('/admin/projects', requireAdminAuth, upload.single('photo'), (req, res) => {
@@ -676,7 +1137,7 @@ const LEGAL_FOOTER_BLOCK = `
   <div class="legal-footer">
     <a href="/impressum.html">Impressum</a>
     <a href="/datenschutz.html">Datenschutz</a>
-    <a href="/apps.html">Apps</a>
+    <a href="/kontakt">Kontakt</a>
   </div>`;
 
 function renderChoerleListPage(itemsHtml) {
