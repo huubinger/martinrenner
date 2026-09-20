@@ -294,6 +294,96 @@
     .banner { padding: 1.8rem 1.2rem 4.5rem; }
     .top-nav { padding: 0.9rem 1rem; gap: 1rem; }
   }
+
+  .news-box {
+    position: fixed;
+    top: 4.6rem;
+    right: 1.5rem;
+    z-index: 6;
+    width: 260px;
+    max-height: 44vh;
+    overflow-y: auto;
+    background: rgba(15,23,42,0.72);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+    backdrop-filter: blur(8px);
+    display: none;
+  }
+  .news-box h2 {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #38bdf8;
+    margin-bottom: 0.7rem;
+  }
+  .news-item {
+    padding-bottom: 0.7rem;
+    margin-bottom: 0.7rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .news-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .news-date { font-size: 0.68rem; color: #64748b; margin-bottom: 0.2rem; }
+  .news-text { font-size: 0.83rem; color: #e2e8f0; line-height: 1.4; }
+
+  .newsletter-box {
+    position: fixed;
+    left: 1rem;
+    bottom: 5.5rem;
+    z-index: 11;
+    display: none;
+    width: 230px;
+    background: rgba(15,23,42,0.92);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    backdrop-filter: blur(6px);
+  }
+  .newsletter-close {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .newsletter-close:hover { color: #f8fafc; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; padding-right: 1rem; }
+  .newsletter-form { display: flex; gap: 0.4rem; }
+  .newsletter-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #f8fafc;
+    font-size: 0.78rem;
+    font-family: inherit;
+  }
+  .newsletter-form button {
+    padding: 0.45rem 0.7rem;
+    border-radius: 6px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .newsletter-form button:hover { background: #0ea5e9; }
+  .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
+
+  @media (max-width: 700px) {
+    .news-box { display: none !important; }
+  }
+  @media (max-width: 560px) {
+    .newsletter-box { left: 0.6rem; right: 0.6rem; width: auto; bottom: 5.5rem; }
+  }
 </style>
 </head>
 <body>
@@ -324,6 +414,21 @@
     </div>
   </div>
 
+  <div class="news-box" id="news-box">
+    <h2>📰 News</h2>
+    <div id="news-list"></div>
+  </div>
+
+  <div class="newsletter-box" id="newsletter-box">
+    <button type="button" class="newsletter-close" id="newsletter-close" aria-label="Schließen">&times;</button>
+    <p class="newsletter-text">📬 Newsletter abonnieren</p>
+    <form id="newsletter-form" class="newsletter-form">
+      <input type="email" name="email" id="newsletter-email" placeholder="deine@email.de" required>
+      <button type="submit">Anmelden</button>
+    </form>
+    <p class="newsletter-msg" id="newsletter-msg"></p>
+  </div>
+
   <div class="legal-footer">
     <a href="/impressum.html">Impressum</a>
     <a href="/datenschutz.html">Datenschutz</a>
@@ -348,6 +453,73 @@
           banner.style.display = 'none';
         });
       }
+    })();
+  </script>
+
+  <script>
+    // News-Shoutbox: lädt kurze Meldungen vom Server und zeigt sie rechts an.
+    (function () {
+      function escapeHtmlLocal(str) {
+        return String(str).replace(/[&<>"']/g, (c) => (
+          { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+        ));
+      }
+      fetch('/api/news')
+        .then((r) => r.json())
+        .then((items) => {
+          if (!Array.isArray(items) || !items.length) return;
+          const box = document.getElementById('news-box');
+          const list = document.getElementById('news-list');
+          list.innerHTML = items
+            .map((n) => {
+              const date = n.createdAt ? new Date(n.createdAt).toLocaleDateString('de-DE') : '';
+              return `<div class="news-item"><div class="news-date">${escapeHtmlLocal(date)}</div><div class="news-text">${escapeHtmlLocal(n.text)}</div></div>`;
+            })
+            .join('');
+          box.style.display = 'block';
+        })
+        .catch(() => {});
+    })();
+  </script>
+
+  <script>
+    // Newsletter-Banner: E-Mail-Anmeldung direkt in den Mailchimp-Verteiler.
+    (function () {
+      var KEY = 'newsletter_dismissed_v1';
+      var box = document.getElementById('newsletter-box');
+      if (!box) return;
+      if (localStorage.getItem(KEY)) return;
+      box.style.display = 'block';
+      var closeBtn = document.getElementById('newsletter-close');
+      var form = document.getElementById('newsletter-form');
+      var msg = document.getElementById('newsletter-msg');
+      closeBtn.addEventListener('click', function () {
+        try { localStorage.setItem(KEY, '1'); } catch (e) {}
+        box.style.display = 'none';
+      });
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = document.getElementById('newsletter-email').value;
+        msg.textContent = 'Wird gesendet …';
+        fetch('/api/newsletter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'email=' + encodeURIComponent(email),
+        })
+          .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
+          .then((result) => {
+            if (result.ok && result.data.ok) {
+              msg.textContent = 'Danke fürs Abonnieren!';
+              form.style.display = 'none';
+              try { localStorage.setItem(KEY, '1'); } catch (e) {}
+            } else {
+              msg.textContent = (result.data && result.data.error) || 'Anmeldung fehlgeschlagen.';
+            }
+          })
+          .catch(() => {
+            msg.textContent = 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.';
+          });
+      });
     })();
   </script>
 
@@ -471,7 +643,9 @@
       bannerEyebrow.textContent = s.eyebrow || '';
       bannerTitle.textContent = s.title || '';
       bannerInfo.textContent = s.info || '';
-      bannerLink.href = s.link || '#';
+      const hasLink = !!(s.link && s.link !== '#');
+      bannerLink.style.display = hasLink ? 'inline-flex' : 'none';
+      bannerLink.href = hasLink ? s.link : '#';
       bannerSocials.innerHTML = (s.socials || [])
         .map((soc) => `<a class="social-btn" href="${escapeHtmlClient(soc.href)}" target="_blank" rel="noopener">${socialIcon(soc.label)}<span>${escapeHtmlClient(soc.label)}</span></a>`)
         .join('');

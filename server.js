@@ -14,7 +14,23 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
+const NEWS_FILE = path.join(DATA_DIR, 'news.json');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// --- News-Shoutbox (kurze Meldungen auf der Startseite) ---
+function loadNews() {
+  try {
+    const raw = fs.readFileSync(NEWS_FILE, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    saveNews([]);
+    return [];
+  }
+}
+
+function saveNews(list) {
+  fs.writeFileSync(NEWS_FILE, JSON.stringify(list, null, 2));
+}
 
 // --- Kontakt-/Rechtliches-Einstellungen (Impressum, Datenschutz, Kontaktformular) ---
 const DEFAULT_SETTINGS = {
@@ -142,6 +158,16 @@ function slugify(str) {
     .replace(/(^-|-$)/g, '') || crypto.randomUUID().slice(0, 8);
 }
 
+// Ergänzt fehlendes "https://" bei Links, die sonst als relativer Pfad
+// interpretiert würden (z. B. "www.instagram.com/..." -> "Cannot GET /...").
+// Interne Pfade ("/choerle"), "#", "mailto:" und "tel:" bleiben unverändert.
+function normalizeUrl(href) {
+  const h = (href || '').trim();
+  if (!h || h === '#') return h || '#';
+  if (/^(https?:\/\/|mailto:|tel:|\/)/i.test(h)) return h;
+  return 'https://' + h;
+}
+
 function parseSocials(text) {
   if (!text) return [];
   return text
@@ -150,7 +176,7 @@ function parseSocials(text) {
     .filter(Boolean)
     .map((line) => {
       const [label, href] = line.split('|').map((s) => (s || '').trim());
-      return { label: label || 'Link', href: href || '#' };
+      return { label: label || 'Link', href: normalizeUrl(href) };
     });
 }
 
@@ -263,6 +289,63 @@ app.use(express.static(path.join(__dirname, 'public')));
 // --- Öffentliche API für die Startseiten-Slideshow ---
 app.get('/api/projects', (req, res) => {
   res.json(loadProjects());
+});
+
+// --- Öffentliche API für die News-Shoutbox ---
+app.get('/api/news', (req, res) => {
+  const news = loadNews()
+    .slice()
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+    .slice(0, 8);
+  res.json(news);
+});
+
+// --- Newsletter-Anmeldung über Mailchimp ---
+async function subscribeToMailchimp(email) {
+  const apiKey = process.env.MAILCHIMP_API_KEY;
+  const audienceId = process.env.MAILCHIMP_AUDIENCE_ID;
+  const serverPrefix = process.env.MAILCHIMP_SERVER_PREFIX; // z. B. "us21" (Endung deines API-Keys nach dem "-")
+  if (!apiKey || !audienceId || !serverPrefix) {
+    const err = new Error('MAILCHIMP_NOT_CONFIGURED');
+    err.code = 'MAILCHIMP_NOT_CONFIGURED';
+    throw err;
+  }
+  const hash = crypto.createHash('md5').update(email.trim().toLowerCase()).digest('hex');
+  const url = `https://${serverPrefix}.api.mailchimp.com/3.0/lists/${audienceId}/members/${hash}`;
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: 'Basic ' + Buffer.from('anystring:' + apiKey).toString('base64'),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email_address: email,
+      status_if_new: 'subscribed',
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error((data && data.detail) || 'Mailchimp-Fehler');
+  }
+  return data;
+}
+
+app.post('/api/newsletter', async (req, res) => {
+  const email = (req.body.email || '').trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ ok: false, error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
+  }
+  try {
+    await subscribeToMailchimp(email);
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.code === 'MAILCHIMP_NOT_CONFIGURED') {
+      console.error('Newsletter: Mailchimp ist nicht konfiguriert (MAILCHIMP_API_KEY/MAILCHIMP_AUDIENCE_ID/MAILCHIMP_SERVER_PREFIX fehlen).');
+      return res.status(503).json({ ok: false, error: 'Die Newsletter-Anmeldung ist aktuell nicht verfügbar.' });
+    }
+    console.error('Newsletter: Mailchimp-Fehler:', err.message);
+    res.status(502).json({ ok: false, error: 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.' });
+  }
 });
 
 // --- Admin-Bereich (Benutzername + Passwort) ---
@@ -455,6 +538,61 @@ const LEGAL_PAGE_STYLE = `
     white-space: nowrap;
   }
   .cookie-banner button:hover { background: #0ea5e9; }
+
+  .newsletter-box {
+    position: fixed;
+    left: 1rem;
+    bottom: 5.5rem;
+    z-index: 11;
+    display: none;
+    width: 230px;
+    background: rgba(15,23,42,0.92);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    backdrop-filter: blur(6px);
+  }
+  .newsletter-close {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .newsletter-close:hover { color: #f8fafc; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; padding-right: 1rem; }
+  .newsletter-form { display: flex; gap: 0.4rem; }
+  .newsletter-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #f8fafc;
+    font-size: 0.78rem;
+    font-family: inherit;
+  }
+  .newsletter-form button {
+    padding: 0.45rem 0.7rem;
+    border-radius: 6px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .newsletter-form button:hover { background: #0ea5e9; }
+  .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
+  @media (max-width: 560px) {
+    .newsletter-box { left: 0.6rem; right: 0.6rem; width: auto; bottom: 5.5rem; }
+  }
 `;
 
 function renderImpressumPage(settings) {
@@ -500,6 +638,7 @@ function renderImpressumPage(settings) {
 
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
+  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }
@@ -572,6 +711,7 @@ function renderDatenschutzPage(settings) {
 
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
+  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }
@@ -610,11 +750,12 @@ function renderKontaktPage(settings, opts) {
 
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
+  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }
 
-function renderAdminPage(projects, settings, message) {
+function renderAdminPage(projects, settings, news, message) {
   const rows = projects
     .map(
       (p) => `
@@ -724,6 +865,18 @@ function renderAdminPage(projects, settings, message) {
     margin-top: 2.5rem;
   }
   .new-project h2 { margin-top: 0; font-size: 1.1rem; color: #38bdf8; }
+  .news-admin-list { list-style: none; margin-bottom: 0.5rem; }
+  .news-admin-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .news-admin-item:last-child { border-bottom: none; }
+  .news-admin-date { font-size: 0.72rem; color: #64748b; margin-bottom: 0.2rem; }
+  .news-admin-text { font-size: 0.88rem; color: #e2e8f0; }
   .home-link { display: inline-block; margin-top: 2rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
   .home-link:hover { text-decoration: underline; }
 </style>
@@ -773,6 +926,38 @@ function renderAdminPage(projects, settings, message) {
       </form>
     </div>
 
+    <div class="new-project">
+      <h2>📰 News-Shoutbox</h2>
+      <p class="subtitle" style="margin-bottom:1rem;">Diese kurzen Meldungen erscheinen rechts auf der Startseite (neueste zuerst).</p>
+      ${
+        news.length
+          ? `<ul class="news-admin-list">${news
+              .slice()
+              .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+              .map(
+                (n) => `<li class="news-admin-item">
+                  <div>
+                    <div class="news-admin-date">${escapeHtml(new Date(n.createdAt).toLocaleDateString('de-DE'))}</div>
+                    <div class="news-admin-text">${escapeHtml(n.text)}</div>
+                  </div>
+                  <form method="POST" action="/admin/news/${encodeURIComponent(n.id)}/delete" onsubmit="return confirm('Diese News-Meldung wirklich löschen?');">
+                    <button type="submit" class="delete-btn">Löschen</button>
+                  </form>
+                </li>`
+              )
+              .join('')}</ul>`
+          : '<p class="subtitle">Noch keine News-Meldungen vorhanden.</p>'
+      }
+      <form method="POST" action="/admin/news" style="margin-top:1rem;">
+        <div class="fields">
+          <label>Neue Meldung<textarea name="text" placeholder="Kurze aktuelle Meldung..." required></textarea></label>
+        </div>
+        <div class="actions">
+          <button type="submit">Meldung veröffentlichen</button>
+        </div>
+      </form>
+    </div>
+
     <a class="home-link" href="/">&larr; zur Startseite</a>
   </div>
 </body>
@@ -780,7 +965,23 @@ function renderAdminPage(projects, settings, message) {
 }
 
 app.get('/admin', requireAdminAuth, (req, res) => {
-  res.send(renderAdminPage(loadProjects(), loadSettings()));
+  res.send(renderAdminPage(loadProjects(), loadSettings(), loadNews()));
+});
+
+app.post('/admin/news', requireAdminAuth, (req, res) => {
+  const text = (req.body.text || '').trim();
+  if (text) {
+    const news = loadNews();
+    news.push({ id: crypto.randomUUID().slice(0, 8), text, createdAt: new Date().toISOString() });
+    saveNews(news);
+  }
+  res.redirect('/admin');
+});
+
+app.post('/admin/news/:id/delete', requireAdminAuth, (req, res) => {
+  const news = loadNews().filter((n) => n.id !== req.params.id);
+  saveNews(news);
+  res.redirect('/admin');
 });
 
 app.post('/admin/settings', requireAdminAuth, (req, res) => {
@@ -807,7 +1008,7 @@ app.post('/admin/projects', requireAdminAuth, upload.single('photo'), (req, res)
     icon: req.body.icon || '🔹',
     info: req.body.info || '',
     details: req.body.details || '',
-    link: req.body.link || '#',
+    link: normalizeUrl(req.body.link) || '#',
     image: req.file ? `/uploads/${req.file.filename}` : null,
     socials: parseSocials(req.body.socials),
   };
@@ -838,7 +1039,7 @@ app.post('/admin/projects/:id', requireAdminAuth, upload.single('photo'), (req, 
     icon: req.body.icon || existing.icon,
     info: req.body.info !== undefined ? req.body.info : existing.info,
     details: req.body.details !== undefined ? req.body.details : existing.details,
-    link: req.body.link || existing.link,
+    link: req.body.link ? normalizeUrl(req.body.link) : existing.link,
     image,
     socials: parseSocials(req.body.socials),
   };
@@ -1108,6 +1309,61 @@ const CHOERLE_STYLE = `
     white-space: nowrap;
   }
   .cookie-banner button:hover { background: #0ea5e9; }
+
+  .newsletter-box {
+    position: fixed;
+    left: 1rem;
+    bottom: 5.5rem;
+    z-index: 11;
+    display: none;
+    width: 230px;
+    background: rgba(15,23,42,0.92);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    backdrop-filter: blur(6px);
+  }
+  .newsletter-close {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .newsletter-close:hover { color: #f8fafc; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; padding-right: 1rem; }
+  .newsletter-form { display: flex; gap: 0.4rem; }
+  .newsletter-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #f8fafc;
+    font-size: 0.78rem;
+    font-family: inherit;
+  }
+  .newsletter-form button {
+    padding: 0.45rem 0.7rem;
+    border-radius: 6px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .newsletter-form button:hover { background: #0ea5e9; }
+  .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
+  @media (max-width: 560px) {
+    .newsletter-box { left: 0.6rem; right: 0.6rem; width: auto; bottom: 5.5rem; }
+  }
 `;
 
 const COOKIE_BANNER_BLOCK = `
@@ -1139,6 +1395,56 @@ const LEGAL_FOOTER_BLOCK = `
     <a href="/kontakt">Kontakt</a>
   </div>`;
 
+const NEWSLETTER_BANNER_BLOCK = `
+  <div class="newsletter-box" id="newsletter-box">
+    <button type="button" class="newsletter-close" id="newsletter-close" aria-label="Schließen">&times;</button>
+    <p class="newsletter-text">📬 Newsletter abonnieren</p>
+    <form id="newsletter-form" class="newsletter-form">
+      <input type="email" name="email" id="newsletter-email" placeholder="deine@email.de" required>
+      <button type="submit">Anmelden</button>
+    </form>
+    <p class="newsletter-msg" id="newsletter-msg"></p>
+  </div>
+  <script>
+    (function () {
+      var KEY = 'newsletter_dismissed_v1';
+      var box = document.getElementById('newsletter-box');
+      if (!box) return;
+      if (localStorage.getItem(KEY)) return;
+      box.style.display = 'block';
+      var closeBtn = document.getElementById('newsletter-close');
+      var form = document.getElementById('newsletter-form');
+      var msg = document.getElementById('newsletter-msg');
+      closeBtn.addEventListener('click', function () {
+        try { localStorage.setItem(KEY, '1'); } catch (e) {}
+        box.style.display = 'none';
+      });
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = document.getElementById('newsletter-email').value;
+        msg.textContent = 'Wird gesendet …';
+        fetch('/api/newsletter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'email=' + encodeURIComponent(email),
+        })
+          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+          .then(function (result) {
+            if (result.ok && result.data.ok) {
+              msg.textContent = 'Danke fürs Abonnieren!';
+              form.style.display = 'none';
+              try { localStorage.setItem(KEY, '1'); } catch (e) {}
+            } else {
+              msg.textContent = (result.data && result.data.error) || 'Anmeldung fehlgeschlagen.';
+            }
+          })
+          .catch(function () {
+            msg.textContent = 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.';
+          });
+      });
+    })();
+  </script>`;
+
 function renderChoerleListPage(itemsHtml) {
   return `<!DOCTYPE html>
 <html lang="de">
@@ -1157,6 +1463,7 @@ function renderChoerleListPage(itemsHtml) {
   </div>
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
+  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }
@@ -1234,6 +1541,7 @@ function renderChoerleSongPage(song, notFound) {
   </div>
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
+  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }

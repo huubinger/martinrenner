@@ -67,6 +67,61 @@
     white-space: nowrap;
   }
   .cookie-banner button:hover { background: #0ea5e9; }
+
+  .newsletter-box {
+    position: fixed;
+    left: 1rem;
+    bottom: 5.5rem;
+    z-index: 11;
+    display: none;
+    width: 230px;
+    background: rgba(15,23,42,0.92);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    backdrop-filter: blur(6px);
+  }
+  .newsletter-close {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .newsletter-close:hover { color: #f8fafc; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; padding-right: 1rem; }
+  .newsletter-form { display: flex; gap: 0.4rem; }
+  .newsletter-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #f8fafc;
+    font-size: 0.78rem;
+    font-family: inherit;
+  }
+  .newsletter-form button {
+    padding: 0.45rem 0.7rem;
+    border-radius: 6px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .newsletter-form button:hover { background: #0ea5e9; }
+  .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
+  @media (max-width: 560px) {
+    .newsletter-box { left: 0.6rem; right: 0.6rem; width: auto; bottom: 5.5rem; }
+  }
 </style>
 </head>
 <body>
@@ -99,6 +154,55 @@
           banner.style.display = 'none';
         });
       }
+    })();
+  </script>
+
+  <div class="newsletter-box" id="newsletter-box">
+    <button type="button" class="newsletter-close" id="newsletter-close" aria-label="Schließen">&times;</button>
+    <p class="newsletter-text">📬 Newsletter abonnieren</p>
+    <form id="newsletter-form" class="newsletter-form">
+      <input type="email" name="email" id="newsletter-email" placeholder="deine@email.de" required>
+      <button type="submit">Anmelden</button>
+    </form>
+    <p class="newsletter-msg" id="newsletter-msg"></p>
+  </div>
+  <script>
+    (function () {
+      var KEY = 'newsletter_dismissed_v1';
+      var box = document.getElementById('newsletter-box');
+      if (!box) return;
+      if (localStorage.getItem(KEY)) return;
+      box.style.display = 'block';
+      var closeBtn = document.getElementById('newsletter-close');
+      var form = document.getElementById('newsletter-form');
+      var msg = document.getElementById('newsletter-msg');
+      closeBtn.addEventListener('click', function () {
+        try { localStorage.setItem(KEY, '1'); } catch (e) {}
+        box.style.display = 'none';
+      });
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = document.getElementById('newsletter-email').value;
+        msg.textContent = 'Wird gesendet …';
+        fetch('/api/newsletter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'email=' + encodeURIComponent(email),
+        })
+          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+          .then(function (result) {
+            if (result.ok && result.data.ok) {
+              msg.textContent = 'Danke fürs Abonnieren!';
+              form.style.display = 'none';
+              try { localStorage.setItem(KEY, '1'); } catch (e) {}
+            } else {
+              msg.textContent = (result.data && result.data.error) || 'Anmeldung fehlgeschlagen.';
+            }
+          })
+          .catch(function () {
+            msg.textContent = 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.';
+          });
+      });
     })();
   </script>
 </body>
