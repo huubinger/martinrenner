@@ -540,17 +540,14 @@ const LEGAL_PAGE_STYLE = `
   .cookie-banner button:hover { background: #0ea5e9; }
 
   .newsletter-box {
-    position: fixed;
-    left: 1rem;
-    bottom: 5.5rem;
-    z-index: 11;
+    position: relative;
     display: none;
-    width: 230px;
-    background: rgba(15,23,42,0.92);
-    border: 1px solid rgba(255,255,255,0.15);
+    max-width: 420px;
+    margin: 3rem auto 1rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
     border-radius: 12px;
-    padding: 0.9rem 1rem;
-    backdrop-filter: blur(6px);
+    padding: 1rem 1.1rem;
   }
   .newsletter-close {
     position: absolute;
@@ -590,9 +587,6 @@ const LEGAL_PAGE_STYLE = `
   }
   .newsletter-form button:hover { background: #0ea5e9; }
   .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
-  @media (max-width: 560px) {
-    .newsletter-box { left: 0.6rem; right: 0.6rem; width: auto; bottom: 5.5rem; }
-  }
 `;
 
 function renderImpressumPage(settings) {
@@ -1311,17 +1305,14 @@ const CHOERLE_STYLE = `
   .cookie-banner button:hover { background: #0ea5e9; }
 
   .newsletter-box {
-    position: fixed;
-    left: 1rem;
-    bottom: 5.5rem;
-    z-index: 11;
+    position: relative;
     display: none;
-    width: 230px;
-    background: rgba(15,23,42,0.92);
-    border: 1px solid rgba(255,255,255,0.15);
+    max-width: 420px;
+    margin: 3rem auto 1rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
     border-radius: 12px;
-    padding: 0.9rem 1rem;
-    backdrop-filter: blur(6px);
+    padding: 1rem 1.1rem;
   }
   .newsletter-close {
     position: absolute;
@@ -1361,9 +1352,6 @@ const CHOERLE_STYLE = `
   }
   .newsletter-form button:hover { background: #0ea5e9; }
   .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
-  @media (max-width: 560px) {
-    .newsletter-box { left: 0.6rem; right: 0.6rem; width: auto; bottom: 5.5rem; }
-  }
 `;
 
 const COOKIE_BANNER_BLOCK = `
