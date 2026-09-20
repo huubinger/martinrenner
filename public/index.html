@@ -94,11 +94,15 @@
     color: #e2e8f0;
     margin-bottom: 1.1rem;
     max-width: 560px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .banner .actions {
     display: flex;
     align-items: center;
-    gap: 1.2rem;
+    gap: 0.8rem;
     flex-wrap: wrap;
   }
   .banner .link-btn {
@@ -114,6 +118,23 @@
     text-decoration: none;
   }
   .banner .link-btn:hover { background: #0ea5e9; }
+  .banner .link-btn svg { display: block; }
+  .banner .info-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 1.05rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #f8fafc;
+    font-weight: 600;
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .banner .info-btn:hover { background: rgba(255,255,255,0.16); }
+  .banner .info-btn svg { display: block; }
   .banner .socials {
     display: flex;
     gap: 0.7rem;
@@ -128,7 +149,6 @@
     justify-content: center;
     color: #f8fafc;
     text-decoration: none;
-    font-size: 0.85rem;
     transition: background 0.15s ease, border-color 0.15s ease;
   }
   .banner .socials a:hover {
@@ -137,25 +157,18 @@
   }
 
   .thumb-nav {
-    position: absolute;
-    top: 1.2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 6;
     display: flex;
-    gap: 0.55rem;
-    padding: 0.5rem;
-    background: rgba(15,23,42,0.45);
-    border-radius: 14px;
-    backdrop-filter: blur(8px);
-    max-width: 94vw;
+    gap: 0.5rem;
+    margin-top: 1.3rem;
+    padding-bottom: 0.2rem;
+    max-width: 100%;
     overflow-x: auto;
   }
   .thumb {
     position: relative;
-    width: 78px;
-    height: 52px;
-    border-radius: 8px;
+    width: 58px;
+    height: 40px;
+    border-radius: 7px;
     overflow: hidden;
     cursor: pointer;
     flex: 0 0 auto;
@@ -172,13 +185,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     opacity: 0.6;
   }
   .thumb .thumb-label {
     position: absolute;
     left: 0; right: 0; bottom: 0;
-    font-size: 0.52rem;
+    font-size: 0.46rem;
     line-height: 1.2;
     padding: 2px 3px;
     background: rgba(0,0,0,0.6);
@@ -188,6 +201,47 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  .info-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15,23,42,0.75);
+    backdrop-filter: blur(4px);
+    padding: 1.5rem;
+  }
+  .info-modal-overlay.open { display: flex; }
+  .info-modal {
+    position: relative;
+    max-width: 560px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 2rem 1.8rem 1.8rem;
+  }
+  .info-modal h2 { font-size: 1.3rem; margin-bottom: 0.8rem; padding-right: 1.5rem; }
+  .info-modal p { color: #e2e8f0; line-height: 1.6; white-space: pre-line; }
+  .info-modal-close {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: #f8fafc;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .info-modal-close:hover { background: rgba(255,255,255,0.18); }
 
   .legal-footer {
     position: fixed;
@@ -248,15 +302,26 @@
 
   <div class="slideshow" id="slideshow"></div>
 
-  <div class="thumb-nav" id="thumb-nav"></div>
-
   <div class="banner">
     <div class="eyebrow" id="banner-eyebrow">Projekt</div>
     <h1 id="banner-title"></h1>
     <p class="info" id="banner-info"></p>
     <div class="actions">
-      <a class="link-btn" id="banner-link" href="#">Mehr erfahren →</a>
+      <a class="link-btn" id="banner-link" href="#">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        Homepage
+      </a>
+      <button type="button" class="info-btn" id="banner-info-btn" style="display:none;"></button>
       <div class="socials" id="banner-socials"></div>
+    </div>
+    <div class="thumb-nav" id="thumb-nav"></div>
+  </div>
+
+  <div class="info-modal-overlay" id="info-modal-overlay">
+    <div class="info-modal">
+      <button type="button" class="info-modal-close" id="info-modal-close" aria-label="Schließen">&times;</button>
+      <h2 id="info-modal-title"></h2>
+      <p id="info-modal-text"></p>
     </div>
   </div>
 
@@ -298,6 +363,28 @@
     const bannerInfo = document.getElementById('banner-info');
     const bannerLink = document.getElementById('banner-link');
     const bannerSocials = document.getElementById('banner-socials');
+    const bannerInfoBtn = document.getElementById('banner-info-btn');
+    const infoModalOverlay = document.getElementById('info-modal-overlay');
+    const infoModalTitle = document.getElementById('info-modal-title');
+    const infoModalText = document.getElementById('info-modal-text');
+    const infoModalClose = document.getElementById('info-modal-close');
+
+    const ICON_INFO = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+
+    const SOCIAL_ICONS = {
+      instagram: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>',
+      facebook: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>',
+      youtube: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>',
+      fallback: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>',
+    };
+
+    function socialIcon(label) {
+      const key = String(label || '').toLowerCase();
+      if (key.indexOf('instagram') !== -1) return SOCIAL_ICONS.instagram;
+      if (key.indexOf('facebook') !== -1) return SOCIAL_ICONS.facebook;
+      if (key.indexOf('youtube') !== -1) return SOCIAL_ICONS.youtube;
+      return SOCIAL_ICONS.fallback;
+    }
 
     function escapeHtmlClient(str) {
       return String(str).replace(/[&<>"']/g, (c) => (
@@ -359,6 +446,19 @@
       });
     }
 
+    function updateInfoAffordance(s) {
+      const hasDetails = !!(s.details && s.details.trim());
+      requestAnimationFrame(() => {
+        const truncated = bannerInfo.scrollHeight > bannerInfo.clientHeight + 2;
+        if (hasDetails || truncated) {
+          bannerInfoBtn.style.display = 'inline-flex';
+          bannerInfoBtn.innerHTML = ICON_INFO + '<span>' + (hasDetails ? 'Infos' : 'weiterlesen') + '</span>';
+        } else {
+          bannerInfoBtn.style.display = 'none';
+        }
+      });
+    }
+
     function render() {
       if (!slides.length) return;
       slideEls.forEach((el, i) => el.classList.toggle('active', i === current));
@@ -369,9 +469,31 @@
       bannerInfo.textContent = s.info || '';
       bannerLink.href = s.link || '#';
       bannerSocials.innerHTML = (s.socials || [])
-        .map((soc) => `<a href="${escapeHtmlClient(soc.href)}" target="_blank" rel="noopener" title="${escapeHtmlClient(soc.label)}">${escapeHtmlClient((soc.label || '?').charAt(0))}</a>`)
+        .map((soc) => `<a href="${escapeHtmlClient(soc.href)}" target="_blank" rel="noopener" title="${escapeHtmlClient(soc.label)}">${socialIcon(soc.label)}</a>`)
         .join('');
+      updateInfoAffordance(s);
     }
+
+    function openInfoModal() {
+      const s = slides[current];
+      if (!s) return;
+      infoModalTitle.textContent = s.title || '';
+      infoModalText.textContent = (s.details && s.details.trim()) ? s.details : (s.info || '');
+      infoModalOverlay.classList.add('open');
+    }
+
+    function closeInfoModal() {
+      infoModalOverlay.classList.remove('open');
+    }
+
+    bannerInfoBtn.addEventListener('click', openInfoModal);
+    infoModalClose.addEventListener('click', closeInfoModal);
+    infoModalOverlay.addEventListener('click', (e) => {
+      if (e.target === infoModalOverlay) closeInfoModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeInfoModal();
+    });
 
     function goTo(i) {
       current = i;

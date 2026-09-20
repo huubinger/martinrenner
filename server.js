@@ -199,7 +199,8 @@ function renderAdminPage(projects, message) {
             <label>Titel<input type="text" name="title" value="${escapeAttr(p.title)}" required></label>
             <label>Kategorie-Label<input type="text" name="eyebrow" value="${escapeAttr(p.eyebrow || '')}"></label>
             <label>Icon (Emoji, für Platzhalter)<input type="text" name="icon" value="${escapeAttr(p.icon || '')}" maxlength="4"></label>
-            <label>Infotext<textarea name="info">${escapeHtml(p.info || '')}</textarea></label>
+            <label>Infotext (kurz, im Banner)<textarea name="info">${escapeHtml(p.info || '')}</textarea></label>
+            <label>Ausführliche Infos (Pop-up, optional)<textarea name="details">${escapeHtml(p.details || '')}</textarea></label>
             <label>Link<input type="text" name="link" value="${escapeAttr(p.link || '')}"></label>
             <label>Social-Media-Links (eine Zeile je Link: Label|URL)<textarea name="socials" placeholder="Instagram|https://instagram.com/...">${escapeHtml(socialsToText(p.socials))}</textarea></label>
             <label>Foto ersetzen<input type="file" name="photo" accept="image/*"></label>
@@ -314,7 +315,8 @@ function renderAdminPage(projects, message) {
           <label>Titel<input type="text" name="title" required></label>
           <label>Kategorie-Label<input type="text" name="eyebrow" placeholder="Projekt"></label>
           <label>Icon (Emoji, für Platzhalter)<input type="text" name="icon" maxlength="4" placeholder="🔹"></label>
-          <label>Infotext<textarea name="info"></textarea></label>
+          <label>Infotext (kurz, im Banner)<textarea name="info"></textarea></label>
+          <label>Ausführliche Infos (Pop-up, optional)<textarea name="details"></textarea></label>
           <label>Link<input type="text" name="link" placeholder="https://..."></label>
           <label>Social-Media-Links (eine Zeile je Link: Label|URL)<textarea name="socials" placeholder="Instagram|https://instagram.com/..."></textarea></label>
           <label>Foto<input type="file" name="photo" accept="image/*"></label>
@@ -344,6 +346,7 @@ app.post('/admin/projects', requireAdminAuth, upload.single('photo'), (req, res)
     eyebrow: req.body.eyebrow || 'Projekt',
     icon: req.body.icon || '🔹',
     info: req.body.info || '',
+    details: req.body.details || '',
     link: req.body.link || '#',
     image: req.file ? `/uploads/${req.file.filename}` : null,
     socials: parseSocials(req.body.socials),
@@ -374,6 +377,7 @@ app.post('/admin/projects/:id', requireAdminAuth, upload.single('photo'), (req, 
     eyebrow: req.body.eyebrow || existing.eyebrow,
     icon: req.body.icon || existing.icon,
     info: req.body.info !== undefined ? req.body.info : existing.info,
+    details: req.body.details !== undefined ? req.body.details : existing.details,
     link: req.body.link || existing.link,
     image,
     socials: parseSocials(req.body.socials),
@@ -591,6 +595,19 @@ const CHOERLE_STYLE = `
   }
   .audio-name { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 0.5rem; }
   audio { width: 100%; }
+  .speed-controls { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.65rem; flex-wrap: wrap; }
+  .speed-label { font-size: 0.78rem; color: #94a3b8; margin-right: 0.2rem; }
+  .speed-btn {
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: #e2e8f0;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .speed-btn:hover { background: rgba(255,255,255,0.12); }
+  .speed-btn.active { background: #38bdf8; border-color: #38bdf8; color: #0f172a; font-weight: 600; }
   .download-link { display: inline-block; margin-top: 0.5rem; font-size: 0.8rem; color: #38bdf8; text-decoration: none; }
   .download-link:hover { text-decoration: underline; }
   .legal-footer {
@@ -702,10 +719,38 @@ function renderChoerleSongPage(song, notFound) {
             (a) => `<div class="audio-item">
               <span class="audio-name">${escapeHtml(a.name)}</span>
               <audio controls preload="none" src="${fileUrl(a.name)}"></audio>
+              <div class="speed-controls">
+                <span class="speed-label">Tempo:</span>
+                <button type="button" class="speed-btn active" data-speed="1">1,0×</button>
+                <button type="button" class="speed-btn" data-speed="0.9">0,9×</button>
+                <button type="button" class="speed-btn" data-speed="0.8">0,8×</button>
+                <button type="button" class="speed-btn" data-speed="0.7">0,7×</button>
+              </div>
               <a class="download-link" href="${fileUrl(a.name)}?download=1">Herunterladen</a>
             </div>`
           )
-          .join('')}</div>`
+          .join('')}</div>
+         <script>
+           (function () {
+             document.addEventListener('click', function (e) {
+               var btn = e.target.closest('.speed-btn');
+               if (!btn) return;
+               var item = btn.closest('.audio-item');
+               if (!item) return;
+               var audio = item.querySelector('audio');
+               var rate = parseFloat(btn.dataset.speed);
+               if (audio && !isNaN(rate)) {
+                 audio.playbackRate = rate;
+                 try { audio.preservesPitch = true; } catch (e) {}
+                 try { audio.mozPreservesPitch = true; } catch (e) {}
+                 try { audio.webkitPreservesPitch = true; } catch (e) {}
+               }
+               item.querySelectorAll('.speed-btn').forEach(function (b) {
+                 b.classList.toggle('active', b === btn);
+               });
+             });
+           })();
+         </script>`
       : `<p class="empty">Keine Audiodatei zu diesem Lied vorhanden.</p>`;
 
     body = `<h1>🎶 ${escapeHtml(song.title)}</h1>
