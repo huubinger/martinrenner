@@ -375,6 +375,7 @@ const LEGAL_PAGE_STYLE = `
     font-size: 0.9rem;
     color: #cbd5e1;
     margin-bottom: 1.5rem;
+    max-width: 480px;
   }
   .message-box {
     background: rgba(56,189,248,0.15);
@@ -515,8 +516,6 @@ function renderDatenschutzPage(settings) {
 <body>
   <div class="container">
     <h1>Datenschutzerklärung</h1>
-
-    <div class="hint">Diese Datenschutzerklärung ersetzt keine individuelle Rechtsberatung. Bei Unsicherheiten empfiehlt sich die Prüfung durch eine fachkundige Stelle.</div>
 
     <h2>1. Verantwortlicher</h2>
     <p>${escapeHtml(settings.contactName)}<br>

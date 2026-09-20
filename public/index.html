@@ -502,7 +502,11 @@
     function goTo(i) {
       current = i;
       render();
-      restart();
+      // Karussell anhalten, sobald der Besucher aktiv über die Navigation wechselt.
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
     }
 
     function next() {
