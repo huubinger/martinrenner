@@ -214,6 +214,7 @@ const upload = multer({
 });
 
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 // --- Rechtliche Seiten & Kontaktformular (dynamisch, siehe unten) ---
@@ -768,15 +769,20 @@ function renderDatenschutzPage(settings) {
     <p>Zum Schutz vor automatisiertem Missbrauch (Spam) enthält das Formular eine einfache Rechenaufgabe ("Captcha"). Diese wird ausschließlich serverseitig auf dieser Website erzeugt und geprüft – es wird kein Drittanbieter-Dienst (z. B. Google reCAPTCHA) eingebunden, es werden dabei keine Cookies gesetzt und keine personenbezogenen Daten an Dritte übermittelt.</p>
     <p>Alternativ kannst du mich auch direkt per E-Mail unter <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a> kontaktieren; in diesem Fall gelten die Datenschutzhinweise deines E-Mail-Anbieters.</p>
 
-    <h2>5. Bereich „/choerle" – Dropbox-Anbindung</h2>
+    <h2>5. Materialanfrage im Bereich „/vt" (Veranstaltungstechnik)</h2>
+    <p>Im Bereich „/vt" kannst du Material aus der angezeigten Liste auswählen und über ein Formular eine unverbindliche Anfrage stellen. Die von dir eingegebenen Daten (Name, E-Mail-Adresse, optional Telefonnummer und Nachricht, Datum und Art der Veranstaltung sowie die von dir ausgewählten Materialien) werden dabei an den Server dieser Website übermittelt und von dort per E-Mail an mein Postfach weitergeleitet. Es findet keine Speicherung deiner Anfrage in einer Datenbank statt – die Daten werden ausschließlich zur Bearbeitung deiner Anfrage genutzt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Anbahnung eines Vertrags) bzw. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen). Bei der Anfrage handelt es sich um eine unverbindliche Anfrage; ein Angebot oder eine Reservierung des Materials kommt erst durch meine gesonderte Rückmeldung zustande.</p>
+    <p>Damit du deine Auswahl vor dem Absenden zusammenstellen kannst, wird die aktuell ausgewählte Materialliste („Warenkorb") technisch notwendig im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt. Diese Information verlässt deinen Browser nicht, bis du die Anfrage aktiv absendest; danach wird sie nur für die Erstellung der E-Mail verwendet. Eine Einwilligung ist hierfür nach § 25 TDDDG nicht erforderlich, da keine nicht-notwendigen Cookies gesetzt werden.</p>
+    <p>Zum Schutz vor automatisiertem Missbrauch (Spam) enthält auch dieses Formular eine einfache Rechenaufgabe ("Captcha"), die ausschließlich serverseitig auf dieser Website erzeugt und geprüft wird – es wird kein Drittanbieter-Dienst eingebunden, es werden dabei keine Cookies gesetzt und keine personenbezogenen Daten an Dritte übermittelt.</p>
+
+    <h2>6. Bereich „/choerle" – Dropbox-Anbindung</h2>
     <p>Im Bereich „/choerle" werden Dateien (z. B. Noten) angezeigt, die serverseitig über die API des Cloud-Speicherdienstes Dropbox (Dropbox Inc., USA bzw. Dropbox International Unlimited Company, Irland) abgerufen werden. Dabei werden ausschließlich Dateiinformationen aus einem dediziert für diese Website angelegten Dropbox-Ordner abgerufen – es werden keine personenbezogenen Daten von Besuchern der Website an Dropbox übermittelt. Der Abruf erfolgt serverseitig über einen Zugriffstoken; Besucher der Seite treten mit Dropbox nicht in direkten Kontakt.</p>
 
-    <h2>6. Cookies und Tracking</h2>
+    <h2>7. Cookies und Tracking</h2>
     <p>Diese Website setzt keine Cookies und keine Analyse- oder Trackingdienste (z. B. Google Analytics) zu Marketing- oder Analysezwecken ein. Es findet kein Tracking des Nutzerverhaltens statt.</p>
-    <p>Lediglich für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TDDDG). Eine Einwilligung ist hierfür nach § 25 TDDDG nicht erforderlich, da keine nicht-notwendigen Cookies gesetzt werden.</p>
+    <p>Lediglich für den Hinweisbanner zu diesem Abschnitt sowie für den Material-Warenkorb im Bereich „/vt" wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird bzw. deine Materialauswahl erhalten bleibt. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TDDDG). Eine Einwilligung ist hierfür nach § 25 TDDDG nicht erforderlich, da keine nicht-notwendigen Cookies gesetzt werden.</p>
     <p>Solltest du künftig Funktionen mit nicht-technisch-notwendigen Cookies (z. B. Statistik- oder Einbettungsdienste) hinzufügen, wird vor deren Einsatz eine Einwilligung über den Cookie-Banner eingeholt.</p>
 
-    <h2>7. Deine Rechte als betroffene Person</h2>
+    <h2>8. Deine Rechte als betroffene Person</h2>
     <p>Dir stehen gegenüber mir folgende Rechte hinsichtlich der dich betreffenden personenbezogenen Daten zu:</p>
     <ul>
       <li>Recht auf Auskunft (Art. 15 DSGVO)</li>
@@ -788,7 +794,7 @@ function renderDatenschutzPage(settings) {
     </ul>
     <p>Du hast zudem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung deiner personenbezogenen Daten durch mich zu beschweren (Art. 77 DSGVO).</p>
 
-    <h2>8. Aktualität und Änderung dieser Datenschutzerklärung</h2>
+    <h2>9. Aktualität und Änderung dieser Datenschutzerklärung</h2>
     <p>Diese Datenschutzerklärung ist aktuell gültig (Stand: September 2026). Durch die Weiterentwicklung der Website oder geänderte gesetzliche Vorgaben kann es notwendig werden, diese Erklärung anzupassen.</p>
 
     <a class="home-link" href="/">&larr; zurück zur Startseite</a>
@@ -1794,6 +1800,161 @@ const VT_STYLE = `
   .vt-avail { color: #4ade80; }
   .vt-avail.vt-avail-low { color: #fbbf24; }
   .vt-avail.vt-avail-none { color: #f87171; }
+  .vt-intro {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-bottom: 1.2rem;
+  }
+  .vt-cart-hint {
+    background: rgba(56,189,248,0.1);
+    border: 1px solid rgba(56,189,248,0.3);
+    color: #bae6fd;
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.8rem;
+  }
+  .vt-item-cart { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.7rem; }
+  .vt-qty-input {
+    width: 3.2rem;
+    padding: 0.3rem 0.4rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: #f8fafc;
+    font-size: 0.8rem;
+    font-family: inherit;
+  }
+  .vt-add-btn {
+    flex: 1;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: #e2e8f0;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .vt-add-btn:hover { background: rgba(255,255,255,0.12); }
+  .vt-add-btn.vt-add-btn-active { background: #38bdf8; border-color: #38bdf8; color: #0f172a; font-weight: 600; }
+
+  .vt-cart-bar {
+    display: none;
+    position: fixed;
+    left: 50%;
+    bottom: 4.6rem;
+    transform: translateX(-50%);
+    align-items: center;
+    gap: 1rem;
+    background: rgba(15,23,42,0.97);
+    border: 1px solid rgba(56,189,248,0.4);
+    border-radius: 999px;
+    padding: 0.65rem 0.7rem 0.65rem 1.1rem;
+    z-index: 15;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+    max-width: calc(100vw - 2rem);
+  }
+  .vt-cart-bar span { font-size: 0.85rem; color: #e2e8f0; white-space: nowrap; }
+  .vt-cart-bar button {
+    padding: 0.5rem 1.1rem;
+    border-radius: 999px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .vt-cart-bar button:hover { background: #0ea5e9; }
+
+  .vt-request-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 30;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+  }
+  .vt-request-modal {
+    position: relative;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 1.6rem;
+    max-width: 480px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .vt-request-modal h2 { font-size: 1.2rem; margin-bottom: 0.3rem; }
+  .vt-request-hint { font-size: 0.78rem; color: #94a3b8; margin-bottom: 1rem; }
+  .vt-request-close {
+    position: absolute;
+    top: 0.8rem;
+    right: 0.9rem;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 1.3rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .vt-request-close:hover { color: #f8fafc; }
+  .vt-request-summary { margin-bottom: 1.1rem; }
+  .vt-cart-list { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+  .vt-cart-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    font-size: 0.82rem;
+    color: #e2e8f0;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+  }
+  .vt-cart-remove {
+    background: none;
+    border: none;
+    color: #f87171;
+    font-size: 0.72rem;
+    cursor: pointer;
+    text-decoration: underline;
+    flex-shrink: 0;
+  }
+  .vt-request-modal form { display: flex; flex-direction: column; gap: 0.7rem; }
+  .vt-request-modal label { font-size: 0.8rem; color: #94a3b8; display: flex; flex-direction: column; gap: 0.3rem; }
+  .vt-request-modal input,
+  .vt-request-modal textarea {
+    padding: 0.6rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: #f8fafc;
+    font-family: inherit;
+    font-size: 0.9rem;
+  }
+  .vt-request-modal textarea { min-height: 60px; resize: vertical; }
+  .vt-request-modal button[type="submit"] {
+    padding: 0.7rem 1.2rem;
+    border-radius: 8px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  .vt-request-modal button[type="submit"]:hover { background: #0ea5e9; }
+  .vt-request-modal button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
+  .vt-request-msg { font-size: 0.8rem; color: #94a3b8; margin-top: 0.8rem; min-height: 1em; }
+  .hp-field { position: absolute; left: -9999px; top: -9999px; }
   .legal-footer {
     position: fixed;
     right: 1rem;
@@ -1888,6 +2049,8 @@ const VT_STYLE = `
     .vt-grid { grid-template-columns: 1fr; }
     .newsletter-form { flex-direction: column; align-items: stretch; }
     .newsletter-form button { align-self: stretch; }
+    .vt-cart-bar { left: 1rem; right: 1rem; bottom: 4rem; transform: none; max-width: none; justify-content: space-between; }
+    .vt-request-modal { padding: 1.3rem; }
   }
 `;
 
@@ -1940,12 +2103,20 @@ function renderVtPage(result, vtPhotos) {
             const photoHtml = photoFilename
               ? `<img class="vt-item-photo" src="/uploads/${encodeURIComponent(photoFilename)}" alt="${escapeAttr(item.bezeichnung || '')}" loading="lazy">`
               : '';
-            return `<div class="vt-item">
+            const bez = item.bezeichnung || 'Unbenannt';
+            const maxAttr = item.verfuegbar !== null && item.verfuegbar !== undefined && Number(item.verfuegbar) > 0
+              ? ` max="${Number(item.verfuegbar)}"`
+              : '';
+            return `<div class="vt-item" data-name="${escapeAttr(bez)}">
               ${photoHtml}
-              <div class="vt-item-name">${escapeHtml(item.bezeichnung || 'Unbenannt')}</div>
+              <div class="vt-item-name">${escapeHtml(bez)}</div>
               <div class="vt-item-meta">
                 ${availHtml}
                 ${ortHtml}
+              </div>
+              <div class="vt-item-cart">
+                <input type="number" class="vt-qty-input" min="1"${maxAttr} value="1" aria-label="Menge">
+                <button type="button" class="vt-add-btn">+ Zur Anfrage</button>
               </div>
             </div>`;
           })
@@ -1967,7 +2138,10 @@ function renderVtPage(result, vtPhotos) {
       : '';
 
     body = `<h1>🎛️ Veranstaltungstechnik</h1>
-      <p class="subtitle">Verfügbares Material</p>
+      <div class="vt-intro">
+        <p class="subtitle" style="margin-bottom:0;">Verfügbares Material</p>
+        <p class="vt-cart-hint">🛒 Material auswählen und am Ende gesammelt anfragen</p>
+      </div>
       <p class="vt-stand">Stand: ${escapeHtml(standDate)}</p>
       ${warningHtml}
       ${categoriesHtml || '<p class="empty">Keine Materialien vorhanden.</p>'}`;
@@ -1986,6 +2160,218 @@ function renderVtPage(result, vtPhotos) {
     ${body}
     <a class="home-link" href="/">&larr; zurück zur Startseite</a>
   </div>
+
+  <div class="vt-cart-bar" id="vt-cart-bar">
+    <span id="vt-cart-count">0 Artikel ausgewählt</span>
+    <button type="button" id="vt-cart-open">Anfrage stellen</button>
+  </div>
+
+  <div class="vt-request-overlay" id="vt-request-overlay">
+    <div class="vt-request-modal">
+      <button type="button" class="vt-request-close" id="vt-request-close" aria-label="Schließen">&times;</button>
+      <h2>Materialanfrage</h2>
+      <p class="vt-request-hint">Unverbindliche Anfrage – ich melde mich anschließend mit einem Angebot.</p>
+      <div class="vt-request-summary" id="vt-request-summary"></div>
+      <form id="vt-request-form">
+        <label>Veranstaltungsdatum<input type="date" name="eventDate" required></label>
+        <label>Veranstaltungsart<input type="text" name="eventType" placeholder="z. B. Hochzeit, Firmenfeier, Konzert" required></label>
+        <label>Name<input type="text" name="name" required></label>
+        <label>E-Mail<input type="email" name="email" required></label>
+        <label>Telefon (optional)<input type="text" name="phone"></label>
+        <label>Nachricht (optional)<textarea name="message"></textarea></label>
+        <label>Zum Nachweis, dass du kein Roboter bist: <span id="vt-captcha-question">…</span> = ?<input type="text" name="captchaAnswer" inputmode="numeric" required></label>
+        <label class="hp-field" aria-hidden="true">Bitte freilassen<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        <button type="submit">Anfrage absenden</button>
+      </form>
+      <p class="vt-request-msg" id="vt-request-msg"></p>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var CART_KEY = 'vt_cart_v1';
+      function loadCart() {
+        try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch (e) { return []; }
+      }
+      function saveCart() {
+        try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) {}
+      }
+      var cart = loadCart();
+
+      function findEntry(name) {
+        return cart.find(function (c) { return c.bezeichnung === name; });
+      }
+
+      function updateBar() {
+        var bar = document.getElementById('vt-cart-bar');
+        var countEl = document.getElementById('vt-cart-count');
+        if (!bar) return;
+        if (cart.length === 0) {
+          bar.style.display = 'none';
+        } else {
+          bar.style.display = 'flex';
+          countEl.textContent = cart.length + (cart.length === 1 ? ' Artikel ausgewählt' : ' Artikel ausgewählt');
+        }
+      }
+
+      function syncButtons() {
+        document.querySelectorAll('.vt-item').forEach(function (el) {
+          var name = el.dataset.name;
+          var btn = el.querySelector('.vt-add-btn');
+          var entry = findEntry(name);
+          if (!btn) return;
+          if (entry) {
+            btn.textContent = '✓ Im Warenkorb';
+            btn.classList.add('vt-add-btn-active');
+            var qtyInput = el.querySelector('.vt-qty-input');
+            if (qtyInput) qtyInput.value = entry.menge;
+          } else {
+            btn.textContent = '+ Zur Anfrage';
+            btn.classList.remove('vt-add-btn-active');
+          }
+        });
+      }
+
+      function escapeHtmlClient(s) {
+        var d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+      }
+
+      function renderSummary() {
+        var el = document.getElementById('vt-request-summary');
+        if (!el) return;
+        if (cart.length === 0) {
+          el.innerHTML = '<p class="empty">Noch kein Material ausgewählt.</p>';
+          return;
+        }
+        el.innerHTML = '<ul class="vt-cart-list">' + cart.map(function (c, i) {
+          return '<li><span>' + escapeHtmlClient(c.bezeichnung) + ' × ' + escapeHtmlClient(c.menge) + '</span>' +
+            '<button type="button" class="vt-cart-remove" data-idx="' + i + '">Entfernen</button></li>';
+        }).join('') + '</ul>';
+      }
+
+      document.addEventListener('click', function (e) {
+        var addBtn = e.target.closest('.vt-add-btn');
+        if (addBtn) {
+          var item = addBtn.closest('.vt-item');
+          var name = item.dataset.name;
+          var qtyInput = item.querySelector('.vt-qty-input');
+          var qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+          if (isNaN(qty) || qty < 1) qty = 1;
+          var entry = findEntry(name);
+          if (entry) {
+            entry.menge = qty;
+          } else {
+            cart.push({ bezeichnung: name, menge: qty });
+          }
+          saveCart();
+          updateBar();
+          syncButtons();
+          return;
+        }
+        var removeBtn = e.target.closest('.vt-cart-remove');
+        if (removeBtn) {
+          var idx = parseInt(removeBtn.dataset.idx, 10);
+          cart.splice(idx, 1);
+          saveCart();
+          updateBar();
+          syncButtons();
+          renderSummary();
+          return;
+        }
+      });
+
+      var overlay = document.getElementById('vt-request-overlay');
+      var openBtn = document.getElementById('vt-cart-open');
+      var closeBtn = document.getElementById('vt-request-close');
+      var captchaQuestionEl = document.getElementById('vt-captcha-question');
+      var captchaTokenValue = '';
+      var form = document.getElementById('vt-request-form');
+      var msgEl = document.getElementById('vt-request-msg');
+
+      function loadCaptcha() {
+        fetch('/api/vt-captcha')
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            captchaTokenValue = data.token;
+            if (captchaQuestionEl) captchaQuestionEl.textContent = data.question;
+          })
+          .catch(function () {});
+      }
+
+      if (openBtn) {
+        openBtn.addEventListener('click', function () {
+          renderSummary();
+          loadCaptcha();
+          if (msgEl) msgEl.textContent = '';
+          overlay.style.display = 'flex';
+        });
+      }
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function () { overlay.style.display = 'none'; });
+      }
+      if (overlay) {
+        overlay.addEventListener('click', function (e) {
+          if (e.target === overlay) overlay.style.display = 'none';
+        });
+      }
+
+      if (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          if (cart.length === 0) {
+            msgEl.textContent = 'Bitte wähle mindestens ein Material aus.';
+            return;
+          }
+          var fd = new FormData(form);
+          var payload = {
+            name: fd.get('name'),
+            email: fd.get('email'),
+            phone: fd.get('phone'),
+            eventDate: fd.get('eventDate'),
+            eventType: fd.get('eventType'),
+            message: fd.get('message'),
+            website: fd.get('website'),
+            captchaAnswer: fd.get('captchaAnswer'),
+            captchaToken: captchaTokenValue,
+            items: cart,
+          };
+          var submitBtn = form.querySelector('button[type=submit]');
+          submitBtn.disabled = true;
+          msgEl.textContent = 'Wird gesendet …';
+          fetch('/api/vt-anfrage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+            .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+            .then(function (result) {
+              submitBtn.disabled = false;
+              if (result.ok && result.data.ok) {
+                msgEl.textContent = 'Danke! Deine Anfrage wurde versendet – ich melde mich mit einem Angebot.';
+                cart = [];
+                saveCart();
+                updateBar();
+                syncButtons();
+                form.reset();
+                renderSummary();
+              } else {
+                msgEl.textContent = (result.data && result.data.error) || 'Anfrage fehlgeschlagen. Bitte später erneut versuchen.';
+                loadCaptcha();
+              }
+            })
+            .catch(function () {
+              submitBtn.disabled = false;
+              msgEl.textContent = 'Anfrage fehlgeschlagen. Bitte später erneut versuchen.';
+            });
+        });
+      }
+
+      updateBar();
+      syncButtons();
+    })();
+  </script>
+
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
   ${NEWSLETTER_BANNER_BLOCK}
@@ -2089,6 +2475,78 @@ app.get('/vt', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send(renderVtPage({ data: null, fetchedAt: null, error: err.message }, loadVtPhotos()));
+  }
+});
+
+// --- Materialanfrage von /vt aus (Warenkorb → Anfrage per E-Mail) ---
+app.get('/api/vt-captcha', (req, res) => {
+  const { question, token } = createCaptcha();
+  res.json({ question, token });
+});
+
+app.post('/api/vt-anfrage', async (req, res) => {
+  const {
+    name,
+    email,
+    phone,
+    eventDate,
+    eventType,
+    message,
+    items,
+    captchaAnswer,
+    captchaToken,
+    website, // Honeypot
+  } = req.body || {};
+
+  // Honeypot: Bots ausfüllen dieses versteckte Feld. Wir tun so, als wäre alles ok.
+  if (website) {
+    return res.json({ ok: true });
+  }
+
+  if (!name || !email || !eventDate || !eventType || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ ok: false, error: 'Bitte fülle alle Pflichtfelder aus und wähle mindestens ein Material aus.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ ok: false, error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
+  }
+  if (!verifyCaptcha(captchaToken, captchaAnswer)) {
+    return res.status(400).json({ ok: false, error: 'Die Rechenaufgabe wurde nicht richtig gelöst (oder ist abgelaufen). Bitte Seite neu laden und erneut versuchen.' });
+  }
+
+  const transporter = getMailTransporter();
+  if (!transporter) {
+    console.error('Materialanfrage: Mailversand ist nicht konfiguriert (SMTP_HOST/SMTP_USER/SMTP_PASS fehlen).');
+    return res.status(503).json({ ok: false, error: 'Der Versand ist aktuell nicht konfiguriert. Bitte schreib mir direkt eine E-Mail.' });
+  }
+
+  const settings = loadSettings();
+  const itemsText = items
+    .map((it) => {
+      const bez = (it && it.bezeichnung ? String(it.bezeichnung) : 'Unbenannt').trim();
+      const menge = it && it.menge ? Number(it.menge) : 1;
+      return `- ${bez} (Menge: ${isNaN(menge) || menge < 1 ? 1 : menge})`;
+    })
+    .join('\n');
+
+  try {
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM || process.env.SMTP_USER,
+      to: process.env.CONTACT_TO || settings.email,
+      replyTo: email,
+      subject: `Materialanfrage über martinrenner.de/vt von ${name}`,
+      text: `Neue Materialanfrage über /vt\n\n` +
+        `Name: ${name}\n` +
+        `E-Mail: ${email}\n` +
+        `${phone ? `Telefon: ${phone}\n` : ''}` +
+        `Veranstaltungsdatum: ${eventDate}\n` +
+        `Veranstaltungsart: ${eventType}\n` +
+        `${message ? `\nNachricht:\n${message}\n` : ''}` +
+        `\nGewünschtes Material:\n${itemsText}\n`,
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Materialanfrage: Mailversand fehlgeschlagen:', err);
+    res.status(502).json({ ok: false, error: `Beim Versand ist ein Fehler aufgetreten. Bitte schreib mir direkt an ${settings.email}.` });
   }
 });
 
