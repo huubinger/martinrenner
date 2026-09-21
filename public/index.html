@@ -69,28 +69,9 @@
     position: absolute;
     inset: 0;
     opacity: 0;
-    overflow: hidden;
     transition: opacity 1.2s ease;
   }
   .slide.active { opacity: 1; z-index: 1; }
-
-  /* Sanfter Ken-Burns-Zoom auf dem aktiven Foto */
-  @keyframes kenburns {
-    from { transform: scale(1); }
-    to { transform: scale(1.09); }
-  }
-  .slide-photo,
-  .slide-placeholder {
-    will-change: transform;
-  }
-  .slide.active .slide-photo,
-  .slide.active .slide-placeholder {
-    animation: kenburns 7s ease-out forwards;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .slide.active .slide-photo,
-    .slide.active .slide-placeholder { animation: none; }
-  }
 
   /* Unscharfe Cover-Backdrop, füllt auf schmalen Screens die Ränder statt das Foto extrem zu beschneiden */
   .slide-bg-blur {
@@ -155,67 +136,21 @@
     right: 0;
     bottom: 0;
     z-index: 5;
+    padding: 2.5rem 2rem 3.5rem;
     max-width: 720px;
   }
-  .banner-text {
-    display: inline-block;
-    background: rgba(15,23,42,0.4);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px 20px 0 0;
-    padding: 2.5rem 2rem 1.3rem;
-    margin: 0 2rem;
-  }
-  .banner-actions {
-    background: rgba(15,23,42,0.4);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-top: none;
-    border-radius: 0 0 20px 20px;
-    padding: 1.1rem 2rem 1.8rem;
-    margin: 0 2rem;
-  }
-  .slide-dots {
-    display: flex;
-    gap: 0.4rem;
-    margin-bottom: 0.7rem;
-  }
-  .slide-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.35);
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    transition: all 0.25s ease;
-  }
-  .slide-dot.active {
-    background: #38bdf8;
-    width: 18px;
-    border-radius: 3px;
-  }
   .banner .eyebrow {
-    display: inline-flex;
-    align-items: center;
-    font-size: 0.74rem;
-    letter-spacing: 0.1em;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #7dd3fc;
-    background: rgba(56,189,248,0.15);
-    border: 1px solid rgba(56,189,248,0.35);
-    border-radius: 999px;
-    padding: 0.3rem 0.8rem;
-    margin-bottom: 0.8rem;
+    color: #38bdf8;
+    margin-bottom: 0.6rem;
   }
   .banner h1 {
     font-size: clamp(1.8rem, 5vw, 3rem);
     font-weight: 700;
     letter-spacing: -0.02em;
     margin-bottom: 0.6rem;
-    text-shadow: 0 2px 14px rgba(0,0,0,0.55);
   }
   .banner p.info {
     font-size: clamp(0.95rem, 2vw, 1.1rem);
@@ -465,8 +400,7 @@
   .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
 
   @media (max-width: 560px) {
-    .banner-text { margin: 0 1rem; padding: 1.8rem 1.2rem 1rem; }
-    .banner-actions { margin: 0 1rem; padding: 0.9rem 1.2rem 2.4rem; }
+    .banner { padding: 1.8rem 1.2rem 4.5rem; }
   }
 
   @media (max-width: 500px) {
@@ -483,7 +417,6 @@
 
   <div class="banner">
     <div class="banner-text">
-      <div class="slide-dots" id="slide-dots"></div>
       <div class="eyebrow" id="banner-eyebrow">Projekt</div>
       <h1 id="banner-title"></h1>
       <p class="info" id="banner-info"></p>
@@ -618,7 +551,6 @@
 
     const slideshowEl = document.getElementById('slideshow');
     const topNavEl = document.getElementById('top-nav');
-    const slideDotsEl = document.getElementById('slide-dots');
     const bannerEyebrow = document.getElementById('banner-eyebrow');
     const bannerTitle = document.getElementById('banner-title');
     const bannerInfo = document.getElementById('banner-info');
@@ -666,17 +598,14 @@
 
     const slideEls = [];
     const navItemEls = [];
-    const dotEls = [];
     let current = 0;
     let timer = null;
 
     function buildDOM() {
       slideshowEl.innerHTML = '';
       topNavEl.innerHTML = '';
-      if (slideDotsEl) slideDotsEl.innerHTML = '';
       slideEls.length = 0;
       navItemEls.length = 0;
-      dotEls.length = 0;
 
       slides.forEach((s, i) => {
         const key = s.id || s.key || s.title;
@@ -702,16 +631,6 @@
         navItem.addEventListener('click', () => goTo(i));
         topNavEl.appendChild(navItem);
         navItemEls.push(navItem);
-
-        if (slideDotsEl && slides.length > 1) {
-          const dot = document.createElement('button');
-          dot.type = 'button';
-          dot.className = 'slide-dot' + (i === 0 ? ' active' : '');
-          dot.setAttribute('aria-label', s.title || ('Projekt ' + (i + 1)));
-          dot.addEventListener('click', () => goTo(i));
-          slideDotsEl.appendChild(dot);
-          dotEls.push(dot);
-        }
       });
 
       const divider = document.createElement('span');
@@ -742,7 +661,6 @@
       if (!slides.length) return;
       slideEls.forEach((el, i) => el.classList.toggle('active', i === current));
       navItemEls.forEach((el, i) => el.classList.toggle('active', i === current));
-      dotEls.forEach((el, i) => el.classList.toggle('active', i === current));
       const s = slides[current];
       bannerEyebrow.textContent = s.eyebrow || '';
       bannerTitle.textContent = s.title || '';
