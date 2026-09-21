@@ -15,7 +15,23 @@ const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const NEWS_FILE = path.join(DATA_DIR, 'news.json');
+const VT_PHOTOS_FILE = path.join(DATA_DIR, 'vt-photos.json');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// --- Veranstaltungstechnik: manuell hinterlegte Fotos je Material ---
+function loadVtPhotos() {
+  try {
+    const raw = fs.readFileSync(VT_PHOTOS_FILE, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    saveVtPhotos([]);
+    return [];
+  }
+}
+
+function saveVtPhotos(list) {
+  fs.writeFileSync(VT_PHOTOS_FILE, JSON.stringify(list, null, 2));
+}
 
 // --- News-Shoutbox (kurze Meldungen auf der Startseite) ---
 function loadNews() {
@@ -824,7 +840,9 @@ function renderKontaktPage(settings, opts) {
 </html>`;
 }
 
-function renderAdminPage(projects, settings, news, message) {
+function renderAdminPage(projects, settings, news, message, vtPhotos, vtMaterialNames) {
+  vtPhotos = vtPhotos || [];
+  vtMaterialNames = vtMaterialNames || [];
   const rows = projects
     .map(
       (p) => `
@@ -948,6 +966,18 @@ function renderAdminPage(projects, settings, news, message) {
   .news-admin-title { font-size: 0.92rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.15rem; }
   .news-admin-text { font-size: 0.88rem; color: #e2e8f0; }
   .news-admin-link { font-size: 0.78rem; color: #38bdf8; margin-top: 0.2rem; word-break: break-all; }
+  .vt-photo-admin-list { list-style: none; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.6rem; }
+  .vt-photo-admin-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+  }
+  .vt-photo-thumb { width: 80px; height: 56px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+  .vt-photo-name { flex: 1; font-size: 0.88rem; color: #e2e8f0; }
   .home-link { display: inline-block; margin-top: 2rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
   .home-link:hover { text-decoration: underline; }
   @media (max-width: 560px) {
@@ -957,6 +987,7 @@ function renderAdminPage(projects, settings, news, message) {
     .fields { min-width: 0; }
     .actions { flex-direction: column; align-items: stretch; gap: 0.6rem; }
     .news-admin-item { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+    .vt-photo-admin-item { flex-direction: column; align-items: stretch; }
   }
 </style>
 </head>
@@ -1041,14 +1072,91 @@ function renderAdminPage(projects, settings, news, message) {
       </form>
     </div>
 
+    <div class="new-project">
+      <h2>📷 Material-Fotos (Veranstaltungstechnik)</h2>
+      <p class="subtitle" style="margin-bottom:1rem;">Das Lager-Tool liefert selbst keine Fotos – hier kannst du je Artikel (nach genauer Bezeichnung aus der Materialliste) ein eigenes Foto hinterlegen. Es erscheint dann auf <a href="/vt" style="color:#38bdf8;">/vt</a>.</p>
+      ${
+        vtPhotos.length
+          ? `<ul class="vt-photo-admin-list">${vtPhotos
+              .map(
+                (p) => `<li class="vt-photo-admin-item">
+                  <img class="vt-photo-thumb" src="/uploads/${encodeURIComponent(p.filename)}" alt="">
+                  <span class="vt-photo-name">${escapeHtml(p.bezeichnung)}</span>
+                  <form method="POST" action="/admin/vt-photos/${encodeURIComponent(p.id)}/delete" onsubmit="return confirm('Foto für &quot;${escapeAttr(p.bezeichnung)}&quot; wirklich löschen?');">
+                    <button type="submit" class="delete-btn">Löschen</button>
+                  </form>
+                </li>`
+              )
+              .join('')}</ul>`
+          : '<p class="subtitle">Noch keine Fotos hinterlegt.</p>'
+      }
+      <form method="POST" action="/admin/vt-photos" enctype="multipart/form-data" style="margin-top:1rem;">
+        <div class="fields">
+          <label>Material (genaue Bezeichnung aus der Liste)
+            <input type="text" name="bezeichnung" list="vt-material-names" placeholder="z. B. Favo Lite Vader Pro 350 Moving Head Spot" required>
+            <datalist id="vt-material-names">${vtMaterialNames.map((n) => `<option value="${escapeAttr(n)}">`).join('')}</datalist>
+          </label>
+          <label>Foto<input type="file" name="photo" accept="image/*" required><span class="hint">Ideal: mindestens 1200×800px, JPG oder PNG, unter 3 MB</span></label>
+        </div>
+        <div class="actions">
+          <button type="submit">Foto hochladen</button>
+        </div>
+      </form>
+    </div>
+
     <a class="home-link" href="/">&larr; zur Startseite</a>
   </div>
 </body>
 </html>`;
 }
 
-app.get('/admin', requireAdminAuth, (req, res) => {
-  res.send(renderAdminPage(loadProjects(), loadSettings(), loadNews()));
+app.get('/admin', requireAdminAuth, async (req, res) => {
+  let vtMaterialNames = [];
+  try {
+    const { data } = await getVtMaterial(false);
+    if (data) {
+      vtMaterialNames = Array.from(new Set(data.map((item) => item.bezeichnung).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b, 'de')
+      );
+    }
+  } catch {
+    // Materialliste gerade nicht erreichbar: Datalist bleibt leer, Freitext-Eingabe funktioniert trotzdem
+  }
+  res.send(renderAdminPage(loadProjects(), loadSettings(), loadNews(), undefined, loadVtPhotos(), vtMaterialNames));
+});
+
+app.post('/admin/vt-photos', requireAdminAuth, upload.single('photo'), (req, res) => {
+  const bezeichnung = (req.body.bezeichnung || '').trim();
+  if (!bezeichnung || !req.file) {
+    return res.redirect('/admin');
+  }
+  const photos = loadVtPhotos();
+  const existing = photos.find((p) => p.bezeichnung === bezeichnung);
+  if (existing) {
+    const oldPath = path.join(UPLOADS_DIR, existing.filename);
+    fs.unlink(oldPath, () => {});
+    existing.filename = req.file.filename;
+    existing.uploadedAt = new Date().toISOString();
+  } else {
+    photos.push({
+      id: crypto.randomUUID().slice(0, 8),
+      bezeichnung,
+      filename: req.file.filename,
+      uploadedAt: new Date().toISOString(),
+    });
+  }
+  saveVtPhotos(photos);
+  res.redirect('/admin');
+});
+
+app.post('/admin/vt-photos/:id/delete', requireAdminAuth, (req, res) => {
+  const photos = loadVtPhotos();
+  const entry = photos.find((p) => p.id === req.params.id);
+  if (entry) {
+    fs.unlink(path.join(UPLOADS_DIR, entry.filename), () => {});
+  }
+  saveVtPhotos(photos.filter((p) => p.id !== req.params.id));
+  res.redirect('/admin');
 });
 
 app.post('/admin/news', requireAdminAuth, (req, res) => {
@@ -1672,6 +1780,14 @@ const VT_STYLE = `
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 10px;
     padding: 0.8rem 0.95rem;
+    overflow: hidden;
+  }
+  .vt-item-photo {
+    display: block;
+    width: calc(100% + 1.9rem);
+    margin: -0.8rem -0.95rem 0.6rem;
+    height: 140px;
+    object-fit: cover;
   }
   .vt-item-name { font-size: 0.95rem; color: #f8fafc; margin-bottom: 0.35rem; }
   .vt-item-meta { font-size: 0.78rem; color: #94a3b8; display: flex; flex-direction: column; gap: 0.15rem; }
@@ -1775,14 +1891,9 @@ const VT_STYLE = `
   }
 `;
 
-function formatEuro(value) {
-  const n = Number(value);
-  if (value === null || value === undefined || value === '' || isNaN(n)) return null;
-  return n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-}
-
-function renderVtPage(result) {
+function renderVtPage(result, vtPhotos) {
   const { data, fetchedAt, error } = result;
+  const photoByName = new Map((vtPhotos || []).map((p) => [p.bezeichnung, p.filename]));
 
   let body;
   if (!data) {
@@ -1824,16 +1935,16 @@ function renderVtPage(result) {
               const cls = v <= 0 ? 'vt-avail-none' : v < m ? 'vt-avail-low' : '';
               availHtml = `<span class="vt-avail ${cls}">${v} / ${m} verfügbar</span>`;
             }
-            const price = formatEuro(item.einzelpreis);
-            const priceHtml = price
-              ? `<span>${price}${item.preistyp ? ' · ' + escapeHtml(item.preistyp) : ''}</span>`
-              : '';
             const ortHtml = item.lagerort ? `<span>📍 ${escapeHtml(item.lagerort)}</span>` : '';
+            const photoFilename = photoByName.get(item.bezeichnung);
+            const photoHtml = photoFilename
+              ? `<img class="vt-item-photo" src="/uploads/${encodeURIComponent(photoFilename)}" alt="${escapeAttr(item.bezeichnung || '')}" loading="lazy">`
+              : '';
             return `<div class="vt-item">
+              ${photoHtml}
               <div class="vt-item-name">${escapeHtml(item.bezeichnung || 'Unbenannt')}</div>
               <div class="vt-item-meta">
                 ${availHtml}
-                ${priceHtml}
                 ${ortHtml}
               </div>
             </div>`;
@@ -1974,10 +2085,10 @@ app.get('/choerle/:slug/file/:filename', async (req, res) => {
 app.get('/vt', async (req, res) => {
   try {
     const result = await getVtMaterial(false);
-    res.send(renderVtPage(result));
+    res.send(renderVtPage(result, loadVtPhotos()));
   } catch (err) {
     console.error(err);
-    res.status(500).send(renderVtPage({ data: null, fetchedAt: null, error: err.message }));
+    res.status(500).send(renderVtPage({ data: null, fetchedAt: null, error: err.message }, loadVtPhotos()));
   }
 });
 
