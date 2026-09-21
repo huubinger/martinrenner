@@ -70,10 +70,28 @@
     inset: 0;
     opacity: 0;
     transition: opacity 1.2s ease;
+  }
+  .slide.active { opacity: 1; z-index: 1; }
+
+  /* Unscharfe Cover-Backdrop, füllt auf schmalen Screens die Ränder statt das Foto extrem zu beschneiden */
+  .slide-bg-blur {
+    position: absolute;
+    inset: -20px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(24px) brightness(0.55);
+    display: none;
+  }
+  .slide-photo {
+    position: absolute;
+    inset: 0;
     background-size: cover;
     background-position: center;
   }
-  .slide.active { opacity: 1; z-index: 1; }
+  @media (max-width: 700px) {
+    .slide-bg-blur { display: block; }
+    .slide-photo { background-size: contain; background-repeat: no-repeat; background-position: center; }
+  }
 
   /* Platzhalter-Grafik je Kategorie, solange keine echten Fotos hinterlegt sind */
   .slide-placeholder {
@@ -292,7 +310,22 @@
 
   @media (max-width: 560px) {
     .banner { padding: 1.8rem 1.2rem 4.5rem; }
-    .top-nav { padding: 0.9rem 1rem; gap: 1rem; }
+  }
+
+  @media (max-width: 700px) {
+    .top-nav {
+      flex-wrap: wrap;
+      overflow-x: visible;
+      white-space: normal;
+      padding: 0.8rem 1rem;
+      gap: 0.5rem 0.9rem;
+      row-gap: 0.4rem;
+      background: rgba(15,23,42,0.72);
+      backdrop-filter: blur(6px);
+    }
+    .top-nav .nav-divider { display: none; }
+    .top-nav button,
+    .top-nav a { font-size: 0.8rem; padding: 0.15rem 0; }
   }
 
   .news-box {
@@ -324,7 +357,10 @@
   }
   .news-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
   .news-date { font-size: 0.68rem; color: #64748b; margin-bottom: 0.2rem; }
+  .news-title { font-size: 0.88rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.15rem; }
   .news-text { font-size: 0.83rem; color: #e2e8f0; line-height: 1.4; }
+  .news-link { display: inline-block; margin-top: 0.3rem; font-size: 0.76rem; color: #38bdf8; text-decoration: none; }
+  .news-link:hover { text-decoration: underline; }
 
   .newsletter-box {
     position: fixed;
@@ -473,7 +509,12 @@
           list.innerHTML = items
             .map((n) => {
               const date = n.createdAt ? new Date(n.createdAt).toLocaleDateString('de-DE') : '';
-              return `<div class="news-item"><div class="news-date">${escapeHtmlLocal(date)}</div><div class="news-text">${escapeHtmlLocal(n.text)}</div></div>`;
+              const title = n.title ? `<div class="news-title">${escapeHtmlLocal(n.title)}</div>` : '';
+              const textEl = `<div class="news-text">${escapeHtmlLocal(n.text)}</div>`;
+              const linkEl = n.link
+                ? `<a class="news-link" href="${escapeHtmlLocal(n.link)}" target="_blank" rel="noopener">Mehr &rarr;</a>`
+                : '';
+              return `<div class="news-item"><div class="news-date">${escapeHtmlLocal(date)}</div>${title}${textEl}${linkEl}</div>`;
             })
             .join('');
           box.style.display = 'block';
@@ -591,7 +632,7 @@
         div.className = 'slide' + (i === 0 ? ' active' : '');
         div.dataset.key = key;
         if (s.image) {
-          div.style.backgroundImage = `url(${s.image})`;
+          div.innerHTML = `<div class="slide-bg-blur" style="background-image:url(${s.image})"></div><div class="slide-photo" style="background-image:url(${s.image})"></div>`;
         } else {
           const grad = placeholderGradient(key);
           div.innerHTML = `<div class="slide-placeholder" style="background: ${grad};">

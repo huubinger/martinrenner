@@ -348,6 +348,74 @@ app.post('/api/newsletter', async (req, res) => {
   }
 });
 
+// --- Veranstaltungstechnik (/vt): Materialliste automatisch aus dem JPMR-Tool ---
+const JPMR_BASE_URL = 'https://jpmr-tool-production.up.railway.app';
+const VT_CACHE_TTL_MS = 15 * 60 * 1000; // 15 Minuten
+let vtCache = { data: null, fetchedAt: 0 };
+let jpmrSessionCookie = null;
+
+async function jpmrLogin() {
+  const username = process.env.JPMR_USERNAME;
+  const password = process.env.JPMR_PASSWORD;
+  if (!username || !password) {
+    const err = new Error('JPMR_NOT_CONFIGURED');
+    err.code = 'JPMR_NOT_CONFIGURED';
+    throw err;
+  }
+  const res = await fetch(`${JPMR_BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) {
+    throw new Error(`JPMR-Login fehlgeschlagen (Status ${res.status})`);
+  }
+  const setCookie = res.headers.get('set-cookie');
+  if (!setCookie) {
+    throw new Error('JPMR-Login: kein Session-Cookie erhalten');
+  }
+  // Nur den eigentlichen Cookie-Namen=Wert-Teil übernehmen (vor dem ersten ";")
+  jpmrSessionCookie = setCookie.split(',').map((c) => c.split(';')[0].trim()).join('; ');
+  return jpmrSessionCookie;
+}
+
+async function fetchJpmrMaterial(retry) {
+  if (!jpmrSessionCookie) {
+    await jpmrLogin();
+  }
+  const res = await fetch(`${JPMR_BASE_URL}/api/material`, {
+    headers: { Cookie: jpmrSessionCookie },
+  });
+  if (res.status === 401 && !retry) {
+    // Session abgelaufen: einmal neu einloggen und erneut versuchen
+    jpmrSessionCookie = null;
+    return fetchJpmrMaterial(true);
+  }
+  if (!res.ok) {
+    throw new Error(`JPMR-Materialabruf fehlgeschlagen (Status ${res.status})`);
+  }
+  return res.json();
+}
+
+// Liefert die Materialliste aus dem 15-Minuten-Cache oder holt sie neu vom JPMR-Tool.
+async function getVtMaterial(forceRefresh) {
+  const isFresh = vtCache.data && Date.now() - vtCache.fetchedAt < VT_CACHE_TTL_MS;
+  if (isFresh && !forceRefresh) {
+    return { data: vtCache.data, fetchedAt: vtCache.fetchedAt, error: null };
+  }
+  try {
+    const data = await fetchJpmrMaterial(false);
+    vtCache = { data, fetchedAt: Date.now() };
+    return { data, fetchedAt: vtCache.fetchedAt, error: null };
+  } catch (err) {
+    // Bei Fehler: falls vorhanden, alten Cache-Stand weiterverwenden, sonst Fehler zurückgeben
+    if (vtCache.data) {
+      return { data: vtCache.data, fetchedAt: vtCache.fetchedAt, error: err.code || err.message };
+    }
+    return { data: null, fetchedAt: null, error: err.code || err.message };
+  }
+}
+
 // --- Admin-Bereich (Benutzername + Passwort) ---
 function requireAdminAuth(req, res, next) {
   const user = process.env.ADMIN_USERNAME;
@@ -587,6 +655,13 @@ const LEGAL_PAGE_STYLE = `
   }
   .newsletter-form button:hover { background: #0ea5e9; }
   .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
+
+  @media (max-width: 560px) {
+    body { padding: 1.8rem 1rem 4rem; }
+    h1 { font-size: 1.5rem; }
+    .newsletter-form { flex-direction: column; align-items: stretch; }
+    .newsletter-form button { align-self: stretch; }
+  }
 `;
 
 function renderImpressumPage(settings) {
@@ -870,9 +945,19 @@ function renderAdminPage(projects, settings, news, message) {
   }
   .news-admin-item:last-child { border-bottom: none; }
   .news-admin-date { font-size: 0.72rem; color: #64748b; margin-bottom: 0.2rem; }
+  .news-admin-title { font-size: 0.92rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.15rem; }
   .news-admin-text { font-size: 0.88rem; color: #e2e8f0; }
+  .news-admin-link { font-size: 0.78rem; color: #38bdf8; margin-top: 0.2rem; word-break: break-all; }
   .home-link { display: inline-block; margin-top: 2rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
   .home-link:hover { text-decoration: underline; }
+  @media (max-width: 560px) {
+    body { padding: 1.2rem 0.8rem 4rem; }
+    .project-card, .new-project { padding: 1rem; }
+    .thumb-preview { width: 90px; height: 60px; }
+    .fields { min-width: 0; }
+    .actions { flex-direction: column; align-items: stretch; gap: 0.6rem; }
+    .news-admin-item { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+  }
 </style>
 </head>
 <body>
@@ -932,7 +1017,9 @@ function renderAdminPage(projects, settings, news, message) {
                 (n) => `<li class="news-admin-item">
                   <div>
                     <div class="news-admin-date">${escapeHtml(new Date(n.createdAt).toLocaleDateString('de-DE'))}</div>
+                    ${n.title ? `<div class="news-admin-title">${escapeHtml(n.title)}</div>` : ''}
                     <div class="news-admin-text">${escapeHtml(n.text)}</div>
+                    ${n.link ? `<div class="news-admin-link">🔗 ${escapeHtml(n.link)}</div>` : ''}
                   </div>
                   <form method="POST" action="/admin/news/${encodeURIComponent(n.id)}/delete" onsubmit="return confirm('Diese News-Meldung wirklich löschen?');">
                     <button type="submit" class="delete-btn">Löschen</button>
@@ -944,7 +1031,9 @@ function renderAdminPage(projects, settings, news, message) {
       }
       <form method="POST" action="/admin/news" style="margin-top:1rem;">
         <div class="fields">
-          <label>Neue Meldung<textarea name="text" placeholder="Kurze aktuelle Meldung..." required></textarea></label>
+          <label>Überschrift (optional)<input type="text" name="title" placeholder="Kurzer Titel"></label>
+          <label>Text<textarea name="text" placeholder="Kurze aktuelle Meldung..." required></textarea></label>
+          <label>Link (optional)<input type="text" name="link" placeholder="https://..."></label>
         </div>
         <div class="actions">
           <button type="submit">Meldung veröffentlichen</button>
@@ -964,9 +1053,17 @@ app.get('/admin', requireAdminAuth, (req, res) => {
 
 app.post('/admin/news', requireAdminAuth, (req, res) => {
   const text = (req.body.text || '').trim();
+  const title = (req.body.title || '').trim();
+  const link = (req.body.link || '').trim();
   if (text) {
     const news = loadNews();
-    news.push({ id: crypto.randomUUID().slice(0, 8), text, createdAt: new Date().toISOString() });
+    news.push({
+      id: crypto.randomUUID().slice(0, 8),
+      title,
+      text,
+      link: link ? normalizeUrl(link) : '',
+      createdAt: new Date().toISOString(),
+    });
     saveNews(news);
   }
   res.redirect('/admin');
@@ -1352,6 +1449,13 @@ const CHOERLE_STYLE = `
   }
   .newsletter-form button:hover { background: #0ea5e9; }
   .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
+
+  @media (max-width: 560px) {
+    body { padding: 1.8rem 1rem 4rem; }
+    h1 { font-size: 1.5rem; }
+    .newsletter-form { flex-direction: column; align-items: stretch; }
+    .newsletter-form button { align-self: stretch; }
+  }
 `;
 
 const COOKIE_BANNER_BLOCK = `
@@ -1534,6 +1638,250 @@ function renderChoerleSongPage(song, notFound) {
 </html>`;
 }
 
+// --- Veranstaltungstechnik (/vt): Materialliste ---
+const VT_STYLE = `
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    color: #f8fafc;
+    min-height: 100vh;
+    padding: 2.5rem 1rem 5rem;
+  }
+  .container { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); margin-bottom: 0.25rem; }
+  p.subtitle { color: #cbd5e1; margin-bottom: 0.75rem; }
+  .vt-stand { color: #64748b; font-size: 0.78rem; margin-bottom: 2rem; }
+  .vt-warning {
+    background: rgba(250,204,21,0.1);
+    border: 1px solid rgba(250,204,21,0.35);
+    color: #fde68a;
+    border-radius: 8px;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.82rem;
+    margin-bottom: 1.5rem;
+  }
+  .empty { color: #94a3b8; }
+  .home-link { display: inline-block; margin-top: 2rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
+  .home-link:hover { text-decoration: underline; }
+  .vt-category { margin-bottom: 2.2rem; }
+  .vt-category h2 { font-size: 1.15rem; color: #38bdf8; margin-bottom: 0.8rem; }
+  .vt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.8rem; }
+  .vt-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 0.8rem 0.95rem;
+  }
+  .vt-item-name { font-size: 0.95rem; color: #f8fafc; margin-bottom: 0.35rem; }
+  .vt-item-meta { font-size: 0.78rem; color: #94a3b8; display: flex; flex-direction: column; gap: 0.15rem; }
+  .vt-avail { color: #4ade80; }
+  .vt-avail.vt-avail-low { color: #fbbf24; }
+  .vt-avail.vt-avail-none { color: #f87171; }
+  .legal-footer {
+    position: fixed;
+    right: 1rem;
+    bottom: 0.75rem;
+    display: flex;
+    gap: 0.9rem;
+    font-size: 0.78rem;
+  }
+  .legal-footer a { color: #64748b; text-decoration: none; }
+  .legal-footer a:hover { color: #94a3b8; }
+  .cookie-banner {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 20;
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    background: rgba(15,23,42,0.97);
+    border-top: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(6px);
+  }
+  .cookie-banner p { color: #e2e8f0; font-size: 0.85rem; max-width: 640px; line-height: 1.5; margin: 0; }
+  .cookie-banner a { color: #38bdf8; }
+  .cookie-banner button {
+    padding: 0.55rem 1.2rem;
+    border-radius: 999px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .cookie-banner button:hover { background: #0ea5e9; }
+
+  .newsletter-box {
+    position: relative;
+    display: none;
+    max-width: 420px;
+    margin: 3rem auto 1rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+  }
+  .newsletter-close {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .newsletter-close:hover { color: #f8fafc; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; padding-right: 1rem; }
+  .newsletter-form { display: flex; gap: 0.4rem; }
+  .newsletter-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #f8fafc;
+    font-size: 0.78rem;
+    font-family: inherit;
+  }
+  .newsletter-form button {
+    padding: 0.45rem 0.7rem;
+    border-radius: 6px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .newsletter-form button:hover { background: #0ea5e9; }
+  .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
+
+  @media (max-width: 560px) {
+    body { padding: 1.8rem 1rem 4rem; }
+    h1 { font-size: 1.5rem; }
+    .vt-grid { grid-template-columns: 1fr; }
+    .newsletter-form { flex-direction: column; align-items: stretch; }
+    .newsletter-form button { align-self: stretch; }
+  }
+`;
+
+function formatEuro(value) {
+  const n = Number(value);
+  if (value === null || value === undefined || value === '' || isNaN(n)) return null;
+  return n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+}
+
+function renderVtPage(result) {
+  const { data, fetchedAt, error } = result;
+
+  let body;
+  if (!data) {
+    const msg =
+      error === 'JPMR_NOT_CONFIGURED'
+        ? 'Die Materialliste ist aktuell noch nicht angebunden.'
+        : 'Die Materialliste konnte gerade nicht geladen werden. Bitte später erneut versuchen.';
+    body = `<h1>🎛️ Veranstaltungstechnik</h1>
+      <p class="subtitle empty">${escapeHtml(msg)}</p>`;
+  } else {
+    const items = data.filter((item) => Number(item.defekt) !== 1);
+
+    const groups = new Map();
+    for (const item of items) {
+      const kat = (item.kategorie || '').trim() || 'Sonstiges';
+      if (!groups.has(kat)) groups.set(kat, []);
+      groups.get(kat).push(item);
+    }
+
+    const sortedKategorien = Array.from(groups.keys()).sort((a, b) =>
+      a === 'Sonstiges' ? 1 : b === 'Sonstiges' ? -1 : a.localeCompare(b, 'de')
+    );
+
+    const categoriesHtml = sortedKategorien
+      .map((kat) => {
+        const katItems = groups
+          .get(kat)
+          .slice()
+          .sort((a, b) => (a.bezeichnung || '').localeCompare(b.bezeichnung || '', 'de'));
+
+        const itemsHtml = katItems
+          .map((item) => {
+            const verfuegbar = item.verfuegbar;
+            const menge = item.menge;
+            let availHtml = '';
+            if (verfuegbar !== null && verfuegbar !== undefined && menge !== null && menge !== undefined) {
+              const v = Number(verfuegbar);
+              const m = Number(menge);
+              const cls = v <= 0 ? 'vt-avail-none' : v < m ? 'vt-avail-low' : '';
+              availHtml = `<span class="vt-avail ${cls}">${v} / ${m} verfügbar</span>`;
+            }
+            const price = formatEuro(item.einzelpreis);
+            const priceHtml = price
+              ? `<span>${price}${item.preistyp ? ' · ' + escapeHtml(item.preistyp) : ''}</span>`
+              : '';
+            const ortHtml = item.lagerort ? `<span>📍 ${escapeHtml(item.lagerort)}</span>` : '';
+            return `<div class="vt-item">
+              <div class="vt-item-name">${escapeHtml(item.bezeichnung || 'Unbenannt')}</div>
+              <div class="vt-item-meta">
+                ${availHtml}
+                ${priceHtml}
+                ${ortHtml}
+              </div>
+            </div>`;
+          })
+          .join('');
+
+        return `<div class="vt-category">
+          <h2>${escapeHtml(kat)}</h2>
+          <div class="vt-grid">${itemsHtml}</div>
+        </div>`;
+      })
+      .join('');
+
+    const standDate = fetchedAt
+      ? new Date(fetchedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })
+      : '';
+
+    const warningHtml = error
+      ? `<div class="vt-warning">⚠️ Die Liste konnte gerade nicht aktualisiert werden – angezeigt wird der letzte erfolgreich geladene Stand.</div>`
+      : '';
+
+    body = `<h1>🎛️ Veranstaltungstechnik</h1>
+      <p class="subtitle">Verfügbares Material</p>
+      <p class="vt-stand">Stand: ${escapeHtml(standDate)}</p>
+      ${warningHtml}
+      ${categoriesHtml || '<p class="empty">Keine Materialien vorhanden.</p>'}`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veranstaltungstechnik – martinrenner.de</title>
+<style>${VT_STYLE}</style>
+</head>
+<body>
+  <div class="container">
+    ${body}
+    <a class="home-link" href="/">&larr; zurück zur Startseite</a>
+  </div>
+  ${LEGAL_FOOTER_BLOCK}
+  ${COOKIE_BANNER_BLOCK}
+  ${NEWSLETTER_BANNER_BLOCK}
+</body>
+</html>`;
+}
+
 app.get('/choerle', async (req, res) => {
   try {
     const folders = await listChoerleSongFolders();
@@ -1620,6 +1968,16 @@ app.get('/choerle/:slug/file/:filename', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send('Fehler beim Laden der Datei.');
+  }
+});
+
+app.get('/vt', async (req, res) => {
+  try {
+    const result = await getVtMaterial(false);
+    res.send(renderVtPage(result));
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(renderVtPage({ data: null, fetchedAt: null, error: err.message }));
   }
 });
 
