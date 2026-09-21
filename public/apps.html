@@ -105,44 +105,6 @@
     white-space: nowrap;
   }
   .cookie-banner button:hover { background: #0ea5e9; }
-
-  .newsletter-box {
-    position: relative;
-    display: none;
-    max-width: 420px;
-    margin: 3rem auto 1rem;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 12px;
-    padding: 1rem 1.1rem;
-  }
-  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.3rem; }
-  .newsletter-subtext { font-size: 0.74rem; color: #94a3b8; margin-bottom: 0.6rem; line-height: 1.4; }
-  .newsletter-form { display: flex; gap: 0.4rem; }
-  .newsletter-form input {
-    flex: 1;
-    min-width: 0;
-    padding: 0.45rem 0.6rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.06);
-    color: #f8fafc;
-    font-size: 0.78rem;
-    font-family: inherit;
-  }
-  .newsletter-form button {
-    padding: 0.45rem 0.7rem;
-    border-radius: 6px;
-    border: none;
-    background: #38bdf8;
-    color: #0f172a;
-    font-weight: 600;
-    font-size: 0.78rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .newsletter-form button:hover { background: #0ea5e9; }
-  .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
 </style>
 </head>
 <body>
@@ -201,47 +163,6 @@
           banner.style.display = 'none';
         });
       }
-    })();
-  </script>
-
-  <div class="newsletter-box" id="newsletter-box">
-    <p class="newsletter-text">📬 Newsletter abonnieren</p>
-    <p class="newsletter-subtext">Alle Neuigkeiten zu meinen Projekten direkt ins E-Mail-Postfach erhalten</p>
-    <form id="newsletter-form" class="newsletter-form">
-      <input type="email" name="email" id="newsletter-email" placeholder="deine@email.de" required>
-      <button type="submit">Anmelden</button>
-    </form>
-    <p class="newsletter-msg" id="newsletter-msg"></p>
-  </div>
-  <script>
-    (function () {
-      var box = document.getElementById('newsletter-box');
-      if (!box) return;
-      box.style.display = 'block';
-      var form = document.getElementById('newsletter-form');
-      var msg = document.getElementById('newsletter-msg');
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var email = document.getElementById('newsletter-email').value;
-        msg.textContent = 'Wird gesendet …';
-        fetch('/api/newsletter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'email=' + encodeURIComponent(email),
-        })
-          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
-          .then(function (result) {
-            if (result.ok && result.data.ok) {
-              msg.textContent = 'Danke fürs Abonnieren!';
-              form.style.display = 'none';
-            } else {
-              msg.textContent = (result.data && result.data.error) || 'Anmeldung fehlgeschlagen.';
-            }
-          })
-          .catch(function () {
-            msg.textContent = 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.';
-          });
-      });
     })();
   </script>
 </body>

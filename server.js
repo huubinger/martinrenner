@@ -819,7 +819,6 @@ function renderImpressumPage(settings) {
 
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
-  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }
@@ -897,7 +896,6 @@ function renderDatenschutzPage(settings) {
 
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
-  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }
@@ -942,7 +940,6 @@ function renderKontaktPage(settings, opts) {
 
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
-  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }
@@ -1730,48 +1727,6 @@ const LEGAL_FOOTER_BLOCK = `
     <a href="/kontakt">Kontakt</a>
   </div>`;
 
-const NEWSLETTER_BANNER_BLOCK = `
-  <div class="newsletter-box" id="newsletter-box">
-    <p class="newsletter-text">📬 Newsletter abonnieren</p>
-    <p class="newsletter-subtext">Alle Neuigkeiten zu meinen Projekten direkt ins E-Mail-Postfach erhalten</p>
-    <form id="newsletter-form" class="newsletter-form">
-      <input type="email" name="email" id="newsletter-email" placeholder="deine@email.de" required>
-      <button type="submit">Anmelden</button>
-    </form>
-    <p class="newsletter-msg" id="newsletter-msg"></p>
-  </div>
-  <script>
-    (function () {
-      var box = document.getElementById('newsletter-box');
-      if (!box) return;
-      box.style.display = 'block';
-      var form = document.getElementById('newsletter-form');
-      var msg = document.getElementById('newsletter-msg');
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var email = document.getElementById('newsletter-email').value;
-        msg.textContent = 'Wird gesendet …';
-        fetch('/api/newsletter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'email=' + encodeURIComponent(email),
-        })
-          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
-          .then(function (result) {
-            if (result.ok && result.data.ok) {
-              msg.textContent = 'Danke fürs Abonnieren!';
-              form.style.display = 'none';
-            } else {
-              msg.textContent = (result.data && result.data.error) || 'Anmeldung fehlgeschlagen.';
-            }
-          })
-          .catch(function () {
-            msg.textContent = 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.';
-          });
-      });
-    })();
-  </script>`;
-
 function renderChoerleListPage(itemsHtml) {
   return `<!DOCTYPE html>
 <html lang="de">
@@ -1791,7 +1746,6 @@ function renderChoerleListPage(itemsHtml) {
   </div>
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
-  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }
@@ -1870,7 +1824,6 @@ function renderChoerleSongPage(song, notFound) {
   </div>
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
-  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }
@@ -2239,7 +2192,6 @@ function renderVtPage(result, vtPhotos) {
 
   ${LEGAL_FOOTER_BLOCK}
   ${COOKIE_BANNER_BLOCK}
-  ${NEWSLETTER_BANNER_BLOCK}
 </body>
 </html>`;
 }
