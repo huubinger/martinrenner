@@ -78,19 +78,7 @@
     border-radius: 12px;
     padding: 1rem 1.1rem;
   }
-  .newsletter-close {
-    position: absolute;
-    top: 0.4rem;
-    right: 0.5rem;
-    background: none;
-    border: none;
-    color: rgba(255,255,255,0.5);
-    font-size: 1rem;
-    cursor: pointer;
-    line-height: 1;
-  }
-  .newsletter-close:hover { color: #f8fafc; }
-  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; padding-right: 1rem; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; }
   .newsletter-form { display: flex; gap: 0.4rem; }
   .newsletter-form input {
     flex: 1;
@@ -152,7 +140,6 @@
   </script>
 
   <div class="newsletter-box" id="newsletter-box">
-    <button type="button" class="newsletter-close" id="newsletter-close" aria-label="Schließen">&times;</button>
     <p class="newsletter-text">📬 Newsletter abonnieren</p>
     <form id="newsletter-form" class="newsletter-form">
       <input type="email" name="email" id="newsletter-email" placeholder="deine@email.de" required>
@@ -162,18 +149,11 @@
   </div>
   <script>
     (function () {
-      var KEY = 'newsletter_dismissed_v1';
       var box = document.getElementById('newsletter-box');
       if (!box) return;
-      if (localStorage.getItem(KEY)) return;
       box.style.display = 'block';
-      var closeBtn = document.getElementById('newsletter-close');
       var form = document.getElementById('newsletter-form');
       var msg = document.getElementById('newsletter-msg');
-      closeBtn.addEventListener('click', function () {
-        try { localStorage.setItem(KEY, '1'); } catch (e) {}
-        box.style.display = 'none';
-      });
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         var email = document.getElementById('newsletter-email').value;
@@ -188,7 +168,6 @@
             if (result.ok && result.data.ok) {
               msg.textContent = 'Danke fürs Abonnieren!';
               form.style.display = 'none';
-              try { localStorage.setItem(KEY, '1'); } catch (e) {}
             } else {
               msg.textContent = (result.data && result.data.error) || 'Anmeldung fehlgeschlagen.';
             }

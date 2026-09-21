@@ -308,24 +308,31 @@
   }
   .cookie-banner button:hover { background: #0ea5e9; }
 
-  @media (max-width: 560px) {
-    .banner { padding: 1.8rem 1.2rem 4.5rem; }
-  }
-
   @media (max-width: 700px) {
     .top-nav {
-      flex-wrap: wrap;
-      overflow-x: visible;
-      white-space: normal;
-      padding: 0.8rem 1rem;
-      gap: 0.5rem 0.9rem;
-      row-gap: 0.4rem;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      white-space: nowrap;
+      padding: 0.7rem 1rem;
+      gap: 0.5rem;
       background: rgba(15,23,42,0.72);
       backdrop-filter: blur(6px);
+      mask-image: linear-gradient(90deg, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%);
     }
+    .top-nav::-webkit-scrollbar { display: none; }
     .top-nav .nav-divider { display: none; }
     .top-nav button,
-    .top-nav a { font-size: 0.8rem; padding: 0.15rem 0; }
+    .top-nav a {
+      font-size: 0.78rem;
+      padding: 0.4rem 0.85rem;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 999px;
+    }
+    .top-nav button.active { color: #0f172a; background: #38bdf8; border-color: #38bdf8; font-weight: 600; }
+    .top-nav button.active::after { display: none; }
   }
 
   .news-box {
@@ -375,19 +382,7 @@
     padding: 0.9rem 1rem;
     backdrop-filter: blur(6px);
   }
-  .newsletter-close {
-    position: absolute;
-    top: 0.4rem;
-    right: 0.5rem;
-    background: none;
-    border: none;
-    color: rgba(255,255,255,0.5);
-    font-size: 1rem;
-    cursor: pointer;
-    line-height: 1;
-  }
-  .newsletter-close:hover { color: #f8fafc; }
-  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; padding-right: 1rem; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; }
   .newsletter-form { display: flex; gap: 0.4rem; }
   .newsletter-form input {
     flex: 1;
@@ -414,11 +409,64 @@
   .newsletter-form button:hover { background: #0ea5e9; }
   .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
 
+  /* Mobiles Layout: Text oberhalb des Fotos, Links darunter zentriert, News/Newsletter im Fluss sichtbar */
   @media (max-width: 700px) {
-    .news-box { display: none !important; }
+    html, body { height: auto; min-height: 100%; overflow-y: auto; overflow-x: hidden; }
+    body { display: flex; flex-direction: column; }
+
+    .slideshow { position: relative; width: 100%; height: 52vh; order: 2; flex-shrink: 0; }
+    .slide::after { display: none; }
+
+    .banner { display: contents; }
+    .banner-text {
+      order: 1;
+      position: static;
+      max-width: none;
+      padding: 5.6rem 1.3rem 1.3rem;
+      text-align: center;
+    }
+    .banner p.info {
+      max-width: none;
+      margin-left: auto;
+      margin-right: auto;
+      display: block;
+      -webkit-line-clamp: unset;
+      overflow: visible;
+    }
+    .banner-actions {
+      order: 3;
+      position: static;
+      justify-content: center;
+      padding: 1.2rem 1.3rem 1.6rem;
+    }
+    .banner-actions .socials { justify-content: center; }
+
+    .news-box {
+      order: 4;
+      position: static;
+      display: none;
+      width: auto;
+      max-height: none;
+      margin: 0 1.2rem 1.2rem;
+    }
+    .newsletter-box {
+      order: 5;
+      position: static;
+      width: auto;
+      max-width: none;
+      margin: 0 1.2rem 1.5rem;
+    }
+    .legal-footer {
+      order: 6;
+      position: static;
+      justify-content: center;
+      padding: 0 1.2rem 1.8rem;
+    }
   }
-  @media (max-width: 900px) {
-    .newsletter-box { display: none !important; }
+
+  @media (max-width: 560px) {
+    .banner-text { padding: 5.6rem 1rem 1rem; }
+    .banner-actions { padding: 1.2rem 1rem 1.6rem; }
   }
 </style>
 </head>
@@ -429,10 +477,12 @@
   <div class="slideshow" id="slideshow"></div>
 
   <div class="banner">
-    <div class="eyebrow" id="banner-eyebrow">Projekt</div>
-    <h1 id="banner-title"></h1>
-    <p class="info" id="banner-info"></p>
-    <div class="actions">
+    <div class="banner-text">
+      <div class="eyebrow" id="banner-eyebrow">Projekt</div>
+      <h1 id="banner-title"></h1>
+      <p class="info" id="banner-info"></p>
+    </div>
+    <div class="banner-actions actions">
       <a class="link-btn" id="banner-link" href="#">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
         Homepage
@@ -456,7 +506,6 @@
   </div>
 
   <div class="newsletter-box" id="newsletter-box">
-    <button type="button" class="newsletter-close" id="newsletter-close" aria-label="Schließen">&times;</button>
     <p class="newsletter-text">📬 Newsletter abonnieren</p>
     <form id="newsletter-form" class="newsletter-form">
       <input type="email" name="email" id="newsletter-email" placeholder="deine@email.de" required>
@@ -526,18 +575,11 @@
   <script>
     // Newsletter-Banner: E-Mail-Anmeldung direkt in den Mailchimp-Verteiler.
     (function () {
-      var KEY = 'newsletter_dismissed_v1';
       var box = document.getElementById('newsletter-box');
       if (!box) return;
-      if (localStorage.getItem(KEY)) return;
       box.style.display = 'block';
-      var closeBtn = document.getElementById('newsletter-close');
       var form = document.getElementById('newsletter-form');
       var msg = document.getElementById('newsletter-msg');
-      closeBtn.addEventListener('click', function () {
-        try { localStorage.setItem(KEY, '1'); } catch (e) {}
-        box.style.display = 'none';
-      });
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         var email = document.getElementById('newsletter-email').value;
@@ -552,7 +594,6 @@
             if (result.ok && result.data.ok) {
               msg.textContent = 'Danke fürs Abonnieren!';
               form.style.display = 'none';
-              try { localStorage.setItem(KEY, '1'); } catch (e) {}
             } else {
               msg.textContent = (result.data && result.data.error) || 'Anmeldung fehlgeschlagen.';
             }
