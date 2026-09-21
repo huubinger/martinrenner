@@ -516,15 +516,92 @@ function getMailTransporter() {
   return mailTransporter;
 }
 
+// --- Gemeinsame Projekt-Navigation (oben), auch auf allen Unterseiten sichtbar ---
+const TOP_NAV_STYLE = `
+  .top-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 1.3rem;
+    padding: 1.1rem 1.5rem;
+    background: linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0) 100%);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .top-nav a {
+    color: rgba(255,255,255,0.65);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    padding: 0.3rem 0;
+    flex: 0 0 auto;
+  }
+  .top-nav a:hover { color: #f8fafc; }
+  .top-nav a.active { color: #38bdf8; }
+  .top-nav .nav-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(255,255,255,0.2);
+    flex: 0 0 auto;
+  }
+  @media (max-width: 700px) {
+    .top-nav {
+      flex-wrap: wrap;
+      overflow-x: visible;
+      white-space: normal;
+      padding: 0.8rem 1rem;
+      gap: 0.5rem 0.9rem;
+      row-gap: 0.4rem;
+      background: rgba(15,23,42,0.72);
+      backdrop-filter: blur(6px);
+    }
+    .top-nav .nav-divider { display: none; }
+    .top-nav a { font-size: 0.8rem; padding: 0.15rem 0; }
+  }
+`;
+
+const TOP_NAV_BLOCK = `
+  <nav class="top-nav" id="top-nav"></nav>
+  <script>
+    (function () {
+      function esc(str) {
+        return String(str).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      fetch('/api/projects')
+        .then(function (r) { return r.json(); })
+        .then(function (slides) {
+          var nav = document.getElementById('top-nav');
+          if (!nav || !Array.isArray(slides)) return;
+          var html = slides
+            .map(function (s) {
+              var key = s.id || s.key || s.title;
+              return '<a href="/?p=' + encodeURIComponent(key) + '">' + esc(s.title) + '</a>';
+            })
+            .join('');
+          html += '<span class="nav-divider"></span>';
+          var kontaktActive = location.pathname === '/kontakt';
+          html += '<a href="/kontakt"' + (kontaktActive ? ' class="active"' : '') + '>Kontakt</a>';
+          nav.innerHTML = html;
+        })
+        .catch(function () {});
+    })();
+  </script>`;
+
 // --- Gemeinsames Styling für Impressum / Datenschutz / Kontakt ---
 const LEGAL_PAGE_STYLE = `
+  ${TOP_NAV_STYLE}
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
     color: #f8fafc;
     min-height: 100vh;
-    padding: 2.5rem 1rem 5rem;
+    padding: 6.2rem 1rem 5rem;
   }
   .container { max-width: 720px; margin: 0 auto; }
   h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); margin-bottom: 1.5rem; }
@@ -570,21 +647,49 @@ const LEGAL_PAGE_STYLE = `
     color: #f8fafc;
     font-family: inherit;
     font-size: 0.95rem;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: #38bdf8;
+    background: rgba(56,189,248,0.07);
   }
   textarea { min-height: 110px; resize: vertical; }
   button {
     align-self: flex-start;
-    padding: 0.7rem 1.4rem;
-    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.5rem;
+    border-radius: 999px;
     border: none;
     background: #38bdf8;
     color: #0f172a;
     font-weight: 600;
     cursor: pointer;
     font-size: 0.95rem;
+    transition: background 0.15s ease, transform 0.15s ease;
   }
-  button:hover { background: #0ea5e9; }
+  button:hover { background: #0ea5e9; transform: translateY(-1px); }
+  button svg { display: block; }
   .hp-field { position: absolute; left: -9999px; top: -9999px; }
+  .contact-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    padding: 1.8rem 1.8rem 2rem;
+    max-width: 540px;
+    margin-top: 0.5rem;
+  }
+  .contact-card .hint {
+    background: none;
+    border: none;
+    padding: 0;
+    max-width: none;
+    margin-bottom: 1.4rem;
+  }
+  .contact-card form { margin-top: 0; max-width: none; }
+  .contact-card .message-box { max-width: none; }
   .legal-footer {
     position: fixed;
     right: 1rem;
@@ -634,7 +739,8 @@ const LEGAL_PAGE_STYLE = `
     border-radius: 12px;
     padding: 1rem 1.1rem;
   }
-  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.3rem; }
+  .newsletter-subtext { font-size: 0.74rem; color: #94a3b8; margin-bottom: 0.6rem; line-height: 1.4; }
   .newsletter-form { display: flex; gap: 0.4rem; }
   .newsletter-form input {
     flex: 1;
@@ -679,6 +785,7 @@ function renderImpressumPage(settings) {
 <style>${LEGAL_PAGE_STYLE}</style>
 </head>
 <body>
+  ${TOP_NAV_BLOCK}
   <div class="container">
     <h1>Impressum</h1>
 
@@ -727,6 +834,7 @@ function renderDatenschutzPage(settings) {
 <style>${LEGAL_PAGE_STYLE}</style>
 </head>
 <body>
+  ${TOP_NAV_BLOCK}
   <div class="container">
     <h1>Datenschutzerklärung</h1>
 
@@ -806,22 +914,28 @@ function renderKontaktPage(settings, opts) {
 <style>${LEGAL_PAGE_STYLE}</style>
 </head>
 <body>
+  ${TOP_NAV_BLOCK}
   <div class="container">
-    <h1>Kontakt</h1>
-    <p class="hint">Schreib mir eine Nachricht – ich melde mich so schnell wie möglich zurück. Direkt erreichst du mich auch per E-Mail unter <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a>${settings.phone ? ` oder telefonisch unter ${escapeHtml(settings.phone)}` : ''}.</p>
+    <h1>✉️ Kontakt</h1>
+    <div class="contact-card">
+      <p class="hint">Schreib mir eine Nachricht – ich melde mich so schnell wie möglich zurück. Direkt erreichst du mich auch per E-Mail unter <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a>${settings.phone ? ` oder telefonisch unter ${escapeHtml(settings.phone)}` : ''}.</p>
 
-    ${opts.success ? `<div class="message-box">Danke für deine Nachricht! Ich melde mich zeitnah bei dir.</div>` : ''}
-    ${opts.error ? `<div class="message-box error">${escapeHtml(opts.error)}</div>` : ''}
+      ${opts.success ? `<div class="message-box">Danke für deine Nachricht! Ich melde mich zeitnah bei dir.</div>` : ''}
+      ${opts.error ? `<div class="message-box error">${escapeHtml(opts.error)}</div>` : ''}
 
-    ${!opts.success ? `<form method="POST" action="/kontakt">
-      <label>Name<input type="text" name="name" value="${escapeAttr(values.name || '')}" required></label>
-      <label>Deine E-Mail-Adresse<input type="email" name="email" value="${escapeAttr(values.email || '')}" required></label>
-      <label>Nachricht<textarea name="message" required>${escapeHtml(values.message || '')}</textarea></label>
-      <label>Zum Nachweis, dass du kein Roboter bist: ${escapeHtml(opts.question || '')} = ?<input type="text" name="captchaAnswer" inputmode="numeric" required></label>
-      <input type="hidden" name="captchaToken" value="${escapeAttr(opts.token || '')}">
-      <label class="hp-field" aria-hidden="true">Bitte freilassen<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
-      <button type="submit">Nachricht senden</button>
-    </form>` : ''}
+      ${!opts.success ? `<form method="POST" action="/kontakt">
+        <label>Name<input type="text" name="name" value="${escapeAttr(values.name || '')}" required></label>
+        <label>Deine E-Mail-Adresse<input type="email" name="email" value="${escapeAttr(values.email || '')}" required></label>
+        <label>Nachricht<textarea name="message" required>${escapeHtml(values.message || '')}</textarea></label>
+        <label>Zum Nachweis, dass du kein Roboter bist: ${escapeHtml(opts.question || '')} = ?<input type="text" name="captchaAnswer" inputmode="numeric" required></label>
+        <input type="hidden" name="captchaToken" value="${escapeAttr(opts.token || '')}">
+        <label class="hp-field" aria-hidden="true">Bitte freilassen<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        <button type="submit">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          Nachricht senden
+        </button>
+      </form>` : ''}
+    </div>
 
     <a class="home-link" href="/">&larr; zurück zur Startseite</a>
   </div>
@@ -1407,19 +1521,58 @@ function sortChoerleTracks(files) {
 }
 
 const CHOERLE_STYLE = `
+  ${TOP_NAV_STYLE}
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
     color: #f8fafc;
     min-height: 100vh;
-    padding: 2.5rem 1rem 5rem;
+    padding: 6.2rem 1rem 5rem;
   }
   .container { max-width: 720px; margin: 0 auto; }
   h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); margin-bottom: 0.25rem; }
   p.subtitle { color: #cbd5e1; margin-bottom: 2rem; }
   ul { list-style: none; }
   li { margin-bottom: 0.75rem; }
+  .song-grid {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.9rem;
+  }
+  .song-grid li { margin-bottom: 0; }
+  .song-card {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 1.1rem 1.2rem;
+    color: #f8fafc;
+    text-decoration: none;
+    transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  }
+  .song-card:hover {
+    background: rgba(56,189,248,0.1);
+    border-color: rgba(56,189,248,0.4);
+    transform: translateY(-2px);
+  }
+  .song-card-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    width: 2.4rem;
+    height: 2.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(56,189,248,0.12);
+    border-radius: 10px;
+  }
+  .song-card-title { flex: 1; font-size: 1rem; font-weight: 600; }
+  .song-card-arrow { color: #38bdf8; opacity: 0.7; transition: transform 0.15s ease; }
+  .song-card:hover .song-card-arrow { transform: translateX(3px); }
   a.file-link {
     display: block;
     background: rgba(255,255,255,0.06);
@@ -1512,7 +1665,8 @@ const CHOERLE_STYLE = `
     border-radius: 12px;
     padding: 1rem 1.1rem;
   }
-  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.3rem; }
+  .newsletter-subtext { font-size: 0.74rem; color: #94a3b8; margin-bottom: 0.6rem; line-height: 1.4; }
   .newsletter-form { display: flex; gap: 0.4rem; }
   .newsletter-form input {
     flex: 1;
@@ -1579,6 +1733,7 @@ const LEGAL_FOOTER_BLOCK = `
 const NEWSLETTER_BANNER_BLOCK = `
   <div class="newsletter-box" id="newsletter-box">
     <p class="newsletter-text">📬 Newsletter abonnieren</p>
+    <p class="newsletter-subtext">Alle Neuigkeiten zu meinen Projekten direkt ins E-Mail-Postfach erhalten</p>
     <form id="newsletter-form" class="newsletter-form">
       <input type="email" name="email" id="newsletter-email" placeholder="deine@email.de" required>
       <button type="submit">Anmelden</button>
@@ -1627,10 +1782,11 @@ function renderChoerleListPage(itemsHtml) {
 <style>${CHOERLE_STYLE}</style>
 </head>
 <body>
+  ${TOP_NAV_BLOCK}
   <div class="container">
     <h1>🎶 Frühstückschörle</h1>
     <p class="subtitle">Lied auswählen</p>
-    <ul>${itemsHtml}</ul>
+    <ul class="song-grid">${itemsHtml}</ul>
     <a class="home-link" href="/">&larr; zurück zur Startseite</a>
   </div>
   ${LEGAL_FOOTER_BLOCK}
@@ -1707,6 +1863,7 @@ function renderChoerleSongPage(song, notFound) {
 <style>${CHOERLE_STYLE}</style>
 </head>
 <body>
+  ${TOP_NAV_BLOCK}
   <div class="container">
     ${body}
     <a class="home-link" href="/choerle">&larr; zurück zur Liedauswahl</a>
@@ -1720,13 +1877,14 @@ function renderChoerleSongPage(song, notFound) {
 
 // --- Veranstaltungstechnik (/vt): Materialliste ---
 const VT_STYLE = `
+  ${TOP_NAV_STYLE}
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
     color: #f8fafc;
     min-height: 100vh;
-    padding: 2.5rem 1rem 5rem;
+    padding: 6.2rem 1rem 5rem;
   }
   .container { max-width: 860px; margin: 0 auto; }
   h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); margin-bottom: 0.25rem; }
@@ -1854,7 +2012,8 @@ const VT_STYLE = `
     border-radius: 12px;
     padding: 1rem 1.1rem;
   }
-  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.3rem; }
+  .newsletter-subtext { font-size: 0.74rem; color: #94a3b8; margin-bottom: 0.6rem; line-height: 1.4; }
   .newsletter-form { display: flex; gap: 0.4rem; }
   .newsletter-form input {
     flex: 1;
@@ -1891,6 +2050,22 @@ const VT_STYLE = `
   }
 `;
 
+// Materialübersicht auf /vt zeigt nur eine kuratierte Auswahl relevanter Bereiche,
+// nicht das komplette Lager-Tool-Inventar (z. B. keine Transportkosten, Kleinteile etc.).
+const VT_GROUP_ORDER = ['Ton- und Lichttechnik', 'Funkmikrofone', 'Mobile Bühne', 'Event-Bestuhlung'];
+
+function vtOverviewGroup(item) {
+  const bez = (item.bezeichnung || '').toLowerCase();
+  const kat = (item.kategorie || '').trim();
+  const isTonLicht = kat === 'Tontechnik' || kat === 'Ton' || kat === 'Lichttechnik';
+  const isFunk = /funk|headset|in-?ear|iem\b/.test(bez);
+  if (isTonLicht && isFunk) return 'Funkmikrofone';
+  if (/bühne|buehne|podest/.test(bez)) return 'Mobile Bühne';
+  if (/bestuhlung|bestuhl/.test(bez)) return 'Event-Bestuhlung';
+  if (isTonLicht) return 'Ton- und Lichttechnik';
+  return null;
+}
+
 function renderVtPage(result, vtPhotos) {
   const { data, fetchedAt, error } = result;
   const photoByName = new Map((vtPhotos || []).map((p) => [p.bezeichnung, p.filename]));
@@ -1925,14 +2100,13 @@ function renderVtPage(result, vtPhotos) {
 
     const groups = new Map();
     for (const item of items) {
-      const kat = (item.kategorie || '').trim() || 'Sonstiges';
+      const kat = vtOverviewGroup(item);
+      if (!kat) continue;
       if (!groups.has(kat)) groups.set(kat, []);
       groups.get(kat).push(item);
     }
 
-    const sortedKategorien = Array.from(groups.keys()).sort((a, b) =>
-      a === 'Sonstiges' ? 1 : b === 'Sonstiges' ? -1 : a.localeCompare(b, 'de')
-    );
+    const sortedKategorien = VT_GROUP_ORDER.filter((kat) => groups.has(kat));
 
     const categoriesHtml = sortedKategorien
       .map((kat) => {
@@ -1943,15 +2117,6 @@ function renderVtPage(result, vtPhotos) {
 
         const itemsHtml = katItems
           .map((item) => {
-            const verfuegbar = item.verfuegbar;
-            const menge = item.menge;
-            let availHtml = '';
-            if (verfuegbar !== null && verfuegbar !== undefined && menge !== null && menge !== undefined) {
-              const v = Number(verfuegbar);
-              const m = Number(menge);
-              const cls = v <= 0 ? 'vt-avail-none' : v < m ? 'vt-avail-low' : '';
-              availHtml = `<span class="vt-avail ${cls}">${v} / ${m} verfügbar</span>`;
-            }
             const ortHtml = item.lagerort ? `<span>📍 ${escapeHtml(item.lagerort)}</span>` : '';
             const photoFilename = photoByName.get(item.bezeichnung);
             const photoHtml = photoFilename
@@ -1962,7 +2127,6 @@ function renderVtPage(result, vtPhotos) {
               ${photoHtml}
               <div class="vt-item-name">${escapeHtml(bez)}</div>
               <div class="vt-item-meta">
-                ${availHtml}
                 ${ortHtml}
               </div>
             </div>`;
@@ -1998,6 +2162,7 @@ function renderVtPage(result, vtPhotos) {
 <style>${VT_STYLE}</style>
 </head>
 <body>
+  ${TOP_NAV_BLOCK}
   <div class="container">
     <h1>🎛️ Veranstaltungstechnik</h1>
     <p class="subtitle">Material für deine Veranstaltung</p>
@@ -2087,7 +2252,13 @@ app.get('/choerle', async (req, res) => {
       return;
     }
     const items = folders
-      .map((f) => `<li><a class="file-link" href="/choerle/${f.slug}">${escapeHtml(f.title)}</a></li>`)
+      .map(
+        (f) => `<li><a class="song-card" href="/choerle/${f.slug}">
+          <span class="song-card-icon">🎵</span>
+          <span class="song-card-title">${escapeHtml(f.title)}</span>
+          <span class="song-card-arrow">→</span>
+        </a></li>`
+      )
       .join('\n');
     res.send(renderChoerleListPage(items));
   } catch (err) {

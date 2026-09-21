@@ -11,7 +11,45 @@
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
     color: #f8fafc;
     min-height: 100vh;
-    padding: 2.5rem 1rem 5rem;
+    padding: 6.2rem 1rem 5rem;
+  }
+  .top-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 1.3rem;
+    padding: 1.1rem 1.5rem;
+    background: linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0) 100%);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .top-nav a {
+    color: rgba(255,255,255,0.65);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    padding: 0.3rem 0;
+    flex: 0 0 auto;
+  }
+  .top-nav a:hover { color: #f8fafc; }
+  .top-nav a.active { color: #38bdf8; }
+  .top-nav .nav-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.2); flex: 0 0 auto; }
+  @media (max-width: 700px) {
+    .top-nav {
+      flex-wrap: wrap;
+      overflow-x: visible;
+      white-space: normal;
+      padding: 0.8rem 1rem;
+      gap: 0.5rem 0.9rem;
+      row-gap: 0.4rem;
+      background: rgba(15,23,42,0.72);
+      backdrop-filter: blur(6px);
+    }
+    .top-nav .nav-divider { display: none; }
+    .top-nav a { font-size: 0.8rem; padding: 0.15rem 0; }
   }
   .container { max-width: 640px; margin: 0 auto; }
   h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); margin-bottom: 0.5rem; }
@@ -78,7 +116,8 @@
     border-radius: 12px;
     padding: 1rem 1.1rem;
   }
-  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.3rem; }
+  .newsletter-subtext { font-size: 0.74rem; color: #94a3b8; margin-bottom: 0.6rem; line-height: 1.4; }
   .newsletter-form { display: flex; gap: 0.4rem; }
   .newsletter-form input {
     flex: 1;
@@ -107,6 +146,7 @@
 </style>
 </head>
 <body>
+  <nav class="top-nav" id="top-nav"></nav>
   <div class="container">
     <h1>🧩 Apps</h1>
     <p class="subtitle">Tools &amp; Anwendungen</p>
@@ -117,6 +157,31 @@
     </ul>
     <a class="home-link" href="/">&larr; zurück zur Startseite</a>
   </div>
+
+  <script>
+    (function () {
+      function esc(str) {
+        return String(str).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      fetch('/api/projects')
+        .then(function (r) { return r.json(); })
+        .then(function (slides) {
+          var nav = document.getElementById('top-nav');
+          if (!nav || !Array.isArray(slides)) return;
+          var html = slides
+            .map(function (s) {
+              var key = s.id || s.key || s.title;
+              return '<a href="/?p=' + encodeURIComponent(key) + '">' + esc(s.title) + '</a>';
+            })
+            .join('');
+          html += '<span class="nav-divider"></span><a href="/kontakt">Kontakt</a>';
+          nav.innerHTML = html;
+        })
+        .catch(function () {});
+    })();
+  </script>
 
   <div class="cookie-banner" id="cookie-banner">
     <p>Diese Website verwendet ausschließlich technisch notwendige Funktionen – keine Cookies zu Tracking- oder Marketingzwecken. Mehr dazu in der <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
@@ -141,6 +206,7 @@
 
   <div class="newsletter-box" id="newsletter-box">
     <p class="newsletter-text">📬 Newsletter abonnieren</p>
+    <p class="newsletter-subtext">Alle Neuigkeiten zu meinen Projekten direkt ins E-Mail-Postfach erhalten</p>
     <form id="newsletter-form" class="newsletter-form">
       <input type="email" name="email" id="newsletter-email" placeholder="deine@email.de" required>
       <button type="submit">Anmelden</button>

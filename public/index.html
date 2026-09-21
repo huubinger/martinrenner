@@ -310,29 +310,18 @@
 
   @media (max-width: 700px) {
     .top-nav {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      white-space: nowrap;
-      padding: 0.7rem 1rem;
-      gap: 0.5rem;
+      flex-wrap: wrap;
+      overflow-x: visible;
+      white-space: normal;
+      padding: 0.8rem 1rem;
+      gap: 0.5rem 0.9rem;
+      row-gap: 0.4rem;
       background: rgba(15,23,42,0.72);
       backdrop-filter: blur(6px);
-      mask-image: linear-gradient(90deg, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%);
     }
-    .top-nav::-webkit-scrollbar { display: none; }
     .top-nav .nav-divider { display: none; }
     .top-nav button,
-    .top-nav a {
-      font-size: 0.78rem;
-      padding: 0.4rem 0.85rem;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 999px;
-    }
-    .top-nav button.active { color: #0f172a; background: #38bdf8; border-color: #38bdf8; font-weight: 600; }
-    .top-nav button.active::after { display: none; }
+    .top-nav a { font-size: 0.8rem; padding: 0.15rem 0; }
   }
 
   .news-box {
@@ -382,7 +371,8 @@
     padding: 0.9rem 1rem;
     backdrop-filter: blur(6px);
   }
-  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.5rem; }
+  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.3rem; }
+  .newsletter-subtext { font-size: 0.74rem; color: #94a3b8; margin-bottom: 0.6rem; line-height: 1.4; }
   .newsletter-form { display: flex; gap: 0.4rem; }
   .newsletter-form input {
     flex: 1;
@@ -414,7 +404,7 @@
     html, body { height: auto; min-height: 100%; overflow-y: auto; overflow-x: hidden; }
     body { display: flex; flex-direction: column; }
 
-    .slideshow { position: relative; width: 100%; height: 52vh; order: 2; flex-shrink: 0; }
+    .slideshow { position: relative; width: 100%; height: 34vh; order: 2; flex-shrink: 0; }
     .slide::after { display: none; }
 
     .banner { display: contents; }
@@ -422,22 +412,26 @@
       order: 1;
       position: static;
       max-width: none;
-      padding: 5.6rem 1.3rem 1.3rem;
+      padding: 4.2rem 1.2rem 0.6rem;
       text-align: center;
     }
+    .banner-text .eyebrow { margin-bottom: 0.35rem; }
+    .banner-text h1 { font-size: clamp(1.4rem, 6vw, 2rem); margin-bottom: 0.35rem; }
     .banner p.info {
       max-width: none;
       margin-left: auto;
       margin-right: auto;
+      margin-bottom: 0;
       display: block;
       -webkit-line-clamp: unset;
       overflow: visible;
+      font-size: 0.88rem;
     }
     .banner-actions {
       order: 3;
       position: static;
       justify-content: center;
-      padding: 1.2rem 1.3rem 1.6rem;
+      padding: 0.7rem 1.2rem 1rem;
     }
     .banner-actions .socials { justify-content: center; }
 
@@ -465,8 +459,9 @@
   }
 
   @media (max-width: 560px) {
-    .banner-text { padding: 5.6rem 1rem 1rem; }
-    .banner-actions { padding: 1.2rem 1rem 1.6rem; }
+    .slideshow { height: 30vh; }
+    .banner-text { padding: 4.6rem 1rem 0.5rem; }
+    .banner-actions { padding: 0.6rem 1rem 0.9rem; }
   }
 </style>
 </head>
@@ -507,6 +502,7 @@
 
   <div class="newsletter-box" id="newsletter-box">
     <p class="newsletter-text">📬 Newsletter abonnieren</p>
+    <p class="newsletter-subtext">Alle Neuigkeiten zu meinen Projekten direkt ins E-Mail-Postfach erhalten</p>
     <form id="newsletter-form" class="newsletter-form">
       <input type="email" name="email" id="newsletter-email" placeholder="deine@email.de" required>
       <button type="submit">Anmelden</button>
@@ -784,7 +780,12 @@
       }
       if (!slides.length) return;
       buildDOM();
-      current = 0;
+      // Wenn von einer Unterseite mit ?p=<key> verlinkt wurde, direkt zu diesem Projekt springen.
+      const requestedKey = new URLSearchParams(location.search).get('p');
+      const requestedIndex = requestedKey
+        ? slides.findIndex((s) => String(s.id || s.key || s.title) === requestedKey)
+        : -1;
+      current = requestedIndex !== -1 ? requestedIndex : 0;
       render();
       restart();
     }
