@@ -16,6 +16,7 @@ const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const NEWS_FILE = path.join(DATA_DIR, 'news.json');
+const HIDDEN_EVENTS_FILE = path.join(DATA_DIR, 'hidden-events.json');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // --- News-Shoutbox (kurze Meldungen auf der Startseite) ---
@@ -914,7 +915,7 @@ function renderDatenschutzPage(settings) {
 </html>`;
 }
 
-function renderAdminPage(projects, settings, news, message) {
+function renderAdminPage(projects, settings, news, events, message) {
   const rows = projects
     .map(
       (p) => `
@@ -1065,6 +1066,12 @@ function renderAdminPage(projects, settings, news, message) {
   .news-admin-title { font-size: 0.92rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.15rem; }
   .news-admin-text { font-size: 0.88rem; color: #e2e8f0; }
   .news-admin-link { font-size: 0.78rem; color: #38bdf8; margin-top: 0.2rem; word-break: break-all; }
+  .evt-admin-item.is-hidden > div { opacity: 0.45; }
+  .evt-admin-item.is-hidden .news-admin-title { text-decoration: line-through; }
+  .evt-admin-source { font-size: 0.72rem; color: #94a3b8; }
+  .evt-hide-btn { width: 2.2rem; height: 2.2rem; padding: 0; font-size: 1.2rem; line-height: 1; }
+  .evt-show-btn { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4); white-space: nowrap; }
+  .evt-show-btn:hover { background: rgba(56,189,248,0.3); }
   .home-link { display: inline-block; margin-top: 2rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
   .home-link:hover { text-decoration: underline; }
   @media (max-width: 560px) {
@@ -1159,6 +1166,36 @@ function renderAdminPage(projects, settings, news, message) {
       </form>
     </div>
 
+    <div class="new-project" id="events">
+      <h2>📅 Eventticker</h2>
+      <p class="subtitle" style="margin-bottom:1rem;">Mit ✕ blendest du einen Termin im Ticker und in der Terminübersicht aus, mit „Einblenden“ holst du ihn zurück.</p>
+      ${
+        events === null
+          ? '<p class="subtitle">Termine konnten gerade nicht geladen werden.</p>'
+          : events.length
+          ? `<ul class="news-admin-list">${events
+              .map(
+                (e) => `<li class="news-admin-item evt-admin-item${e.hidden ? ' is-hidden' : ''}">
+                  <div>
+                    <div class="news-admin-date">${escapeHtml(formatEventDate(e))} · <span class="evt-admin-source">${escapeHtml(e.source === 'voctails' ? 'Voctails' : 'Kreatief')}</span>${e.hidden ? ' · ausgeblendet' : ''}</div>
+                    <div class="news-admin-title">${escapeHtml(e.title)}</div>
+                    ${e.location ? `<div class="news-admin-text">${escapeHtml(e.location)}</div>` : ''}
+                  </div>
+                  <form method="POST" action="/admin/events/${e.hidden ? 'show' : 'hide'}">
+                    <input type="hidden" name="key" value="${escapeAttr(eventKey(e))}">
+                    ${
+                      e.hidden
+                        ? '<button type="submit" class="evt-show-btn">Einblenden</button>'
+                        : '<button type="submit" class="delete-btn evt-hide-btn" title="Ausblenden" aria-label="Ausblenden">✕</button>'
+                    }
+                  </form>
+                </li>`
+              )
+              .join('')}</ul>`
+          : '<p class="subtitle">Keine kommenden Termine.</p>'
+      }
+    </div>
+
     <a class="home-link" href="/">&larr; zur Startseite</a>
   </div>
   <script>
@@ -1196,8 +1233,31 @@ function renderAdminPage(projects, settings, news, message) {
 </html>`;
 }
 
-app.get('/admin', requireAdminAuth, (req, res) => {
-  res.send(renderAdminPage(loadProjects(), loadSettings(), loadNews()));
+app.get('/admin', requireAdminAuth, async (req, res) => {
+  let events = null;
+  try {
+    const hidden = new Set(loadHiddenEvents());
+    events = (await getAllTickerEvents()).map((e) => ({ ...e, hidden: hidden.has(eventKey(e)) }));
+  } catch (err) {
+    console.error('Admin: Termine konnten nicht geladen werden:', err);
+  }
+  res.send(renderAdminPage(loadProjects(), loadSettings(), loadNews(), events));
+});
+
+app.post('/admin/events/hide', requireAdminAuth, (req, res) => {
+  const key = String(req.body.key || '');
+  const hidden = loadHiddenEvents();
+  if (key && !hidden.includes(key)) {
+    hidden.push(key);
+    saveHiddenEvents(hidden);
+  }
+  res.redirect('/admin#events');
+});
+
+app.post('/admin/events/show', requireAdminAuth, (req, res) => {
+  const key = String(req.body.key || '');
+  saveHiddenEvents(loadHiddenEvents().filter((k) => k !== key));
+  res.redirect('/admin#events');
 });
 
 app.post('/admin/news', requireAdminAuth, (req, res) => {
@@ -1882,7 +1942,37 @@ async function refreshTicker() {
   tickerCache.fetchedAt = Date.now();
 }
 
-async function getTickerEvents() {
+// Im Admin ausgeblendete Termine (Schlüssel aus Quelle, Beginn und Titel).
+function eventKey(e) {
+  return `${e.source}|${e.start}|${e.title}`;
+}
+
+function loadHiddenEvents() {
+  try {
+    const list = JSON.parse(fs.readFileSync(HIDDEN_EVENTS_FILE, 'utf8'));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHiddenEvents(list) {
+  // Vergangene Termine aufräumen, damit die Liste nicht endlos wächst.
+  const cutoff = Date.now() - 2 * 24 * 60 * 60 * 1000;
+  const keep = list.filter((k) => {
+    const t = new Date(String(k).split('|')[1]).getTime();
+    return !Number.isFinite(t) || t >= cutoff;
+  });
+  fs.writeFileSync(HIDDEN_EVENTS_FILE, JSON.stringify(keep, null, 2));
+}
+
+function formatEventDate(e) {
+  const opts = { timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' };
+  if (!e.allDay) Object.assign(opts, { hour: '2-digit', minute: '2-digit' });
+  return new Date(e.start).toLocaleString('de-DE', opts);
+}
+
+async function getAllTickerEvents() {
   if (Date.now() - tickerCache.fetchedAt > TICKER_CACHE_TTL_MS) {
     if (!tickerCache.pending) {
       tickerCache.pending = refreshTicker().finally(() => {
@@ -1898,10 +1988,15 @@ async function getTickerEvents() {
     .slice(0, TICKER_MAX_ITEMS);
 }
 
+async function getTickerEvents() {
+  const hidden = new Set(loadHiddenEvents());
+  return (await getAllTickerEvents()).filter((e) => !hidden.has(eventKey(e)));
+}
+
 app.get('/api/events-ticker', async (req, res) => {
   try {
     const items = await getTickerEvents();
-    res.set('Cache-Control', 'public, max-age=300');
+    res.set('Cache-Control', 'public, max-age=60');
     res.json({ items });
   } catch (err) {
     console.error('Eventticker:', err);
