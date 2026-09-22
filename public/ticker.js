@@ -156,8 +156,7 @@
     opacity: 0.7;
   }
   .evt-progress.is-running { animation: evt-progress linear forwards; }
-  .evt:hover .evt-progress.is-running,
-  .evt:focus-within .evt-progress.is-running,
+  .evt.is-held .evt-progress.is-running,
   .evt.is-open .evt-progress.is-running { animation-play-state: paused; }
 
   /* Aufgeklappte Übersicht aller Termine – wächst aus der Leiste nach oben */
@@ -480,6 +479,7 @@
     function hold(reason) {
       var wasRunning = !Object.keys(holds).length;
       holds[reason] = true;
+      root.classList.add('is-held');
       if (wasRunning) {
         clearTimeout(timer);
         remaining = Math.max(300, remaining - (Date.now() - startedAt));
@@ -491,6 +491,7 @@
       if (!holds[reason]) return;
       delete holds[reason];
       if (Object.keys(holds).length) return;
+      root.classList.remove('is-held');
       if (marquee) marquee.play();
       if (armed) schedule(remaining);
     }
@@ -506,7 +507,7 @@
       var inner = el.querySelector('.evt-title-inner');
       title.classList.remove('is-marquee', 'is-running');
       inner.style.transform = '';
-      if (reduced) return interval;
+      // Auch bei "Bewegung reduzieren" (iPhone-Einstellung) laufen lassen – sonst wären lange Titel nicht lesbar.
       var distance = inner.scrollWidth - title.clientWidth;
       if (distance <= 2) {
         title.classList.remove('is-marquee');
@@ -578,9 +579,16 @@
       }, ms);
     }
 
-    root.addEventListener('mouseenter', function () { hold('hover'); });
-    root.addEventListener('mouseleave', function () { release('hover'); });
-    root.addEventListener('focusin', function () { hold('focus'); });
+    // Nur echte Maus-Geräte pausieren beim Drüberfahren: Auf dem Handy "klebt" hover/focus nach
+    // einem Antippen (z. B. nach Rückkehr aus dem neuen Tab) und würde den Ticker dauerhaft anhalten.
+    var canHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (canHover) {
+      root.addEventListener('mouseenter', function () { hold('hover'); });
+      root.addEventListener('mouseleave', function () { release('hover'); });
+    }
+    root.addEventListener('focusin', function (e) {
+      if (e.target.matches && e.target.matches(':focus-visible')) hold('focus');
+    });
     root.addEventListener('focusout', function () { release('focus'); });
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) hold('hidden');
