@@ -57,6 +57,16 @@ function saveSettings(settings) {
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
 }
 
+// Einmalige Übernahme (Sept. 2026): Telefonnummer fürs Impressum als zweiter schneller
+// Kontaktweg nach § 5 DDG. Danach nur noch im Admin änderbar.
+(function migratePhone() {
+  const settings = loadSettings();
+  if (settings.phoneInitialized) return;
+  if (!settings.phone) settings.phone = '0178-5483836';
+  settings.phoneInitialized = true;
+  saveSettings(settings);
+})();
+
 const DEFAULT_PROJECTS = [
   {
     id: 'martin-renner',
@@ -204,6 +214,40 @@ function deleteUploadedImage(imageUrl) {
   fs.unlink(path.join(UPLOADS_DIR, filename), () => {});
 }
 
+// Automatischer Bildausschnitt fürs Handy: sharp sucht per "attention"-Strategie den
+// interessantesten Bereich (Gesichter/Hauttöne, Kontrast, Sättigung) für einen
+// Hochkant-Zuschnitt. Ergebnis ist ein CSS-object-position-Wert ("x% y%").
+async function computeAutoFocus(filename) {
+  const W = 390;
+  const H = 844;
+  const { info } = await sharp(path.join(UPLOADS_DIR, filename))
+    .rotate()
+    .resize({ width: W, height: H, fit: 'cover', position: sharp.strategy.attention })
+    .toBuffer({ resolveWithObject: true });
+  const meta = await sharp(path.join(UPLOADS_DIR, filename)).metadata();
+  const rotated = meta.orientation && meta.orientation >= 5;
+  const ow = rotated ? meta.height : meta.width;
+  const oh = rotated ? meta.width : meta.height;
+  // cropOffsetLeft/Top (negativ) beziehen sich auf das skalierte Bild vor dem Zuschnitt;
+  // umgerechnet in object-position-Prozent, damit der Browser denselben Ausschnitt zeigt.
+  const scale = Math.max(W / ow, H / oh);
+  const sw = Math.round(ow * scale);
+  const sh = Math.round(oh * scale);
+  const x = sw > W ? Math.round((-info.cropOffsetLeft / (sw - W)) * 100) : 50;
+  const yRaw = sh > H ? Math.round((-info.cropOffsetTop / (sh - H)) * 100) : Math.round((info.attentionY / sh) * 100);
+  const y = Math.min(85, Math.max(15, Number.isFinite(yRaw) ? yRaw : 50));
+  return `${Math.min(100, Math.max(0, x))}% ${y}%`;
+}
+
+async function computeAutoFocusSafe(filename) {
+  try {
+    return await computeAutoFocus(filename);
+  } catch (err) {
+    console.error(`Bildfokus für ${filename} fehlgeschlagen:`, err.message);
+    return null;
+  }
+}
+
 async function createImageVariantsSafe(filename) {
   try {
     await createImageVariants(filename);
@@ -214,13 +258,29 @@ async function createImageVariantsSafe(filename) {
 }
 
 async function ensureAllImageVariants() {
-  for (const p of loadProjects()) {
-    if (!p.image || !p.image.startsWith('/uploads/')) continue;
-    try {
-      await createImageVariants(path.basename(p.image));
-    } catch (err) {
-      console.error(`Bildvarianten für ${p.image} fehlgeschlagen:`, err.message);
+  const projects = loadProjects();
+  let changed = false;
+  for (const p of projects) {
+    // Bis Sept. 2026 wurde "50% 50%" als Standard gespeichert – das gilt jetzt als "automatisch".
+    if (p.focus === '50% 50%') {
+      p.focus = null;
+      changed = true;
     }
+    if (!p.image || !p.image.startsWith('/uploads/')) continue;
+    const filename = path.basename(p.image);
+    await createImageVariantsSafe(filename);
+    if (!p.autoFocus) {
+      p.autoFocus = await computeAutoFocusSafe(filename);
+      changed = true;
+    }
+  }
+  if (changed) {
+    // Frisch laden, damit zwischenzeitliche Admin-Änderungen nicht überschrieben werden.
+    const latest = loadProjects().map((p) => {
+      const updated = projects.find((u) => u.id === p.id);
+      return updated ? { ...p, focus: p.focus === '50% 50%' ? null : p.focus, autoFocus: p.autoFocus || updated.autoFocus } : p;
+    });
+    saveProjects(latest);
   }
 }
 
@@ -345,7 +405,8 @@ async function subscribeToMailchimp(email) {
     },
     body: JSON.stringify({
       email_address: email,
-      status_if_new: 'subscribed',
+      // Double-Opt-in: Mailchimp schickt zuerst eine Bestätigungsmail, eingetragen wird erst nach dem Klick.
+      status_if_new: 'pending',
     }),
   });
   const data = await response.json().catch(() => ({}));
@@ -741,9 +802,6 @@ function renderImpressumPage(settings) {
     <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
     <p>${escapeHtml(settings.contactName)} (Anschrift wie oben)</p>
 
-    <h2>Hinweis zur Website</h2>
-    <p>Diese Website dient privaten, nicht-kommerziellen Zwecken. Es werden über sie keine Waren oder Dienstleistungen verkauft.</p>
-
     <h2>Haftung für Inhalte</h2>
     <p>Als Diensteanbieter bin ich gemäß § 7 Abs. 1 DDG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 DDG bin ich als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt.</p>
 
@@ -787,7 +845,7 @@ function renderDatenschutzPage(settings) {
     <p>Ich erhebe und verwende personenbezogene Daten meiner Nutzer grundsätzlich nur, soweit dies zur Bereitstellung einer funktionsfähigen Website sowie meiner Inhalte und Leistungen erforderlich ist. Die Verarbeitung erfolgt nur mit Einwilligung des Nutzers oder auf Grundlage einer gesetzlichen Erlaubnis (Art. 6 DSGVO).</p>
 
     <h2>3. Bereitstellung der Website und Erstellung von Server-Logfiles</h2>
-    <p>Diese Website wird bei Railway (Railway Corporation) gehostet. Zusätzlich wird der Netzwerkverkehr über den Dienst Cloudflare (Cloudflare, Inc., USA, bzw. Cloudflare Germany GmbH) geleitet, der als Content-Delivery-Network (CDN) und Sicherheits-/DNS-Dienst vorgeschaltet ist. Beim Aufruf der Website erheben Cloudflare und der Hosting-Provider automatisch technische Verbindungsdaten, u. a.:</p>
+    <p>Diese Website wird bei Railway (Railway Corporation, 548 Market St, PMB 68956, San Francisco, CA 94104, USA) gehostet. Zusätzlich wird der Netzwerkverkehr über den Dienst Cloudflare (Cloudflare, Inc., 101 Townsend St, San Francisco, CA 94107, USA) geleitet, der als Content-Delivery-Network (CDN) und Sicherheits-/DNS-Dienst vorgeschaltet ist. Beim Aufruf der Website erheben Cloudflare und der Hosting-Provider automatisch technische Verbindungsdaten, u. a.:</p>
     <ul>
       <li>IP-Adresse des anfragenden Geräts</li>
       <li>Datum und Uhrzeit des Zugriffs</li>
@@ -796,30 +854,41 @@ function renderDatenschutzPage(settings) {
       <li>Referrer-URL (zuvor besuchte Seite)</li>
     </ul>
     <p>Diese Daten werden ausschließlich zum technischen Betrieb, zur Absicherung der Website (Fehleranalyse, IT-Sicherheit, Schutz vor Missbrauch/DDoS) verarbeitet und nicht zu Marketingzwecken genutzt oder mit anderen Datenquellen zusammengeführt. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und stabilen Betrieb der Website). Die Daten werden nach Zweckfortfall gelöscht bzw. anonymisiert.</p>
-    <p>Da die eingesetzten Dienstleister ihren Sitz bzw. Teile ihrer Infrastruktur außerhalb der EU/des EWR (insbesondere in den USA) haben können, ist eine Datenübermittlung in ein Drittland nicht auszuschließen. Ich achte bei der Auswahl meiner Dienstleister auf angemessene Garantien (z. B. EU-Standardvertragsklauseln nach Art. 46 DSGVO).</p>
+    <p>Railway und Cloudflare sind als Auftragsverarbeiter tätig (Art. 28 DSGVO). Da beide ihren Sitz in den USA haben, findet eine Datenübermittlung in ein Drittland statt. Diese stützt sich auf den Angemessenheitsbeschluss der EU-Kommission zum EU-US Data Privacy Framework (Art. 45 DSGVO), soweit der Anbieter danach zertifiziert ist, und ergänzend auf EU-Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO).</p>
 
     <h2>4. Kontaktaufnahme über das Kontaktformular</h2>
-    <p>Über das <a href="/kontakt">Kontaktformular</a> auf der Startseite kannst du mir eine Nachricht senden. Die von dir eingegebenen Daten (Name, E-Mail-Adresse, Nachricht) werden dabei an den Server dieser Website (gehostet bei Railway) übermittelt und von dort per E-Mail an mein Postfach weitergeleitet. Es findet keine Speicherung deiner Nachricht in einer Datenbank statt – die Daten werden ausschließlich zur Bearbeitung deiner Anfrage genutzt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen) bzw. Art. 6 Abs. 1 lit. b DSGVO, sofern die Anfrage der Anbahnung eines Vertrags dient.</p>
+    <p>Über das <a href="/kontakt">Kontaktformular</a> auf der Startseite kannst du mir eine Nachricht senden. Die von dir eingegebenen Daten (Name, E-Mail-Adresse, Nachricht) werden dabei an den Server dieser Website übermittelt und von dort per E-Mail an mein Postfach weitergeleitet. Auf dem Webserver selbst wird deine Nachricht nicht gespeichert. Die Daten werden ausschließlich zur Bearbeitung deiner Anfrage genutzt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen) bzw. Art. 6 Abs. 1 lit. b DSGVO, sofern die Anfrage der Anbahnung eines Vertrags dient.</p>
+    <p>Die Angabe der Daten ist freiwillig; ohne Name, E-Mail-Adresse und Nachricht kann ich deine Anfrage jedoch nicht bearbeiten.</p>
     <p>Zum Schutz vor automatisiertem Missbrauch (Spam) enthält das Formular eine einfache Rechenaufgabe ("Captcha"). Diese wird ausschließlich serverseitig auf dieser Website erzeugt und geprüft – es wird kein Drittanbieter-Dienst (z. B. Google reCAPTCHA) eingebunden, es werden dabei keine Cookies gesetzt und keine personenbezogenen Daten an Dritte übermittelt.</p>
-    <p>Alternativ kannst du mich auch direkt per E-Mail unter <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a> kontaktieren; in diesem Fall gelten die Datenschutzhinweise deines E-Mail-Anbieters.</p>
+    <p>Alternativ kannst du mich auch direkt per E-Mail unter <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a> kontaktieren.</p>
 
     <h2>5. Anfrageformular Veranstaltungstechnik</h2>
-    <p>Über das Anfrageformular im Bereich „Veranstaltungstechnik" auf der Startseite kannst du eine unverbindliche Anfrage stellen. Die von dir eingegebenen Daten (Name, E-Mail-Adresse, optional Telefonnummer, Datum und Art der Veranstaltung, optional das gewünschte Material sowie optionale weitere Anmerkungen) werden dabei an den Server dieser Website übermittelt und von dort per E-Mail an mein Postfach weitergeleitet. Es findet keine Speicherung deiner Anfrage in einer Datenbank statt – die Daten werden ausschließlich zur Bearbeitung deiner Anfrage genutzt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Anbahnung eines Vertrags) bzw. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen). Bei der Anfrage handelt es sich um eine unverbindliche Anfrage; ein Angebot oder eine Reservierung kommt erst durch meine gesonderte Rückmeldung zustande.</p>
-    <p>Zum Schutz vor automatisiertem Missbrauch (Spam) enthält auch dieses Formular eine einfache Rechenaufgabe ("Captcha"), die ausschließlich serverseitig auf dieser Website erzeugt und geprüft wird – es wird kein Drittanbieter-Dienst eingebunden, es werden dabei keine Cookies gesetzt und keine personenbezogenen Daten an Dritte übermittelt.</p>
+    <p>Über das Anfrageformular im Bereich „Veranstaltungstechnik" auf der Startseite kannst du eine unverbindliche Anfrage stellen. Die von dir eingegebenen Daten (Name, E-Mail-Adresse, optional Telefonnummer, Datum und Art der Veranstaltung, optional das gewünschte Material sowie optionale weitere Anmerkungen) werden dabei an den Server dieser Website übermittelt und von dort per E-Mail an mein Postfach weitergeleitet. Auf dem Webserver selbst wird deine Anfrage nicht gespeichert. Die Daten werden ausschließlich zur Bearbeitung deiner Anfrage genutzt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Anbahnung eines Vertrags) bzw. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen). Bei der Anfrage handelt es sich um eine unverbindliche Anfrage; ein Angebot oder eine Reservierung kommt erst durch meine gesonderte Rückmeldung zustande.</p>
+    <p>Die Angabe der Pflichtfelder ist freiwillig; ohne sie kann ich jedoch kein Angebot erstellen. Zum Schutz vor Spam enthält auch dieses Formular die oben beschriebene, selbst gehostete Rechenaufgabe.</p>
 
-    <h2>6. Terminhinweise (Eventticker)</h2>
-    <p>Am unteren Bildschirmrand werden die nächsten Veranstaltungen von Kreatief – Kultur im Unterland e.V. und den Voctails angezeigt. Die Termindaten werden serverseitig von www.kreatief-neckarsulm.de bzw. vom Dienst Konzertmeister abgerufen und zwischengespeichert; dein Browser nimmt dabei keinen direkten Kontakt zu diesen Anbietern auf und es werden keine Daten über dich übermittelt. Erst wenn du auf einen Termin klickst, wird die Seite des jeweiligen Anbieters in einem neuen Fenster geöffnet; dort gelten dessen Datenschutzhinweise.</p>
+    <h2>6. E-Mail-Versand und Speicherdauer von Anfragen</h2>
+    <p>Die Nachrichten aus Kontakt- und Anfrageformular sowie E-Mails, die du mir direkt schickst, werden über den E-Mail-Dienst Gmail der Google Ireland Limited (Gordon House, Barrow Street, Dublin 4, Irland) versendet und in meinem Postfach gespeichert. Google ist dabei als Auftragsverarbeiter tätig; eine Übermittlung in die USA an die Google LLC ist nicht auszuschließen und stützt sich auf das EU-US Data Privacy Framework (Art. 45 DSGVO) sowie EU-Standardvertragsklauseln.</p>
+    <p>Ich lösche deine Anfrage, sobald sie abschließend bearbeitet ist und keine weitere Kommunikation zu erwarten ist, spätestens nach zwei Jahren. Kommt es zu einem Auftrag, bewahre ich die dafür relevante Korrespondenz entsprechend den gesetzlichen Aufbewahrungspflichten (§ 147 AO, § 257 HGB: 6 bzw. 10 Jahre) auf.</p>
 
-    <h2>7. Bereich „/choerle" (Übe-Tracks & Noten) – Passwort und Dropbox-Anbindung</h2>
+    <h2>7. Newsletter</h2>
+    <p>Du kannst dich auf der Startseite für meinen Newsletter anmelden, um Neuigkeiten zu meinen Projekten per E-Mail zu erhalten. Dafür benötige ich lediglich deine E-Mail-Adresse. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO).</p>
+    <p><strong>Double-Opt-in:</strong> Nach der Anmeldung erhältst du eine E-Mail mit einem Bestätigungslink. Erst wenn du diesen anklickst, wirst du in den Verteiler aufgenommen. So wird sichergestellt, dass sich niemand mit fremden E-Mail-Adressen anmelden kann. Zum Nachweis der Einwilligung werden Anmelde- und Bestätigungszeitpunkt sowie die dabei verwendete IP-Adresse protokolliert.</p>
+    <p><strong>Versanddienstleister:</strong> Der Newsletter wird über Mailchimp versendet, einen Dienst der Intuit Inc. bzw. The Rocket Science Group LLC (405 N Angier Ave NE, Atlanta, GA 30308, USA). Deine E-Mail-Adresse und die Protokolldaten werden dazu auf Servern von Mailchimp in den USA gespeichert. Mailchimp ist als Auftragsverarbeiter tätig; die Datenübermittlung stützt sich auf das EU-US Data Privacy Framework (Art. 45 DSGVO) sowie EU-Standardvertragsklauseln. Mailchimp kann auswerten, ob ein Newsletter geöffnet und welche Links angeklickt wurden; diese Auswertung dient nur dazu, den Newsletter zu verbessern.</p>
+    <p><strong>Widerruf:</strong> Du kannst deine Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen – über den Abmeldelink in jedem Newsletter oder per E-Mail an <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a>. Deine E-Mail-Adresse wird dann aus dem Verteiler gelöscht; die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung bleibt unberührt (Art. 7 Abs. 3 DSGVO).</p>
+
+    <h2>8. Terminhinweise (Eventticker)</h2>
+    <p>Am unteren Bildschirmrand werden die nächsten Veranstaltungen von Kreatief – Kultur im Unterland e.V. und den Voctails angezeigt. Die Termindaten werden serverseitig von www.kreatief-neckarsulm.de bzw. vom Dienst Konzertmeister abgerufen und zwischengespeichert; dein Browser nimmt dabei keinen direkten Kontakt zu diesen Anbietern auf und es werden keine Daten über dich übermittelt. Erst wenn du auf einen Termin klickst, wird die Seite des jeweiligen Anbieters in einem neuen Tab geöffnet; dort gelten dessen Datenschutzhinweise.</p>
+
+    <h2>9. Bereich „/choerle" (Übe-Tracks & Noten) – Passwort und Dropbox-Anbindung</h2>
     <p>Im Bereich „/choerle" werden Dateien (z. B. Noten) angezeigt, die serverseitig über die API des Cloud-Speicherdienstes Dropbox (Dropbox Inc., USA bzw. Dropbox International Unlimited Company, Irland) abgerufen werden. Dabei werden ausschließlich Dateiinformationen aus einem dediziert für diese Website angelegten Dropbox-Ordner abgerufen – es werden keine personenbezogenen Daten von Besuchern der Website an Dropbox übermittelt. Der Abruf erfolgt serverseitig über einen Zugriffstoken; Besucher der Seite treten mit Dropbox nicht in direkten Kontakt.</p>
     <p>Die Übe-Tracks und Noten sind nur für Mitsingende gedacht und durch ein gemeinsames Passwort geschützt. Nach der richtigen Eingabe wird in deinem Browser ein technisch notwendiges Cookie („choerle_auth") gespeichert, damit du das Passwort nicht bei jedem Besuch erneut eingeben musst. Es enthält keine personenbezogenen Daten, dient ausschließlich der Zugangsfreigabe und wird nach 180 Tagen automatisch gelöscht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG i. V. m. Art. 6 Abs. 1 lit. f DSGVO; eine Einwilligung ist hierfür nicht erforderlich. Zum Schutz vor dem Durchprobieren von Passwörtern wird die IP-Adresse bei Fehleingaben für höchstens 10 Minuten im Arbeitsspeicher des Servers vorgehalten und danach verworfen.</p>
 
-    <h2>8. Cookies und Tracking</h2>
-    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahme ist das technisch notwendige Zugangs-Cookie für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 7), das nur nach Eingabe des Passworts gesetzt wird.</p>
-    <p>Lediglich für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TDDDG). Eine Einwilligung ist hierfür nach § 25 TDDDG nicht erforderlich, da keine nicht-notwendigen Cookies gesetzt werden.</p>
-    <p>Solltest du künftig Funktionen mit nicht-technisch-notwendigen Cookies (z. B. Statistik- oder Einbettungsdienste) hinzufügen, wird vor deren Einsatz eine Einwilligung über den Cookie-Banner eingeholt.</p>
+    <h2>10. Cookies, lokaler Speicher und Tracking</h2>
+    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahme ist das technisch notwendige Zugangs-Cookie für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9), das nur nach Eingabe des Passworts gesetzt wird.</p>
+    <p>Für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (§ 25 Abs. 2 Nr. 2 TDDDG); eine Einwilligung ist hierfür nicht erforderlich.</p>
+    <p>Links zu anderen Websites (z. B. Instagram oder Projektseiten) sind einfache Verweise: Erst wenn du darauf klickst, wird die fremde Seite in einem neuen Tab geöffnet, und es gelten deren Datenschutzhinweise.</p>
 
-    <h2>9. Deine Rechte als betroffene Person</h2>
+    <h2>11. Deine Rechte als betroffene Person</h2>
     <p>Dir stehen gegenüber mir folgende Rechte hinsichtlich der dich betreffenden personenbezogenen Daten zu:</p>
     <ul>
       <li>Recht auf Auskunft (Art. 15 DSGVO)</li>
@@ -827,11 +896,13 @@ function renderDatenschutzPage(settings) {
       <li>Recht auf Löschung (Art. 17 DSGVO)</li>
       <li>Recht auf Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
       <li>Recht auf Datenübertragbarkeit (Art. 20 DSGVO)</li>
-      <li>Widerspruchsrecht gegen die Verarbeitung (Art. 21 DSGVO)</li>
+      <li>Recht auf Widerruf einer erteilten Einwilligung mit Wirkung für die Zukunft (Art. 7 Abs. 3 DSGVO)</li>
     </ul>
-    <p>Du hast zudem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung deiner personenbezogenen Daten durch mich zu beschweren (Art. 77 DSGVO).</p>
+    <p><strong>Widerspruchsrecht (Art. 21 DSGVO):</strong> Soweit ich Daten auf Grundlage eines berechtigten Interesses (Art. 6 Abs. 1 lit. f DSGVO) verarbeite, kannst du dieser Verarbeitung aus Gründen, die sich aus deiner besonderen Situation ergeben, jederzeit widersprechen. Eine formlose Nachricht an <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a> genügt.</p>
+    <p>Du hast zudem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung deiner personenbezogenen Daten durch mich zu beschweren (Art. 77 DSGVO). Für mich zuständig ist der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg, Lautenschlagerstraße 20, 70173 Stuttgart, <a href="https://www.baden-wuerttemberg.datenschutz.de">www.baden-wuerttemberg.datenschutz.de</a>.</p>
+    <p>Eine automatisierte Entscheidungsfindung einschließlich Profiling (Art. 22 DSGVO) findet nicht statt.</p>
 
-    <h2>10. Aktualität und Änderung dieser Datenschutzerklärung</h2>
+    <h2>12. Aktualität und Änderung dieser Datenschutzerklärung</h2>
     <p>Diese Datenschutzerklärung ist aktuell gültig (Stand: September 2026). Durch die Weiterentwicklung der Website oder geänderte gesetzliche Vorgaben kann es notwendig werden, diese Erklärung anzupassen.</p>
 
     <a class="home-link" href="/">&larr; zurück zur Startseite</a>
@@ -851,12 +922,16 @@ function renderAdminPage(projects, settings, news, message) {
       <form method="POST" action="/admin/projects/${encodeURIComponent(p.id)}" enctype="multipart/form-data">
         <div class="row">
           ${p.image
-            ? `<div class="focus-picker" title="Tippe auf den wichtigsten Punkt im Foto">
+            ? (() => {
+                const effective = (p.focus || p.autoFocus || '50% 50%').split(' ');
+                return `<div class="focus-picker" data-auto="${escapeAttr(p.autoFocus || '50% 50%')}" title="Tippe auf den wichtigsten Punkt im Foto">
                 <img class="thumb-preview" src="${escapeAttr(p.image)}" alt="">
-                <span class="focus-dot" style="left:${escapeAttr((p.focus || '50% 50%').split(' ')[0])};top:${escapeAttr((p.focus || '50% 50%').split(' ')[1])}"></span>
-                <input type="hidden" name="focus" value="${escapeAttr(p.focus || '50% 50%')}">
-                <span class="focus-hint">Bildfokus: auf das Wichtigste im Foto tippen – bleibt auf dem Handy im Bild</span>
-              </div>`
+                <span class="focus-dot${p.focus ? ' manual' : ''}" style="left:${escapeAttr(effective[0])};top:${escapeAttr(effective[1])}"></span>
+                <input type="hidden" name="focus" value="${escapeAttr(p.focus || '')}">
+                <span class="focus-hint">Bildausschnitt fürs Handy: <strong class="focus-mode">${p.focus ? 'von Hand gesetzt' : 'automatisch'}</strong>. Zum Ändern auf das Wichtigste im Foto tippen.
+                  <button type="button" class="focus-reset"${p.focus ? '' : ' hidden'}>Automatisch verwenden</button></span>
+              </div>`;
+              })()
             : '<div class="thumb-preview thumb-empty">kein Foto</div>'}
           <div class="fields">
             <label>Titel<input type="text" name="title" value="${escapeAttr(p.title)}" required></label>
@@ -938,6 +1013,8 @@ function renderAdminPage(projects, settings, news, message) {
     pointer-events: none;
   }
   .focus-hint { display: block; margin-top: 0.35rem; font-size: 0.7rem; color: #64748b; line-height: 1.35; }
+  .focus-dot.manual { background: rgba(250,204,21,0.8); }
+  .focus-reset { margin-top: 0.3rem; padding: 0.2rem 0.6rem; font-size: 0.7rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #cbd5e1; cursor: pointer; }
   .fields { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 0.7rem; }
   label { font-size: 0.8rem; color: #94a3b8; display: flex; flex-direction: column; gap: 0.3rem; }
   input, textarea {
@@ -1085,7 +1162,8 @@ function renderAdminPage(projects, settings, news, message) {
     <a class="home-link" href="/">&larr; zur Startseite</a>
   </div>
   <script>
-    // Bildfokus: Klick ins Vorschaubild setzt den Punkt, der beim Zuschneiden (Handy) sichtbar bleibt.
+    // Bildfokus: Klick ins Vorschaubild setzt den Punkt, der beim Zuschneiden (Handy) sichtbar bleibt;
+    // ohne Klick gilt der vom Server automatisch ermittelte Ausschnitt.
     document.querySelectorAll('.focus-picker').forEach(function (picker) {
       var img = picker.querySelector('img');
       img.addEventListener('click', function (e) {
@@ -1098,6 +1176,19 @@ function renderAdminPage(projects, settings, news, message) {
         var dot = picker.querySelector('.focus-dot');
         dot.style.left = x + '%';
         dot.style.top = y + '%';
+        dot.classList.add('manual');
+        picker.querySelector('.focus-mode').textContent = 'von Hand gesetzt (noch speichern)';
+        picker.querySelector('.focus-reset').hidden = false;
+      });
+      picker.querySelector('.focus-reset').addEventListener('click', function () {
+        var auto = picker.dataset.auto.split(' ');
+        picker.querySelector('input[name="focus"]').value = '';
+        var dot = picker.querySelector('.focus-dot');
+        dot.style.left = auto[0];
+        dot.style.top = auto[1];
+        dot.classList.remove('manual');
+        picker.querySelector('.focus-mode').textContent = 'automatisch (noch speichern)';
+        this.hidden = true;
       });
     });
   </script>
@@ -1161,7 +1252,10 @@ app.post('/admin/projects', requireAdminAuth, upload.single('photo'), async (req
     image: req.file ? `/uploads/${req.file.filename}` : null,
     socials: parseSocials(req.body.socials),
   };
-  if (req.file) await createImageVariantsSafe(req.file.filename);
+  if (req.file) {
+    await createImageVariantsSafe(req.file.filename);
+    project.autoFocus = await computeAutoFocusSafe(req.file.filename);
+  }
   projects.push(project);
   saveProjects(projects);
   res.redirect('/admin');
@@ -1174,11 +1268,17 @@ app.post('/admin/projects/:id', requireAdminAuth, upload.single('photo'), async 
 
   const existing = projects[idx];
   let image = existing.image;
+  let autoFocus = existing.autoFocus || null;
   if (req.file) {
     await createImageVariantsSafe(req.file.filename);
+    autoFocus = await computeAutoFocusSafe(req.file.filename);
     deleteUploadedImage(existing.image);
     image = `/uploads/${req.file.filename}`;
   }
+  // Bildfokus: leer = automatisch; neues Foto setzt immer auf automatisch zurück.
+  let focus = existing.focus || null;
+  if (req.file || req.body.focus === '') focus = null;
+  else if (parseFocus(req.body.focus)) focus = parseFocus(req.body.focus);
 
   projects[idx] = {
     ...existing,
@@ -1189,7 +1289,8 @@ app.post('/admin/projects/:id', requireAdminAuth, upload.single('photo'), async 
     details: req.body.details !== undefined ? req.body.details : existing.details,
     link: req.body.link ? normalizeUrl(req.body.link) : existing.link,
     image,
-    focus: req.file ? '50% 50%' : parseFocus(req.body.focus) || existing.focus || '50% 50%',
+    focus,
+    autoFocus,
     socials: parseSocials(req.body.socials),
   };
   saveProjects(projects);
@@ -1388,6 +1489,7 @@ const LEGAL_FOOTER_BLOCK = `
     <a href="/datenschutz.html">Datenschutz</a>
     <a href="/kontakt">Kontakt</a>
   </div>
+  <script src="/links.js" defer></script>
   <script src="/ticker.js" defer></script>`;
 
 // --- Frühstücks-Chörle: Passwortschutz für Übe-Tracks & Noten ---

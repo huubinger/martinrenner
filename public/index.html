@@ -178,6 +178,8 @@
   }
   .banner .link-btn:hover { background: #0ea5e9; }
   .banner .link-btn svg { display: block; }
+  .banner .link-btn .ext-icon { display: none; margin-left: -0.1rem; opacity: 0.75; }
+  .banner .link-btn.is-external .ext-icon { display: block; }
   .banner .info-btn {
     display: inline-flex;
     align-items: center;
@@ -402,6 +404,7 @@
     cursor: pointer;
   }
   .ch-speed.active { background: #38bdf8; border-color: #38bdf8; color: #0f172a; font-weight: 600; }
+  .ch-note { margin-top: 1rem; font-size: 0.72rem; line-height: 1.45; color: #94a3b8; }
   .ch-download { margin-left: auto; color: #38bdf8; text-decoration: none; font-weight: 600; }
   .ch-download:hover { text-decoration: underline; }
 
@@ -788,6 +791,8 @@
   }
   .newsletter-form button:hover { background: #0ea5e9; }
   .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
+  .newsletter-legal { font-size: 0.64rem; color: #64748b; line-height: 1.4; margin-top: 0.3rem; }
+  .newsletter-legal a { color: #94a3b8; }
 
 </style>
 </head>
@@ -864,6 +869,7 @@
       <a class="link-btn" id="banner-link" href="#">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
         Homepage
+        <svg class="ext-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="8 7 17 7 17 16"></polyline></svg>
       </a>
       <button type="button" class="form-btn" id="banner-form-btn"></button>
       <button type="button" class="info-btn" id="banner-info-btn" style="display:none;"></button>
@@ -907,6 +913,7 @@
       <button type="submit">Anmelden</button>
     </form>
     <p class="newsletter-msg" id="newsletter-msg"></p>
+    <p class="newsletter-legal">Mit der Anmeldung willigst du ein, Neuigkeiten per E-Mail zu erhalten. Du bekommst zuerst eine Bestätigungsmail; abmelden kannst du dich jederzeit über den Link in jeder Mail. Mehr in der <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
   </div>
 
   <div class="legal-footer">
@@ -987,7 +994,7 @@
           .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
           .then((result) => {
             if (result.ok && result.data.ok) {
-              msg.textContent = 'Danke fürs Abonnieren!';
+              msg.textContent = 'Fast geschafft! Bitte bestätige deine Anmeldung über den Link in der E-Mail, die du gleich bekommst.';
               form.style.display = 'none';
             } else {
               msg.textContent = (result.data && result.data.error) || 'Anmeldung fehlgeschlagen.';
@@ -1136,7 +1143,8 @@
           const variants = Array.isArray(s.imageVariants) ? s.imageVariants : [];
           const srcset = variants.map((v) => `${v.url} ${v.width}w`).join(', ');
           const fallback = variants.length ? variants[Math.min(1, variants.length - 1)].url : s.image;
-          const focus = /^\d{1,3}% \d{1,3}%$/.test(s.focus || '') ? s.focus : '50% 50%';
+          // Bildausschnitt: von Hand im Admin gesetzt, sonst automatisch vom Server ermittelt.
+          const focus = [s.focus, s.autoFocus].find((f) => /^\d{1,3}% \d{1,3}%$/.test(f || '')) || '50% 50%';
           div.innerHTML = `<img class="slide-photo" alt="" decoding="async" style="object-position:${focus}" sizes="${PHOTO_SIZES}" data-src="${escapeHtmlClient(fallback)}"${srcset ? ` data-srcset="${escapeHtmlClient(srcset)}"` : ''}>`;
         } else {
           div.innerHTML = `<div class="slide-placeholder" style="background: ${placeholderGradient(key)};">
@@ -1243,6 +1251,11 @@
       const hasLink = !!(s.link && s.link !== '#' && !(formKey && REPLACED_LINKS.test(s.link)));
       bannerLink.style.display = hasLink ? 'inline-flex' : 'none';
       bannerLink.href = hasLink ? s.link : '#';
+      // Fremde Seiten immer im neuen Tab – Besucher bleiben auf martinrenner.de.
+      const external = hasLink && /^https?:\/\//i.test(s.link) && new URL(s.link).host !== location.host;
+      bannerLink.target = external ? '_blank' : '';
+      bannerLink.rel = external ? 'noopener' : '';
+      bannerLink.classList.toggle('is-external', external);
       bannerFormBtn.style.display = formKey ? 'inline-flex' : 'none';
       bannerFormBtn.innerHTML = formKey ? (formKey === 'choerle' ? ICON_MUSIC : ICON_MAIL) + '<span>' + FORMS[formKey].button + '</span>' : '';
       bannerFormBtn.dataset.form = formKey || '';
@@ -1541,7 +1554,7 @@
               </div>`)
               .join('')}</div>`
           : '<p class="ch-status">Keine Übe-Tracks zu diesem Lied vorhanden.</p>';
-        chSong.innerHTML = `${back}<div class="ch-song-head">🎶 ${escapeHtmlClient(song.title)}</div>${pdf}${tracks}`;
+        chSong.innerHTML = `${back}<div class="ch-song-head">🎶 ${escapeHtmlClient(song.title)}</div>${pdf}${tracks}<p class="ch-note">Noten und Übe-Tracks sind nur zum persönlichen Üben für die Mitsingenden des Frühstücks-Chörle bestimmt. Weitergabe, Veröffentlichung oder sonstige Nutzung ist nicht gestattet.</p>`;
         chShow('song');
         formPanel.scrollTop = 0;
       }).catch(() => chShow('song', 'Das Lied konnte gerade nicht geladen werden.', true));
@@ -1691,6 +1704,7 @@
 
     loadSlides();
   </script>
+  <script src="/links.js" defer></script>
   <script src="/ticker.js" defer></script>
 </body>
 </html>
