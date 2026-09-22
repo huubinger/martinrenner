@@ -123,7 +123,7 @@
   /* Laufschrift für zu lange Titel: weich ausblenden statt "…" */
   .evt-title.is-marquee { text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 22px), transparent); }
   .evt-title.is-marquee.is-running { -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 22px), transparent); }
-  .evt-date-time { display: none; }
+
   .evt-meta {
     font-size: 0.68rem;
     color: #94a3b8;
@@ -280,20 +280,12 @@
     html.is-home { --evt-bottom: calc(10px + env(safe-area-inset-bottom)); }
   }
   @media (max-width: 600px) {
-    /* Handy: Uhrzeit ins Datums-Kästchen, Titel darf zwei Zeilen haben */
-    :root { --evt-h: 56px; }
-    .evt { border-radius: 20px; }
+    /* Handy: Titel einzeilig (Laufschrift bei Überlänge), darunter Uhrzeit + Kreatief/Voctails */
+    :root { --evt-h: 48px; }
     .evt-label { padding: 0 0.7rem 0 0.9rem; }
     .evt-label-text { display: none; }
-    .evt-item { gap: 0.55rem; padding: 0 0.5rem 0 0.6rem; }
-    .evt-item .evt-date { display: flex; flex-direction: column; align-items: center; line-height: 1.15; padding: 0.28rem 0.45rem; font-size: 0.68rem; }
-    .evt-date-time { display: block; font-weight: 600; opacity: 0.85; font-size: 0.66rem; }
-    .evt-item .evt-meta { display: none; }
-    .evt-title { font-size: 0.82rem; line-height: 1.25; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-    .evt-title-inner { display: inline; }
-    /* Passt der Titel nicht in zwei Zeilen: einzeilige Laufschrift */
-    .evt-title.is-marquee { white-space: nowrap; display: block; }
-    .evt-title.is-marquee .evt-title-inner { display: inline-block; }
+    .evt-item { gap: 0.5rem; padding: 0 0.5rem 0 0.6rem; }
+    .evt-title { font-size: 0.82rem; }
     /* Übersicht als Blatt von unten */
     .evt-panel {
       left: 0;
@@ -326,8 +318,6 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .evt, .evt-item, .evt-panel, .evt-backdrop { transition: none !important; }
-    /* keine Laufschrift – stattdessen darf der Titel zweizeilig werden */
-    .evt-title { white-space: normal; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 0.78rem; }
     .evt-dot::after { animation: none; }
     .evt-progress { display: none; }
   }
@@ -367,9 +357,8 @@
     if (!e.allDay) meta.push(part(date, { hour: '2-digit', minute: '2-digit' }) + ' Uhr');
     if (src.label) meta.push(src.label);
     var title = e.title + (e.location ? ' – ' + e.location : '');
-    var time = e.allDay ? '' : part(date, { hour: '2-digit', minute: '2-digit' });
     return '<a class="evt-item evt-src-' + esc(e.source) + '" href="' + esc(e.url) + '" target="_blank" rel="noopener" title="' + esc(title) + '">' +
-      '<span class="evt-date">' + esc(formatDate(date)) + (time ? '<span class="evt-date-time">' + esc(time) + '</span>' : '') + '</span>' +
+      '<span class="evt-date">' + esc(formatDate(date)) + '</span>' +
       '<span class="evt-text"><span class="evt-title"><span class="evt-title-inner">' + esc(e.title) + '</span></span>' +
       '<span class="evt-meta">' + esc(meta.join(' · ')) + '</span></span>' +
       '<span class="evt-arrow">' + ARROW + '</span>' +
@@ -518,8 +507,6 @@
       title.classList.remove('is-marquee', 'is-running');
       inner.style.transform = '';
       if (reduced) return interval;
-      // Handy: erst zweizeilig versuchen, erst wenn das nicht reicht Laufschrift.
-      if (title.scrollHeight > title.clientHeight + 2) title.classList.add('is-marquee');
       var distance = inner.scrollWidth - title.clientWidth;
       if (distance <= 2) {
         title.classList.remove('is-marquee');
