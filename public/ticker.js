@@ -1,24 +1,26 @@
 // Eventticker: schwebende Leiste unten mit den nächsten Terminen (Kreatief + Voctails).
 // Wird auf allen Seiten eingebunden; Daten kommen gecacht vom Server (/api/events-ticker).
+// Klick auf "Nächste Termine" klappt nach oben eine Übersicht aller kommenden Termine auf.
 (function () {
   if (window.__eventTicker) return;
   window.__eventTicker = true;
 
   var INTERVAL_MS = 5000;
+  var TICKER_ITEMS = 10;
   var SOURCES = {
     kreatief: { label: 'Kreatief' },
     voctails: { label: 'Voctails' },
   };
 
   var CSS = `
+  :root { --evt-bottom: 14px; --evt-h: 46px; }
   .evt {
-    --evt-bottom: 14px;
     position: fixed;
     left: 50%;
     bottom: var(--evt-bottom);
     z-index: 12;
     width: min(560px, calc(100vw - 2rem));
-    height: 46px;
+    height: var(--evt-h);
     display: flex;
     align-items: stretch;
     border-radius: 999px;
@@ -39,15 +41,25 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0 0.95rem 0 1.05rem;
+    padding: 0 0.85rem 0 1.05rem;
+    border: none;
     border-right: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
     color: #94a3b8;
+    font-family: inherit;
     font-size: 0.64rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
   }
+  .evt-label:hover,
+  .evt.is-open .evt-label { background: rgba(255,255,255,0.06); color: #f8fafc; }
+  .evt-label:focus-visible { outline: 2px solid #38bdf8; outline-offset: -3px; border-radius: 999px 0 0 999px; }
+  .evt-chevron { display: block; transition: transform 0.3s ease; opacity: 0.8; }
+  .evt.is-open .evt-chevron { transform: rotate(180deg); }
   .evt-dot {
     position: relative;
     width: 7px;
@@ -140,22 +152,166 @@
   }
   .evt-progress.is-running { animation: evt-progress linear forwards; }
   .evt:hover .evt-progress.is-running,
-  .evt:focus-within .evt-progress.is-running { animation-play-state: paused; }
+  .evt:focus-within .evt-progress.is-running,
+  .evt.is-open .evt-progress.is-running { animation-play-state: paused; }
+
+  /* Aufgeklappte Übersicht aller Termine – wächst aus der Leiste nach oben */
+  .evt-panel {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--evt-bottom) + var(--evt-h) + 10px);
+    z-index: 13;
+    width: min(780px, calc(100vw - 2rem));
+    max-height: min(62vh, 580px);
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px;
+    background: rgba(15,23,42,0.86);
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #f8fafc;
+    transform-origin: 50% 100%;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, 18px) scale(0.96);
+    transition: opacity 0.3s ease, transform 0.4s cubic-bezier(.2,.8,.2,1), visibility 0s linear 0.4s;
+  }
+  .evt-panel.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0) scale(1);
+    transition: opacity 0.3s ease, transform 0.4s cubic-bezier(.2,.8,.2,1), visibility 0s;
+  }
+  .evt-panel-head {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 1rem 1rem 0.8rem 1.3rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .evt-panel-head h2 { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+  .evt-count { font-size: 0.72rem; color: #94a3b8; }
+  .evt-legend { margin-left: auto; margin-right: 0.2rem; display: flex; gap: 0.8rem; font-size: 0.68rem; color: #94a3b8; }
+  .evt-legend + .evt-close { margin-left: 0; }
+  .evt-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .evt-legend i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+  .evt-close {
+    flex: none;
+    margin-left: auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: #f8fafc;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .evt-close:hover { background: rgba(255,255,255,0.18); }
+  .evt-list { overflow-y: auto; padding: 0.3rem 0.6rem 0.8rem; overscroll-behavior: contain; }
+  .evt-month {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 0.7rem 0.7rem 0.35rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #38bdf8;
+    background: linear-gradient(180deg, rgba(15,23,42,0.97) 70%, rgba(15,23,42,0));
+  }
+  .evt-row {
+    display: grid;
+    grid-template-columns: 92px 64px minmax(0, 1fr) minmax(0, 190px) 28px;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    color: #f8fafc;
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+  .evt-row + .evt-row { box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }
+  .evt-row:hover, .evt-row:focus-visible { background: rgba(255,255,255,0.07); box-shadow: none; outline: none; }
+  .evt-row .evt-date { justify-self: start; }
+  .evt-row-time { font-size: 0.8rem; color: #cbd5e1; font-variant-numeric: tabular-nums; }
+  .evt-row-title { font-size: 0.88rem; font-weight: 600; line-height: 1.3; }
+  .evt-row-src { display: block; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.04em; margin-top: 0.1rem; }
+  .evt-src-kreatief .evt-row-src { color: #c4b5fd; }
+  .evt-src-voctails .evt-row-src { color: #67e8f9; }
+  .evt-row-loc { font-size: 0.78rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .evt-row .evt-arrow { width: 28px; height: 28px; }
+  .evt-row:hover .evt-arrow { background: #38bdf8; color: #0f172a; transform: translateX(2px); }
+  .evt-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 12;
+    background: rgba(2,6,23,0.35);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+  }
+  .evt-backdrop.is-open { opacity: 1; visibility: visible; transition: opacity 0.3s ease, visibility 0s; }
   @keyframes evt-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
   /* Unterhalb dieser Breite stößt die Leiste an den Impressum/Datenschutz-Footer rechts unten -> darüber setzen */
   @media (max-width: 1100px) {
-    .evt { --evt-bottom: 2.4rem; }
+    :root { --evt-bottom: 2.4rem; }
+  }
+  @media (max-width: 760px) {
+    .evt-row { grid-template-columns: 84px minmax(0, 1fr) 28px; row-gap: 0.1rem; }
+    .evt-row-time, .evt-row-loc { display: none; }
+    .evt-row-src::before { content: attr(data-meta); color: #94a3b8; font-weight: 400; letter-spacing: 0; }
+    .evt-legend { display: none; }
+  }
+  @media (max-width: 700px) {
+    /* Startseite auf dem Handy: keine Footer-Links mehr unten -> Leiste ganz nach unten */
+    html.is-home { --evt-bottom: calc(10px + env(safe-area-inset-bottom)); }
   }
   @media (max-width: 600px) {
-    .evt { height: 44px; }
-    .evt-label { padding: 0 0.75rem 0 0.9rem; }
+    :root { --evt-h: 44px; }
+    .evt-label { padding: 0 0.7rem 0 0.9rem; }
     .evt-label-text { display: none; }
     .evt-item { gap: 0.5rem; padding: 0 0.55rem 0 0.6rem; }
     .evt-title { font-size: 0.8rem; }
+    /* Übersicht als Blatt von unten */
+    .evt-panel {
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: auto;
+      max-height: 80vh;
+      max-height: 80dvh;
+      border-radius: 20px 20px 0 0;
+      border-bottom: none;
+      padding-bottom: env(safe-area-inset-bottom);
+      transform: translateY(100%);
+      z-index: 50;
+    }
+    .evt-panel.is-open { transform: none; }
+    .evt-panel-head::before {
+      content: "";
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      width: 38px;
+      height: 4px;
+      margin-left: -19px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.25);
+    }
+    .evt-panel-head { position: relative; padding-top: 1.2rem; }
+    .evt-backdrop { z-index: 49; background: rgba(2,6,23,0.55); }
+    .evt-row { padding: 0.7rem 0.6rem; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .evt, .evt-item { transition: none; }
+    .evt, .evt-item, .evt-panel, .evt-backdrop { transition: none !important; }
     .evt-dot::after { animation: none; }
     .evt-progress { display: none; }
   }
@@ -203,7 +359,39 @@
       '</a>';
   }
 
-  function build(items) {
+  var CHEVRON = '<svg class="evt-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg>';
+
+  function rowHtml(e) {
+    var date = new Date(e.start);
+    var src = SOURCES[e.source] || { label: '' };
+    var time = e.allDay ? '' : part(date, { hour: '2-digit', minute: '2-digit' });
+    var mobileMeta = [time && time + ' Uhr', e.location].filter(Boolean).join(' · ');
+    return '<a class="evt-row evt-src-' + esc(e.source) + '" href="' + esc(e.url) + '" target="_blank" rel="noopener">' +
+      '<span class="evt-date">' + esc(formatDate(date)) + '</span>' +
+      '<span class="evt-row-time">' + esc(time ? time + ' Uhr' : '') + '</span>' +
+      '<span><span class="evt-row-title">' + esc(e.title) + '</span>' +
+      '<span class="evt-row-src" data-meta="' + esc(mobileMeta ? mobileMeta + ' · ' : '') + '">' + esc(src.label) + '</span></span>' +
+      '<span class="evt-row-loc">' + esc(e.location || '') + '</span>' +
+      '<span class="evt-arrow">' + ARROW + '</span>' +
+      '</a>';
+  }
+
+  function listHtml(items) {
+    var html = '';
+    var lastMonth = '';
+    items.forEach(function (e) {
+      var month = part(new Date(e.start), { month: 'long', year: 'numeric' });
+      if (month !== lastMonth) {
+        html += '<div class="evt-month">' + esc(month) + '</div>';
+        lastMonth = month;
+      }
+      html += rowHtml(e);
+    });
+    return html;
+  }
+
+  function build(allItems) {
+    var items = allItems.slice(0, TICKER_ITEMS);
     var style = document.createElement('style');
     style.textContent = CSS;
     document.head.appendChild(style);
@@ -212,29 +400,94 @@
     root.className = 'evt';
     root.setAttribute('aria-label', 'Nächste Termine');
     root.innerHTML =
-      '<div class="evt-label"><span class="evt-dot"></span><span class="evt-label-text">Nächste Termine</span></div>' +
+      '<button type="button" class="evt-label" aria-expanded="false" aria-controls="evt-panel" title="Alle Termine anzeigen"><span class="evt-dot"></span><span class="evt-label-text">Nächste Termine</span>' + CHEVRON + '</button>' +
       '<div class="evt-stage">' + items.map(itemHtml).join('') + '</div>' +
       '<div class="evt-progress"></div>';
+
+    var panel = document.createElement('section');
+    panel.className = 'evt-panel';
+    panel.id = 'evt-panel';
+    panel.setAttribute('aria-label', 'Alle kommenden Termine');
+    panel.innerHTML =
+      '<div class="evt-panel-head"><h2>Kommende Termine</h2>' +
+      '<span class="evt-count">' + allItems.length + (allItems.length === 1 ? ' Termin' : ' Termine') + '</span>' +
+      '<span class="evt-legend"><span><i style="background:#a78bfa"></i>Kreatief</span><span><i style="background:#22d3ee"></i>Voctails</span></span>' +
+      '<button type="button" class="evt-close" aria-label="Terminübersicht schließen">&times;</button></div>' +
+      '<div class="evt-list">' + listHtml(allItems) + '</div>';
+
+    var backdrop = document.createElement('div');
+    backdrop.className = 'evt-backdrop';
 
     var spacer = document.createElement('div');
     spacer.className = 'evt-spacer';
     document.body.appendChild(spacer);
+    document.body.appendChild(backdrop);
+    document.body.appendChild(panel);
     document.body.appendChild(root);
     document.documentElement.classList.add('has-evt');
+
+    var labelBtn = root.querySelector('.evt-label');
+    var isOpen = false;
+
+    function setOpen(open) {
+      if (open === isOpen) return;
+      isOpen = open;
+      panel.classList.toggle('is-open', open);
+      backdrop.classList.toggle('is-open', open);
+      root.classList.toggle('is-open', open);
+      labelBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        hold('panel');
+        panel.querySelector('.evt-list').scrollTop = 0;
+      } else {
+        release('panel');
+      }
+    }
+
+    labelBtn.addEventListener('click', function () { setOpen(!isOpen); });
+    panel.querySelector('.evt-close').addEventListener('click', function () {
+      setOpen(false);
+      labelBtn.focus();
+    });
+    backdrop.addEventListener('click', function () { setOpen(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen) setOpen(false);
+    });
+    document.addEventListener('click', function (e) {
+      if (isOpen && !panel.contains(e.target) && !root.contains(e.target)) setOpen(false);
+    });
 
     var els = root.querySelectorAll('.evt-item');
     var progress = root.querySelector('.evt-progress');
     var current = 0;
     var timer = null;
-    var paused = false;
+    var holds = {};
     var remaining = INTERVAL_MS;
     var startedAt = 0;
     var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var interval = reduced ? INTERVAL_MS * 1.6 : INTERVAL_MS;
 
+    var rotating = els.length > 1;
+
+    // Mehrere Gründe können die Rotation anhalten (Maus, Fokus, Übersicht offen, Tab im Hintergrund).
+    function hold(reason) {
+      var wasRunning = !Object.keys(holds).length;
+      holds[reason] = true;
+      if (wasRunning && rotating) {
+        clearTimeout(timer);
+        remaining = Math.max(300, remaining - (Date.now() - startedAt));
+      }
+    }
+
+    function release(reason) {
+      if (!holds[reason]) return;
+      delete holds[reason];
+      if (!Object.keys(holds).length && rotating) schedule(remaining);
+    }
+
     els[0].classList.add('is-active');
     requestAnimationFrame(function () { root.classList.add('is-ready'); });
-    if (els.length < 2) return;
+    if (!rotating) return;
 
     function restartProgress() {
       progress.classList.remove('is-running');
@@ -263,26 +516,13 @@
       }, ms);
     }
 
-    function pause() {
-      if (paused) return;
-      paused = true;
-      clearTimeout(timer);
-      remaining = Math.max(300, remaining - (Date.now() - startedAt));
-    }
-
-    function resume() {
-      if (!paused) return;
-      paused = false;
-      schedule(remaining);
-    }
-
-    root.addEventListener('mouseenter', pause);
-    root.addEventListener('mouseleave', resume);
-    root.addEventListener('focusin', pause);
-    root.addEventListener('focusout', resume);
+    root.addEventListener('mouseenter', function () { hold('hover'); });
+    root.addEventListener('mouseleave', function () { release('hover'); });
+    root.addEventListener('focusin', function () { hold('focus'); });
+    root.addEventListener('focusout', function () { release('focus'); });
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) pause();
-      else resume();
+      if (document.hidden) hold('hidden');
+      else release('hidden');
     });
 
     restartProgress();

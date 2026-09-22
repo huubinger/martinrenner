@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>martinrenner.de</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -63,6 +63,7 @@
     position: relative;
     width: 100vw;
     height: 100vh;
+    height: 100dvh; /* iOS Safari: sichtbare Höhe ohne Adressleiste */
   }
 
   .slide {
@@ -73,15 +74,8 @@
   }
   .slide.active { opacity: 1; z-index: 1; }
 
-  /* Unscharfe Cover-Backdrop, füllt auf schmalen Screens die Ränder statt das Foto extrem zu beschneiden */
-  .slide-bg-blur {
-    position: absolute;
-    inset: -20px;
-    background-size: cover;
-    background-position: center;
-    filter: blur(24px) brightness(0.55);
-    display: none;
-  }
+  /* Foto füllt immer den ganzen Bildschirm; der Bildausschnitt (object-position)
+     kommt je Projekt aus dem Admin-Feld "Bildfokus", damit auch hochkant das Wichtige zu sehen ist. */
   .slide-photo {
     position: absolute;
     inset: 0;
@@ -90,10 +84,6 @@
     object-fit: cover;
     object-position: center;
     display: block;
-  }
-  @media (max-width: 700px) {
-    .slide-bg-blur { display: block; }
-    .slide-photo { object-fit: contain; }
   }
 
   /* Platzhalter-Grafik je Kategorie, solange keine echten Fotos hinterlegt sind */
@@ -260,8 +250,7 @@
   .banner.form-open .banner-actions { display: none; }
   .form-panel h2 { font-size: 1.05rem; margin-bottom: 0.25rem; padding-right: 2rem; }
   .form-panel .form-hint { font-size: 0.8rem; color: #94a3b8; line-height: 1.45; margin-bottom: 0.9rem; }
-  .form-panel form { display: none; }
-  .form-panel form.active { display: block; }
+  .form-panel [hidden] { display: none !important; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 0.7rem; }
   .form-grid .full { grid-column: 1 / -1; }
   .form-panel label { display: block; font-size: 0.74rem; font-weight: 600; color: #cbd5e1; }
@@ -314,8 +303,108 @@
     line-height: 1.5;
   }
   .form-panel.sent .form-success { display: block; }
-  .form-panel.sent form,
+  .form-panel.sent > form,
   .form-panel.sent .form-hint { display: none !important; }
+  .form-panel [data-form] { display: none; }
+  .form-panel [data-form].active { display: block; }
+  .form-panel.wide { width: min(600px, 100%); }
+
+  /* Frühstücks-Chörle: Übe-Tracks & Noten */
+  .ch-login label { margin-bottom: 0.2rem; }
+  .ch-login .ch-login-row { display: flex; gap: 0.5rem; align-items: flex-end; }
+  .ch-login .ch-login-row label { flex: 1; }
+  .ch-login .form-submit { margin-top: 0; white-space: nowrap; }
+  .ch-status { font-size: 0.85rem; color: #94a3b8; padding: 0.4rem 0; }
+  .ch-status.error { color: #fca5a5; }
+  .ch-songs { list-style: none; display: grid; gap: 0.45rem; }
+  .ch-song {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: #f8fafc;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .ch-song:hover { background: rgba(255,255,255,0.09); border-color: rgba(56,189,248,0.5); }
+  .ch-song-icon {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(34,197,94,0.16);
+    color: #86efac;
+  }
+  .ch-song-title { flex: 1; min-width: 0; }
+  .ch-song-arrow { color: #64748b; }
+  .ch-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.7rem;
+    padding: 0.3rem 0.7rem 0.3rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: #cbd5e1;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .ch-back:hover { background: rgba(255,255,255,0.12); color: #f8fafc; }
+  .ch-song-head { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.7rem; }
+  .ch-pdf { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .ch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    background: #38bdf8;
+    color: #0f172a;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .ch-btn:hover { background: #0ea5e9; }
+  .ch-btn.ghost { background: rgba(255,255,255,0.08); color: #f8fafc; border: 1px solid rgba(255,255,255,0.2); }
+  .ch-btn.ghost:hover { background: rgba(255,255,255,0.15); }
+  .ch-tracks { display: grid; gap: 0.6rem; }
+  .ch-track {
+    padding: 0.7rem 0.8rem;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .ch-track-name { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.45rem; }
+  .ch-track audio { width: 100%; height: 36px; display: block; }
+  .ch-track-tools { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.45rem; font-size: 0.72rem; color: #94a3b8; }
+  .ch-speed {
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: transparent;
+    color: #cbd5e1;
+    font-family: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+  }
+  .ch-speed.active { background: #38bdf8; border-color: #38bdf8; color: #0f172a; font-weight: 600; }
+  .ch-download { margin-left: auto; color: #38bdf8; text-decoration: none; font-weight: 600; }
+  .ch-download:hover { text-decoration: underline; }
+
   .form-close {
     position: absolute;
     top: 0.8rem;
@@ -442,20 +531,187 @@
   }
   .cookie-banner button:hover { background: #0ea5e9; }
 
+  /* --- Handy: "Story"-Ansicht (Kopfleiste + Fortschrittsbalken, Wischen, Menü von unten) --- */
+  .m-top, .m-menu, .m-menu-backdrop { display: none; }
+  .m-top {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 7;
+    padding: calc(env(safe-area-inset-top) + 0.55rem) 1rem 1.4rem;
+    background: linear-gradient(180deg, rgba(2,6,23,0.6) 0%, rgba(2,6,23,0) 100%);
+  }
+  .m-stories { display: flex; gap: 4px; margin-bottom: 0.55rem; }
+  .m-story {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.28);
+    overflow: hidden;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  .m-story span {
+    display: block;
+    height: 100%;
+    width: 100%;
+    background: #f8fafc;
+    transform-origin: left center;
+    transform: scaleX(0);
+  }
+  .m-story.done span { transform: scaleX(1); }
+  .m-story.current span { transform: scaleX(1); }
+  .m-story.current.playing span { animation: story-fill linear forwards; transform: scaleX(0); }
+  @keyframes story-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .m-bar { display: flex; align-items: center; justify-content: space-between; }
+  .m-brand {
+    background: none;
+    border: none;
+    color: #f8fafc;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    padding: 0.4rem 0;
+    cursor: pointer;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+  }
+  .m-menu-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(15,23,42,0.45);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .m-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(2,6,23,0.55);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .m-menu {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 61;
+    max-height: 88vh;
+    max-height: 88dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1.3rem 1.2rem calc(1.4rem + env(safe-area-inset-bottom));
+    border-radius: 22px 22px 0 0;
+    background: rgba(15,23,42,0.97);
+    border-top: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 -20px 50px rgba(0,0,0,0.45);
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(.2,.8,.2,1);
+  }
+  .m-menu::before {
+    content: "";
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    width: 38px;
+    height: 4px;
+    margin-left: -19px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.25);
+  }
+  body.menu-open .m-menu { transform: none; }
+  body.menu-open .m-menu-backdrop { opacity: 1; }
+  .m-menu-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
+  .m-menu-head h2 { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: #38bdf8; }
+  .m-projects { list-style: none; display: grid; gap: 0.35rem; margin-bottom: 1rem; }
+  .m-project {
+    width: 100%;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.04);
+    color: #f8fafc;
+    font-family: inherit;
+    font-size: 0.98rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+  .m-project.active { border-color: rgba(56,189,248,0.6); background: rgba(56,189,248,0.1); }
+  .m-project-icon { width: 26px; text-align: center; font-size: 1.1rem; }
+  .m-project-eyebrow { display: block; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; }
+  .m-contact-btn {
+    width: 100%;
+    min-height: 48px;
+    margin-bottom: 1rem;
+    border-radius: 999px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .m-slot > * { margin-bottom: 0.9rem; }
+  .m-legal { display: flex; gap: 1.2rem; justify-content: center; padding-top: 0.4rem; font-size: 0.82rem; }
+  .m-legal a { color: #94a3b8; text-decoration: none; padding: 0.5rem 0; }
+
   @media (max-width: 700px) {
-    .top-nav {
-      flex-wrap: wrap;
-      overflow-x: visible;
-      white-space: normal;
-      padding: 0.8rem 1rem;
-      gap: 0.5rem 0.9rem;
-      row-gap: 0.4rem;
-      background: rgba(15,23,42,0.72);
-      backdrop-filter: blur(6px);
+    .top-nav, .legal-footer { display: none; }
+    .m-top { display: block; }
+    .m-menu, .m-menu-backdrop { display: block; }
+    body:not(.menu-open) .m-menu-backdrop { pointer-events: none; }
+
+    /* Lesbarkeit: Verlauf unten kräftiger, oben leicht für die Kopfleiste */
+    .slide::after {
+      background: linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 30%, rgba(0,0,0,0) 58%, rgba(0,0,0,0) 82%, rgba(0,0,0,0.35) 100%);
     }
-    .top-nav .nav-divider { display: none; }
-    .top-nav button,
-    .top-nav a { font-size: 0.8rem; padding: 0.15rem 0; }
+
+    .banner { padding: 0 1.2rem calc(4.6rem + env(safe-area-inset-bottom)); }
+    html.has-evt.is-home .banner { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+    .banner .eyebrow { font-size: 0.7rem; margin-bottom: 0.4rem; }
+    .banner h1 { font-size: 2.1rem; margin-bottom: 0.45rem; }
+    .banner p.info { -webkit-line-clamp: 2; font-size: 0.95rem; line-height: 1.45; margin-bottom: 0.9rem; }
+    .banner .actions { gap: 0.55rem; flex-wrap: nowrap; }
+    .banner .link-btn, .banner .form-btn { min-height: 44px; padding: 0 1.15rem; }
+    /* Nebenaktionen als runde Symbol-Buttons */
+    .banner .info-btn, .banner .social-btn {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      justify-content: center;
+      flex: none;
+    }
+    .banner .info-btn span, .banner .social-btn span { display: none; }
+    .banner .socials { flex-wrap: nowrap; gap: 0.55rem; }
+
+    /* News & Newsletter wandern ins Menü (per Script verschoben) */
+    .m-slot .news-box,
+    .m-slot .newsletter-box {
+      position: static;
+      width: auto;
+      max-width: none;
+      max-height: none;
+      overflow: visible;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    .m-slot .newsletter-form input, .m-slot .newsletter-form button { font-size: 16px; min-height: 42px; }
+
+    .cookie-banner { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
   }
 
   .news-box {
@@ -533,19 +789,21 @@
   .newsletter-form button:hover { background: #0ea5e9; }
   .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
 
-  @media (max-width: 560px) {
-    .banner { padding: 1.8rem 1.2rem 4.5rem; }
-  }
-
-  @media (max-width: 500px) {
-    .news-box,
-    .newsletter-box { max-width: calc(100vw - 2rem); }
-  }
 </style>
 </head>
 <body>
 
   <nav class="top-nav" id="top-nav"></nav>
+
+  <div class="m-top" id="m-top">
+    <div class="m-stories" id="m-stories"></div>
+    <div class="m-bar">
+      <button type="button" class="m-brand" id="m-brand">Martin Renner</button>
+      <button type="button" class="m-menu-btn" id="m-menu-btn" aria-label="Menü öffnen" aria-expanded="false" aria-controls="m-menu">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
+      </button>
+    </div>
+  </div>
 
   <div class="slideshow" id="slideshow"></div>
 
@@ -583,6 +841,19 @@
         <button type="submit" class="form-submit">Anfrage senden</button>
         <p class="form-msg" aria-live="polite"></p>
       </form>
+
+      <div data-form="choerle" id="choerle-view">
+        <form class="ch-login" id="ch-login" novalidate hidden>
+          <div class="ch-login-row">
+            <label>Passwort<input type="password" name="password" autocomplete="current-password" required></label>
+            <button type="submit" class="form-submit">Weiter</button>
+          </div>
+          <p class="form-msg" aria-live="polite"></p>
+        </form>
+        <p class="ch-status" id="ch-status" hidden></p>
+        <ul class="ch-songs" id="ch-songs" hidden></ul>
+        <div id="ch-song" hidden></div>
+      </div>
     </div>
     <div class="banner-text">
       <div class="eyebrow" id="banner-eyebrow">Projekt</div>
@@ -599,6 +870,21 @@
       <div class="socials" id="banner-socials"></div>
     </div>
   </div>
+
+  <div class="m-menu-backdrop" id="m-menu-backdrop"></div>
+  <nav class="m-menu" id="m-menu" aria-label="Menü">
+    <div class="m-menu-head">
+      <h2>Projekte</h2>
+      <button type="button" class="form-close" id="m-menu-close" aria-label="Menü schließen" style="position:static;">&times;</button>
+    </div>
+    <ul class="m-projects" id="m-projects"></ul>
+    <button type="button" class="m-contact-btn" id="m-contact-btn">✉️ Kontakt</button>
+    <div class="m-slot" id="m-slot"></div>
+    <div class="m-legal">
+      <a href="/impressum.html">Impressum</a>
+      <a href="/datenschutz.html">Datenschutz</a>
+    </div>
+  </nav>
 
   <div class="info-modal-overlay" id="info-modal-overlay">
     <div class="info-modal">
@@ -717,28 +1003,35 @@
   <script>
     // Projektdaten kommen jetzt live vom Server (siehe /admin zum Verwalten).
     let slides = [];
+    document.documentElement.classList.add('is-home');
 
-    const slideshowEl = document.getElementById('slideshow');
-    const topNavEl = document.getElementById('top-nav');
-    const bannerEyebrow = document.getElementById('banner-eyebrow');
-    const bannerTitle = document.getElementById('banner-title');
-    const bannerInfo = document.getElementById('banner-info');
-    const bannerLink = document.getElementById('banner-link');
-    const bannerSocials = document.getElementById('banner-socials');
-    const bannerInfoBtn = document.getElementById('banner-info-btn');
-    const infoModalOverlay = document.getElementById('info-modal-overlay');
-    const infoModalTitle = document.getElementById('info-modal-title');
-    const infoModalText = document.getElementById('info-modal-text');
-    const infoModalClose = document.getElementById('info-modal-close');
-    const bannerEl = document.getElementById('banner');
-    const bannerFormBtn = document.getElementById('banner-form-btn');
-    const formPanel = document.getElementById('form-panel');
-    const formPanelTitle = document.getElementById('form-panel-title');
-    const formPanelHint = document.getElementById('form-panel-hint');
-    const formSuccess = document.getElementById('form-success');
-    const formClose = document.getElementById('form-close');
+    const $ = (id) => document.getElementById(id);
+    const slideshowEl = $('slideshow');
+    const topNavEl = $('top-nav');
+    const bannerEyebrow = $('banner-eyebrow');
+    const bannerTitle = $('banner-title');
+    const bannerInfo = $('banner-info');
+    const bannerLink = $('banner-link');
+    const bannerSocials = $('banner-socials');
+    const bannerInfoBtn = $('banner-info-btn');
+    const infoModalOverlay = $('info-modal-overlay');
+    const infoModalTitle = $('info-modal-title');
+    const infoModalText = $('info-modal-text');
+    const infoModalClose = $('info-modal-close');
+    const bannerEl = $('banner');
+    const bannerFormBtn = $('banner-form-btn');
+    const formPanel = $('form-panel');
+    const formPanelTitle = $('form-panel-title');
+    const formPanelHint = $('form-panel-hint');
+    const formSuccess = $('form-success');
+    const formClose = $('form-close');
+    const storiesEl = $('m-stories');
+    const mProjectsEl = $('m-projects');
 
-    // Projekte, die statt eines externen Links ein Formular über dem Bild öffnen.
+    const SLIDE_MS = 6000;
+    const isMobile = window.matchMedia('(max-width: 700px)');
+
+    // Projekte, die statt eines externen Links ein Fenster über dem Bild öffnen.
     const FORMS = {
       kontakt: {
         slide: 'martin-renner',
@@ -756,10 +1049,20 @@
         endpoint: '/api/vt-anfrage',
         success: 'Danke für deine Anfrage! Ich melde mich zeitnah mit einem Angebot bei dir.',
       },
+      choerle: {
+        slide: 'fruehstuecks-choerle',
+        button: 'Übe-Tracks & Noten',
+        title: 'Übe-Tracks & Noten',
+        hint: 'Für alle, die beim Frühstücks-Chörle mitsingen.',
+        wide: true,
+      },
     };
+    // Frühere Unterseiten, die jetzt durch das Fenster ersetzt werden.
+    const REPLACED_LINKS = /^\/(vt|choerle|kontakt)(\/|$)/;
     let openFormKey = null;
 
     const ICON_MAIL = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>';
+    const ICON_MUSIC = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>';
     const ICON_INFO = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
 
     const SOCIAL_ICONS = {
@@ -794,19 +1097,37 @@
       return `linear-gradient(135deg, hsl(${hue},55%,22%), hsl(${(hue + 40) % 360},55%,32%))`;
     }
 
+    function slideKey(s) {
+      return String(s.id || s.key || s.title);
+    }
+
+    function formForSlide(s) {
+      const key = slideKey(s);
+      return Object.keys(FORMS).find((k) => FORMS[k].slide === key) || null;
+    }
+
     const slideEls = [];
     const navItemEls = [];
+    const storyEls = [];
+    const mProjectEls = [];
     let current = 0;
     let timer = null;
+
+    // Desktop: Foto füllt den Bildschirm (cover) – bei schmalen Fenstern bestimmt die Höhe die Breite.
+    const PHOTO_SIZES = '(max-width: 700px) 100vh, (max-aspect-ratio: 16/9) 178vh, 100vw';
 
     function buildDOM() {
       slideshowEl.innerHTML = '';
       topNavEl.innerHTML = '';
+      storiesEl.innerHTML = '';
+      mProjectsEl.innerHTML = '';
       slideEls.length = 0;
       navItemEls.length = 0;
+      storyEls.length = 0;
+      mProjectEls.length = 0;
 
       slides.forEach((s, i) => {
-        const key = s.id || s.key || s.title;
+        const key = slideKey(s);
         const div = document.createElement('div');
         div.className = 'slide' + (i === 0 ? ' active' : '');
         div.dataset.key = key;
@@ -815,11 +1136,10 @@
           const variants = Array.isArray(s.imageVariants) ? s.imageVariants : [];
           const srcset = variants.map((v) => `${v.url} ${v.width}w`).join(', ');
           const fallback = variants.length ? variants[Math.min(1, variants.length - 1)].url : s.image;
-          const blur = variants.length ? variants[0].url : s.image;
-          div.innerHTML = `<div class="slide-bg-blur" data-bg="${escapeHtmlClient(blur)}"></div><img class="slide-photo" alt="" decoding="async" sizes="${PHOTO_SIZES}" data-src="${escapeHtmlClient(fallback)}"${srcset ? ` data-srcset="${escapeHtmlClient(srcset)}"` : ''}>`;
+          const focus = /^\d{1,3}% \d{1,3}%$/.test(s.focus || '') ? s.focus : '50% 50%';
+          div.innerHTML = `<img class="slide-photo" alt="" decoding="async" style="object-position:${focus}" sizes="${PHOTO_SIZES}" data-src="${escapeHtmlClient(fallback)}"${srcset ? ` data-srcset="${escapeHtmlClient(srcset)}"` : ''}>`;
         } else {
-          const grad = placeholderGradient(key);
-          div.innerHTML = `<div class="slide-placeholder" style="background: ${grad};">
+          div.innerHTML = `<div class="slide-placeholder" style="background: ${placeholderGradient(key)};">
             <div class="ph-icon">${escapeHtmlClient(s.icon || '🔹')}</div>
             <div class="ph-label">Foto-Platzhalter · ${escapeHtmlClient(s.title)}</div>
           </div>`;
@@ -829,11 +1149,30 @@
 
         const navItem = document.createElement('button');
         navItem.type = 'button';
-        navItem.className = 'nav-item' + (i === 0 ? ' active' : '');
+        navItem.className = 'nav-item';
         navItem.textContent = s.title;
         navItem.addEventListener('click', () => goTo(i));
         topNavEl.appendChild(navItem);
         navItemEls.push(navItem);
+
+        // Handy: Fortschrittsbalken je Projekt (antippbar) + Eintrag im Menü
+        const story = document.createElement('button');
+        story.type = 'button';
+        story.className = 'm-story';
+        story.setAttribute('aria-label', s.title);
+        story.innerHTML = '<span></span>';
+        story.addEventListener('click', () => goTo(i));
+        storiesEl.appendChild(story);
+        storyEls.push(story);
+
+        const li = document.createElement('li');
+        li.innerHTML = `<button type="button" class="m-project"><span class="m-project-icon">${escapeHtmlClient(s.icon || '🔹')}</span><span><span class="m-project-eyebrow">${escapeHtmlClient(s.eyebrow || '')}</span>${escapeHtmlClient(s.title)}</span></button>`;
+        li.firstChild.addEventListener('click', () => {
+          closeMenu();
+          goTo(i);
+        });
+        mProjectsEl.appendChild(li);
+        mProjectEls.push(li.firstChild);
       });
 
       const divider = document.createElement('span');
@@ -851,35 +1190,16 @@
       topNavEl.appendChild(contactLink);
     }
 
-    // Desktop: Foto füllt den Bildschirm (cover) – bei schmalen Fenstern bestimmt die Höhe die Breite.
-    const PHOTO_SIZES = '(max-width: 700px) 100vw, (min-aspect-ratio: 16/9) 100vw, 178vh';
-    const isMobile = window.matchMedia('(max-width: 700px)');
-
     function ensureLoaded(i, priority) {
       const el = slideEls[i];
       if (!el) return;
       const img = el.querySelector('img.slide-photo[data-src]');
-      if (img) {
-        if (priority) img.fetchPriority = 'high';
-        if (img.dataset.srcset) img.srcset = img.dataset.srcset;
-        img.src = img.dataset.src;
-        img.removeAttribute('data-src');
-        img.removeAttribute('data-srcset');
-      }
-      const blur = el.querySelector('.slide-bg-blur[data-bg]');
-      if (blur && isMobile.matches) {
-        blur.style.backgroundImage = `url("${blur.dataset.bg}")`;
-        blur.removeAttribute('data-bg');
-      }
-    }
-
-    function slideKey(s) {
-      return String(s.id || s.key || s.title);
-    }
-
-    function formForSlide(s) {
-      const key = slideKey(s);
-      return Object.keys(FORMS).find((k) => FORMS[k].slide === key) || null;
+      if (!img) return;
+      if (priority) img.fetchPriority = 'high';
+      if (img.dataset.srcset) img.srcset = img.dataset.srcset;
+      img.src = img.dataset.src;
+      img.removeAttribute('data-src');
+      img.removeAttribute('data-srcset');
     }
 
     function updateInfoAffordance(s) {
@@ -888,6 +1208,7 @@
         const truncated = bannerInfo.scrollHeight > bannerInfo.clientHeight + 2;
         if (hasDetails || truncated) {
           bannerInfoBtn.style.display = 'inline-flex';
+          bannerInfoBtn.setAttribute('aria-label', hasDetails ? 'Infos' : 'weiterlesen');
           bannerInfoBtn.innerHTML = ICON_INFO + '<span>' + (hasDetails ? 'Infos' : 'weiterlesen') + '</span>';
         } else {
           bannerInfoBtn.style.display = 'none';
@@ -895,28 +1216,43 @@
       });
     }
 
+    function renderStories() {
+      storyEls.forEach((el, i) => {
+        el.classList.toggle('done', i < current);
+        el.classList.toggle('current', i === current);
+        el.classList.remove('playing');
+      });
+      const cur = storyEls[current];
+      if (cur && timer) {
+        void cur.offsetWidth; // Animation neu starten
+        cur.firstChild.style.animationDuration = SLIDE_MS + 'ms';
+        cur.classList.add('playing');
+      }
+    }
+
     function render() {
       if (!slides.length) return;
       slideEls.forEach((el, i) => el.classList.toggle('active', i === current));
       navItemEls.forEach((el, i) => el.classList.toggle('active', i === current));
+      mProjectEls.forEach((el, i) => el.classList.toggle('active', i === current));
       const s = slides[current];
       bannerEyebrow.textContent = s.eyebrow || '';
       bannerTitle.textContent = s.title || '';
       bannerInfo.textContent = s.info || '';
       const formKey = formForSlide(s);
-      // Alte /vt-Unterseite gibt es nicht mehr – dort ersetzt das Formular den Link.
-      const hasLink = !!(s.link && s.link !== '#' && !(formKey && s.link === '/vt'));
+      const hasLink = !!(s.link && s.link !== '#' && !(formKey && REPLACED_LINKS.test(s.link)));
       bannerLink.style.display = hasLink ? 'inline-flex' : 'none';
       bannerLink.href = hasLink ? s.link : '#';
       bannerFormBtn.style.display = formKey ? 'inline-flex' : 'none';
-      bannerFormBtn.innerHTML = formKey ? ICON_MAIL + '<span>' + FORMS[formKey].button + '</span>' : '';
+      bannerFormBtn.innerHTML = formKey ? (formKey === 'choerle' ? ICON_MUSIC : ICON_MAIL) + '<span>' + FORMS[formKey].button + '</span>' : '';
       bannerFormBtn.dataset.form = formKey || '';
-      ensureLoaded(current, true);
-      if (slides.length > 1) ensureLoaded((current + 1) % slides.length);
       bannerSocials.innerHTML = (s.socials || [])
-        .map((soc) => `<a class="social-btn" href="${escapeHtmlClient(soc.href)}" target="_blank" rel="noopener">${socialIcon(soc.label)}<span>${escapeHtmlClient(soc.label)}</span></a>`)
+        .map((soc) => `<a class="social-btn" href="${escapeHtmlClient(soc.href)}" target="_blank" rel="noopener" aria-label="${escapeHtmlClient(soc.label)}">${socialIcon(soc.label)}<span>${escapeHtmlClient(soc.label)}</span></a>`)
         .join('');
       updateInfoAffordance(s);
+      renderStories();
+      ensureLoaded(current, true);
+      if (slides.length > 1) ensureLoaded((current + 1) % slides.length);
     }
 
     function openInfoModal() {
@@ -940,15 +1276,65 @@
       if (e.key === 'Escape') {
         closeInfoModal();
         closeForm();
+        closeMenu();
       }
     });
+
+    // --- Menü (Handy) ---
+    const menuBtn = $('m-menu-btn');
+    function openMenu() {
+      document.body.classList.add('menu-open');
+      menuBtn.setAttribute('aria-expanded', 'true');
+    }
+    function closeMenu() {
+      document.body.classList.remove('menu-open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+    }
+    menuBtn.addEventListener('click', openMenu);
+    $('m-menu-close').addEventListener('click', closeMenu);
+    $('m-menu-backdrop').addEventListener('click', closeMenu);
+    $('m-brand').addEventListener('click', () => goTo(0));
+    $('m-contact-btn').addEventListener('click', () => {
+      closeMenu();
+      showForm('kontakt');
+    });
+
+    // News & Newsletter: auf dem Handy im Menü statt schwebend über dem Foto.
+    function placeBoxes() {
+      const slot = $('m-slot');
+      const boxes = [$('newsletter-box'), $('news-box')];
+      boxes.forEach((box) => {
+        if (isMobile.matches) slot.appendChild(box);
+        else document.body.insertBefore(box, document.querySelector('.legal-footer'));
+      });
+    }
+    placeBoxes();
+    isMobile.addEventListener('change', placeBoxes);
+
+    // --- Wischen (Handy): links/rechts wechselt das Projekt ---
+    let touchStart = null;
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1 || openFormKey || document.body.classList.contains('menu-open')) return;
+      if (e.target.closest('.form-panel, .evt, .evt-panel, .m-menu, .info-modal-overlay, .cookie-banner')) return;
+      touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+    }, { passive: true });
+    document.addEventListener('touchend', (e) => {
+      if (!touchStart || !slides.length) return;
+      const dx = e.changedTouches[0].clientX - touchStart.x;
+      const dy = e.changedTouches[0].clientY - touchStart.y;
+      const fast = Date.now() - touchStart.t < 800;
+      touchStart = null;
+      if (!fast || Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      goTo((current + (dx < 0 ? 1 : -1) + slides.length) % slides.length);
+    }, { passive: true });
 
     // --- Formulare (Kontakt / Anfrage) ---
     function loadCaptcha(form) {
       const q = form.querySelector('.captcha-q');
+      if (!q) return;
       q.textContent = '…';
       form.dataset.captchaToken = '';
-      return fetch('/api/captcha')
+      fetch('/api/captcha')
         .then((r) => r.json())
         .then((data) => {
           q.textContent = data.question;
@@ -959,45 +1345,64 @@
         });
     }
 
-    function showForm(key) {
+    function setUrl(url, replace) {
+      if (location.pathname + location.search === url) return;
+      history[replace ? 'replaceState' : 'pushState']({}, '', url);
+    }
+
+    // opts.slug: Lied direkt öffnen (Chörle); opts.fromUrl: Aufruf kam über die Adresse, nicht per Klick
+    function showForm(key, opts) {
+      opts = opts || {};
       const cfg = FORMS[key];
       if (!cfg) return;
       const idx = slides.findIndex((s) => slideKey(s) === cfg.slide);
-      if (idx !== -1 && idx !== current) goTo(idx);
+      if (idx !== -1 && idx !== current) goTo(idx, { keepForm: true });
       stopCarousel();
       openFormKey = key;
+      formPanel.classList.toggle('wide', !!cfg.wide);
       formPanelTitle.textContent = cfg.title;
       formPanelHint.textContent = cfg.hint;
-      formSuccess.textContent = cfg.success;
+      formSuccess.textContent = cfg.success || '';
       formPanel.classList.remove('sent');
-      formPanel.querySelectorAll('form').forEach((f) => {
+      formPanel.querySelectorAll('[data-form]').forEach((f) => {
         const active = f.dataset.form === key;
         f.classList.toggle('active', active);
-        if (active) {
+        if (active && f.tagName === 'FORM') {
           f.querySelector('.form-msg').textContent = '';
           loadCaptcha(f);
         }
       });
       closeInfoModal();
+      closeMenu();
       bannerEl.classList.add('form-open');
-      const first = formPanel.querySelector('form.active input:not([tabindex="-1"])');
-      if (first && !isMobile.matches) first.focus({ preventScroll: true });
+      if (key === 'choerle') {
+        if (!opts.fromUrl) setUrl(opts.slug ? '/choerle/' + encodeURIComponent(opts.slug) : '/choerle');
+        choerleOpen(opts.slug || null);
+      } else {
+        const first = formPanel.querySelector(`form[data-form="${key}"] input:not([tabindex="-1"])`);
+        if (first && !isMobile.matches) first.focus({ preventScroll: true });
+      }
     }
 
-    function closeForm() {
+    function closeForm(opts) {
       if (!openFormKey) return;
+      const wasChoerle = openFormKey === 'choerle';
       openFormKey = null;
       bannerEl.classList.remove('form-open');
+      document.querySelectorAll('#ch-song audio').forEach((a) => a.pause());
+      if (opts && opts.fromUrl) return;
+      if (wasChoerle) setUrl('/?p=fruehstuecks-choerle');
+      else if (new URLSearchParams(location.search).has('form')) setUrl(location.pathname, true);
     }
 
     bannerFormBtn.addEventListener('click', () => showForm(bannerFormBtn.dataset.form));
-    formClose.addEventListener('click', closeForm);
-    document.getElementById('footer-kontakt').addEventListener('click', (e) => {
+    formClose.addEventListener('click', () => closeForm());
+    $('footer-kontakt').addEventListener('click', (e) => {
       e.preventDefault();
       showForm('kontakt');
     });
 
-    formPanel.querySelectorAll('form').forEach((form) => {
+    formPanel.querySelectorAll('form[data-form]').forEach((form) => {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const cfg = FORMS[form.dataset.form];
@@ -1050,20 +1455,204 @@
       });
     });
 
+    // --- Frühstücks-Chörle: Übe-Tracks & Noten (passwortgeschützt) ---
+    const chLogin = $('ch-login');
+    const chStatus = $('ch-status');
+    const chSongs = $('ch-songs');
+    const chSong = $('ch-song');
+    let chPendingSlug = null;
+
+    function chShow(view, text, isError) {
+      chLogin.hidden = view !== 'login';
+      chSongs.hidden = view !== 'list';
+      chSong.hidden = view !== 'song';
+      chStatus.hidden = !text;
+      chStatus.textContent = text || '';
+      chStatus.className = 'ch-status' + (isError ? ' error' : '');
+    }
+
+    function chFetch(url) {
+      return fetch(url, { credentials: 'same-origin' }).then((r) =>
+        r.json().then((body) => ({ status: r.status, body }), () => ({ status: r.status, body: {} }))
+      );
+    }
+
+    function choerleOpen(slug) {
+      if (slug) chLoadSong(slug);
+      else chLoadList();
+    }
+
+    function chNeedsLogin(slug) {
+      chPendingSlug = slug;
+      formPanelHint.textContent = 'Nur für Mitsingende – bitte das Chörle-Passwort eingeben.';
+      chShow('login');
+      chLogin.querySelector('.form-msg').textContent = '';
+      const input = chLogin.querySelector('input');
+      if (!isMobile.matches) input.focus({ preventScroll: true });
+    }
+
+    function chLoadList() {
+      chShow('list', 'Lieder werden geladen …');
+      chFetch('/api/choerle/songs').then(({ status, body }) => {
+        if (openFormKey !== 'choerle') return;
+        if (status === 401) return chNeedsLogin(null);
+        if (!body.ok) return chShow('list', body.error || 'Die Lieder konnten gerade nicht geladen werden.', true);
+        formPanelHint.textContent = FORMS.choerle.hint;
+        if (!body.songs.length) return chShow('list', 'Noch keine Lieder vorhanden.');
+        chSongs.innerHTML = body.songs
+          .map((song) => `<li><button type="button" class="ch-song" data-slug="${escapeHtmlClient(song.slug)}"><span class="ch-song-icon">${ICON_MUSIC}</span><span class="ch-song-title">${escapeHtmlClient(song.title)}</span><span class="ch-song-arrow">→</span></button></li>`)
+          .join('');
+        chShow('list');
+      }).catch(() => chShow('list', 'Die Lieder konnten gerade nicht geladen werden.', true));
+    }
+
+    function trackLabel(name) {
+      return name.replace(/\.(mp3|wav|m4a|ogg)$/i, '');
+    }
+
+    function chLoadSong(slug) {
+      chShow('song', 'Lied wird geladen …');
+      chSong.innerHTML = '';
+      chFetch('/api/choerle/songs/' + encodeURIComponent(slug)).then(({ status, body }) => {
+        if (openFormKey !== 'choerle') return;
+        if (status === 401) return chNeedsLogin(slug);
+        const back = '<button type="button" class="ch-back" data-ch-back>← Alle Lieder</button>';
+        if (!body.ok) {
+          chSong.innerHTML = back;
+          return chShow('song', body.error || 'Das Lied konnte gerade nicht geladen werden.', true);
+        }
+        const song = body.song;
+        formPanelHint.textContent = FORMS.choerle.hint;
+        const pdf = song.pdf
+          ? `<div class="ch-pdf"><a class="ch-btn" href="${escapeHtmlClient(song.pdf.url)}" target="_blank" rel="noopener">📄 Noten ansehen</a><a class="ch-btn ghost" href="${escapeHtmlClient(song.pdf.url)}?download=1">Herunterladen</a></div>`
+          : '<p class="ch-status">Noten derzeit nicht verfügbar.</p>';
+        const tracks = song.audio.length
+          ? `<div class="ch-tracks">${song.audio
+              .map((a) => `<div class="ch-track">
+                <div class="ch-track-name">${escapeHtmlClient(trackLabel(a.name))}</div>
+                <audio controls preload="none" src="${escapeHtmlClient(a.url)}"></audio>
+                <div class="ch-track-tools">Tempo:
+                  <button type="button" class="ch-speed active" data-speed="1">1,0×</button>
+                  <button type="button" class="ch-speed" data-speed="0.9">0,9×</button>
+                  <button type="button" class="ch-speed" data-speed="0.8">0,8×</button>
+                  <button type="button" class="ch-speed" data-speed="0.7">0,7×</button>
+                  <a class="ch-download" href="${escapeHtmlClient(a.url)}?download=1">Herunterladen</a>
+                </div>
+              </div>`)
+              .join('')}</div>`
+          : '<p class="ch-status">Keine Übe-Tracks zu diesem Lied vorhanden.</p>';
+        chSong.innerHTML = `${back}<div class="ch-song-head">🎶 ${escapeHtmlClient(song.title)}</div>${pdf}${tracks}`;
+        chShow('song');
+        formPanel.scrollTop = 0;
+      }).catch(() => chShow('song', 'Das Lied konnte gerade nicht geladen werden.', true));
+    }
+
+    chSongs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.ch-song');
+      if (!btn) return;
+      setUrl('/choerle/' + encodeURIComponent(btn.dataset.slug));
+      chLoadSong(btn.dataset.slug);
+    });
+
+    chSong.addEventListener('click', (e) => {
+      if (e.target.closest('[data-ch-back]')) {
+        chSong.querySelectorAll('audio').forEach((a) => a.pause());
+        setUrl('/choerle');
+        chLoadList();
+        return;
+      }
+      const speed = e.target.closest('.ch-speed');
+      if (!speed) return;
+      const track = speed.closest('.ch-track');
+      const audio = track.querySelector('audio');
+      const rate = parseFloat(speed.dataset.speed);
+      if (audio && !isNaN(rate)) {
+        audio.playbackRate = rate;
+        audio.preservesPitch = true;
+      }
+      track.querySelectorAll('.ch-speed').forEach((b) => b.classList.toggle('active', b === speed));
+    });
+
+    // Immer nur ein Übe-Track gleichzeitig
+    chSong.addEventListener('play', (e) => {
+      chSong.querySelectorAll('audio').forEach((a) => {
+        if (a !== e.target) a.pause();
+      });
+    }, true);
+
+    chLogin.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = chLogin.querySelector('input');
+      const msg = chLogin.querySelector('.form-msg');
+      const btn = chLogin.querySelector('.form-submit');
+      if (!input.value.trim()) {
+        msg.className = 'form-msg error';
+        msg.textContent = 'Bitte das Passwort eingeben.';
+        return;
+      }
+      btn.disabled = true;
+      fetch('/api/choerle/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ password: input.value }),
+      })
+        .then((r) => r.json())
+        .then((body) => {
+          if (body.ok) {
+            input.value = '';
+            choerleOpen(chPendingSlug);
+          } else {
+            msg.className = 'form-msg error';
+            msg.textContent = body.error || 'Das Passwort stimmt leider nicht.';
+            input.select();
+          }
+        })
+        .catch(() => {
+          msg.className = 'form-msg error';
+          msg.textContent = 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.';
+        })
+        .finally(() => {
+          btn.disabled = false;
+        });
+    });
+
+    // Adresse (/choerle, /choerle/<lied>) bestimmt, was angezeigt wird – auch bei Zurück/Vor im Browser.
+    function choerleSlugFromPath() {
+      const m = location.pathname.match(/^\/choerle(?:\/([^/]+))?\/?$/);
+      if (!m) return undefined;
+      return m[1] ? decodeURIComponent(m[1]) : null;
+    }
+
+    window.addEventListener('popstate', () => {
+      const slug = choerleSlugFromPath();
+      if (slug !== undefined) {
+        if (openFormKey === 'choerle') choerleOpen(slug);
+        else showForm('choerle', { slug, fromUrl: true });
+      } else if (openFormKey === 'choerle') {
+        closeForm({ fromUrl: true });
+      }
+    });
+
+    // --- Karussell ---
     function stopCarousel() {
       if (timer) {
         clearInterval(timer);
         timer = null;
       }
+      renderStories();
     }
 
-    function goTo(i) {
+    function goTo(i, opts) {
       current = i;
-      // Formular gehört zu einer bestimmten Slide – beim Wechsel zu einer anderen schließen.
-      if (openFormKey && FORMS[openFormKey].slide !== slideKey(slides[i])) closeForm();
+      // Fenster gehört zu einer bestimmten Slide – beim Wechsel zu einer anderen schließen.
+      if (!(opts && opts.keepForm) && openFormKey && FORMS[openFormKey].slide !== slideKey(slides[i])) closeForm();
+      // Karussell anhalten, sobald der Besucher aktiv wechselt.
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
       render();
-      // Karussell anhalten, sobald der Besucher aktiv über die Navigation wechselt.
-      stopCarousel();
     }
 
     function next() {
@@ -1073,7 +1662,8 @@
 
     function restart() {
       if (timer) clearInterval(timer);
-      if (slides.length > 1) timer = setInterval(next, 6000);
+      if (slides.length > 1) timer = setInterval(next, SLIDE_MS);
+      renderStories();
     }
 
     async function loadSlides() {
@@ -1085,17 +1675,18 @@
       }
       if (!slides.length) return;
       buildDOM();
+      const params = new URLSearchParams(location.search);
       // Wenn von einer Unterseite mit ?p=<key> verlinkt wurde, direkt zu diesem Projekt springen.
-      const requestedKey = new URLSearchParams(location.search).get('p');
-      const requestedIndex = requestedKey
-        ? slides.findIndex((s) => String(s.id || s.key || s.title) === requestedKey)
-        : -1;
+      const requestedKey = params.get('p');
+      const requestedIndex = requestedKey ? slides.findIndex((s) => slideKey(s) === requestedKey) : -1;
       current = requestedIndex !== -1 ? requestedIndex : 0;
-      render();
       restart();
-      // ?form=kontakt / ?form=anfrage (z. B. Weiterleitung von /kontakt und /vt) öffnet das Formular direkt.
-      const requestedForm = new URLSearchParams(location.search).get('form');
-      if (requestedForm && FORMS[requestedForm]) showForm(requestedForm);
+      render();
+      // /choerle bzw. ?form=kontakt / ?form=anfrage öffnet das passende Fenster direkt.
+      const choerleSlug = choerleSlugFromPath();
+      const requestedForm = params.get('form');
+      if (choerleSlug !== undefined) showForm('choerle', { slug: choerleSlug, fromUrl: true });
+      else if (requestedForm && FORMS[requestedForm]) showForm(requestedForm, { fromUrl: true });
     }
 
     loadSlides();

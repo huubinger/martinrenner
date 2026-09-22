@@ -224,6 +224,13 @@ async function ensureAllImageVariants() {
   }
 }
 
+// Bildfokus als "x% y%" (für CSS object-position), sonst null.
+function parseFocus(value) {
+  const m = String(value || '').trim().match(/^(\d{1,3})% (\d{1,3})%$/);
+  if (!m || +m[1] > 100 || +m[2] > 100) return null;
+  return `${+m[1]}% ${+m[2]}%`;
+}
+
 function slugify(str) {
   return String(str)
     .toLowerCase()
@@ -803,11 +810,12 @@ function renderDatenschutzPage(settings) {
     <h2>6. Terminhinweise (Eventticker)</h2>
     <p>Am unteren Bildschirmrand werden die nächsten Veranstaltungen von Kreatief – Kultur im Unterland e.V. und den Voctails angezeigt. Die Termindaten werden serverseitig von www.kreatief-neckarsulm.de bzw. vom Dienst Konzertmeister abgerufen und zwischengespeichert; dein Browser nimmt dabei keinen direkten Kontakt zu diesen Anbietern auf und es werden keine Daten über dich übermittelt. Erst wenn du auf einen Termin klickst, wird die Seite des jeweiligen Anbieters in einem neuen Fenster geöffnet; dort gelten dessen Datenschutzhinweise.</p>
 
-    <h2>7. Bereich „/choerle" – Dropbox-Anbindung</h2>
+    <h2>7. Bereich „/choerle" (Übe-Tracks & Noten) – Passwort und Dropbox-Anbindung</h2>
     <p>Im Bereich „/choerle" werden Dateien (z. B. Noten) angezeigt, die serverseitig über die API des Cloud-Speicherdienstes Dropbox (Dropbox Inc., USA bzw. Dropbox International Unlimited Company, Irland) abgerufen werden. Dabei werden ausschließlich Dateiinformationen aus einem dediziert für diese Website angelegten Dropbox-Ordner abgerufen – es werden keine personenbezogenen Daten von Besuchern der Website an Dropbox übermittelt. Der Abruf erfolgt serverseitig über einen Zugriffstoken; Besucher der Seite treten mit Dropbox nicht in direkten Kontakt.</p>
+    <p>Die Übe-Tracks und Noten sind nur für Mitsingende gedacht und durch ein gemeinsames Passwort geschützt. Nach der richtigen Eingabe wird in deinem Browser ein technisch notwendiges Cookie („choerle_auth") gespeichert, damit du das Passwort nicht bei jedem Besuch erneut eingeben musst. Es enthält keine personenbezogenen Daten, dient ausschließlich der Zugangsfreigabe und wird nach 180 Tagen automatisch gelöscht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG i. V. m. Art. 6 Abs. 1 lit. f DSGVO; eine Einwilligung ist hierfür nicht erforderlich. Zum Schutz vor dem Durchprobieren von Passwörtern wird die IP-Adresse bei Fehleingaben für höchstens 10 Minuten im Arbeitsspeicher des Servers vorgehalten und danach verworfen.</p>
 
     <h2>8. Cookies und Tracking</h2>
-    <p>Diese Website setzt keine Cookies und keine Analyse- oder Trackingdienste (z. B. Google Analytics) zu Marketing- oder Analysezwecken ein. Es findet kein Tracking des Nutzerverhaltens statt.</p>
+    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahme ist das technisch notwendige Zugangs-Cookie für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 7), das nur nach Eingabe des Passworts gesetzt wird.</p>
     <p>Lediglich für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TDDDG). Eine Einwilligung ist hierfür nach § 25 TDDDG nicht erforderlich, da keine nicht-notwendigen Cookies gesetzt werden.</p>
     <p>Solltest du künftig Funktionen mit nicht-technisch-notwendigen Cookies (z. B. Statistik- oder Einbettungsdienste) hinzufügen, wird vor deren Einsatz eine Einwilligung über den Cookie-Banner eingeholt.</p>
 
@@ -842,7 +850,14 @@ function renderAdminPage(projects, settings, news, message) {
     <div class="project-card">
       <form method="POST" action="/admin/projects/${encodeURIComponent(p.id)}" enctype="multipart/form-data">
         <div class="row">
-          ${p.image ? `<img class="thumb-preview" src="${escapeAttr(p.image)}" alt="">` : '<div class="thumb-preview thumb-empty">kein Foto</div>'}
+          ${p.image
+            ? `<div class="focus-picker" title="Tippe auf den wichtigsten Punkt im Foto">
+                <img class="thumb-preview" src="${escapeAttr(p.image)}" alt="">
+                <span class="focus-dot" style="left:${escapeAttr((p.focus || '50% 50%').split(' ')[0])};top:${escapeAttr((p.focus || '50% 50%').split(' ')[1])}"></span>
+                <input type="hidden" name="focus" value="${escapeAttr(p.focus || '50% 50%')}">
+                <span class="focus-hint">Bildfokus: auf das Wichtigste im Foto tippen – bleibt auf dem Handy im Bild</span>
+              </div>`
+            : '<div class="thumb-preview thumb-empty">kein Foto</div>'}
           <div class="fields">
             <label>Titel<input type="text" name="title" value="${escapeAttr(p.title)}" required></label>
             <label>Kategorie-Label<input type="text" name="eyebrow" value="${escapeAttr(p.eyebrow || '')}"></label>
@@ -909,6 +924,20 @@ function renderAdminPage(projects, settings, news, message) {
     flex-shrink: 0;
   }
   .thumb-empty { display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #64748b; text-align: center; }
+  .focus-picker { position: relative; width: 240px; flex-shrink: 0; align-self: flex-start; cursor: crosshair; }
+  .focus-picker .thumb-preview { width: 240px; height: 135px; display: block; }
+  .focus-dot {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    margin: -9px 0 0 -9px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: rgba(56,189,248,0.7);
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.4);
+    pointer-events: none;
+  }
+  .focus-hint { display: block; margin-top: 0.35rem; font-size: 0.7rem; color: #64748b; line-height: 1.35; }
   .fields { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 0.7rem; }
   label { font-size: 0.8rem; color: #94a3b8; display: flex; flex-direction: column; gap: 0.3rem; }
   input, textarea {
@@ -965,6 +994,7 @@ function renderAdminPage(projects, settings, news, message) {
     body { padding: 1.2rem 0.8rem 4rem; }
     .project-card, .new-project { padding: 1rem; }
     .thumb-preview { width: 90px; height: 60px; }
+    .focus-picker, .focus-picker .thumb-preview { width: 100%; height: auto; aspect-ratio: 16 / 9; }
     .fields { min-width: 0; }
     .actions { flex-direction: column; align-items: stretch; gap: 0.6rem; }
     .news-admin-item { flex-direction: column; align-items: stretch; gap: 0.5rem; }
@@ -1054,6 +1084,23 @@ function renderAdminPage(projects, settings, news, message) {
 
     <a class="home-link" href="/">&larr; zur Startseite</a>
   </div>
+  <script>
+    // Bildfokus: Klick ins Vorschaubild setzt den Punkt, der beim Zuschneiden (Handy) sichtbar bleibt.
+    document.querySelectorAll('.focus-picker').forEach(function (picker) {
+      var img = picker.querySelector('img');
+      img.addEventListener('click', function (e) {
+        var rect = img.getBoundingClientRect();
+        var x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+        var y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+        x = Math.min(100, Math.max(0, x));
+        y = Math.min(100, Math.max(0, y));
+        picker.querySelector('input[name="focus"]').value = x + '% ' + y + '%';
+        var dot = picker.querySelector('.focus-dot');
+        dot.style.left = x + '%';
+        dot.style.top = y + '%';
+      });
+    });
+  </script>
 </body>
 </html>`;
 }
@@ -1142,6 +1189,7 @@ app.post('/admin/projects/:id', requireAdminAuth, upload.single('photo'), async 
     details: req.body.details !== undefined ? req.body.details : existing.details,
     link: req.body.link ? normalizeUrl(req.body.link) : existing.link,
     image,
+    focus: req.file ? '50% 50%' : parseFocus(req.body.focus) || existing.focus || '50% 50%',
     socials: parseSocials(req.body.socials),
   };
   saveProjects(projects);
@@ -1312,187 +1360,6 @@ function sortChoerleTracks(files) {
   });
 }
 
-const CHOERLE_STYLE = `
-  ${TOP_NAV_STYLE}
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-    color: #f8fafc;
-    min-height: 100vh;
-    padding: 6.2rem 1rem 5rem;
-  }
-  .container { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); margin-bottom: 0.25rem; }
-  p.subtitle { color: #cbd5e1; margin-bottom: 2rem; }
-  ul { list-style: none; }
-  li { margin-bottom: 0.75rem; }
-  .song-grid {
-    list-style: none;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 0.9rem;
-  }
-  .song-grid li { margin-bottom: 0; }
-  .song-card {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 14px;
-    padding: 1.1rem 1.2rem;
-    color: #f8fafc;
-    text-decoration: none;
-    transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
-  }
-  .song-card:hover {
-    background: rgba(56,189,248,0.1);
-    border-color: rgba(56,189,248,0.4);
-    transform: translateY(-2px);
-  }
-  .song-card-icon {
-    font-size: 1.4rem;
-    flex-shrink: 0;
-    width: 2.4rem;
-    height: 2.4rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(56,189,248,0.12);
-    border-radius: 10px;
-  }
-  .song-card-title { flex: 1; font-size: 1rem; font-weight: 600; }
-  .song-card-arrow { color: #38bdf8; opacity: 0.7; transition: transform 0.15s ease; }
-  .song-card:hover .song-card-arrow { transform: translateX(3px); }
-  a.file-link {
-    display: block;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    padding: 0.9rem 1.1rem;
-    color: #38bdf8;
-    text-decoration: none;
-    font-size: 1.05rem;
-    transition: background 0.15s ease;
-  }
-  a.file-link:hover { background: rgba(255,255,255,0.12); }
-  .home-link { display: inline-block; margin-top: 2rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
-  .home-link:hover { text-decoration: underline; }
-  .empty { color: #94a3b8; }
-  .pdf-button {
-    display: inline-block;
-    margin-bottom: 2rem;
-  }
-  .audio-list { display: flex; flex-direction: column; gap: 0.9rem; margin-bottom: 2rem; }
-  .audio-item {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    padding: 0.8rem 1rem;
-  }
-  .audio-name { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 0.5rem; }
-  audio { width: 100%; }
-  .speed-controls { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.65rem; flex-wrap: wrap; }
-  .speed-label { font-size: 0.78rem; color: #94a3b8; margin-right: 0.2rem; }
-  .speed-btn {
-    padding: 0.3rem 0.65rem;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.05);
-    color: #e2e8f0;
-    font-size: 0.78rem;
-    cursor: pointer;
-  }
-  .speed-btn:hover { background: rgba(255,255,255,0.12); }
-  .speed-btn.active { background: #38bdf8; border-color: #38bdf8; color: #0f172a; font-weight: 600; }
-  .download-link { display: inline-block; margin-top: 0.5rem; font-size: 0.8rem; color: #38bdf8; text-decoration: none; }
-  .download-link:hover { text-decoration: underline; }
-  .legal-footer {
-    position: fixed;
-    right: 1rem;
-    bottom: 0.75rem;
-    display: flex;
-    gap: 0.9rem;
-    font-size: 0.78rem;
-  }
-  .legal-footer a { color: #64748b; text-decoration: none; }
-  .legal-footer a:hover { color: #94a3b8; }
-  .cookie-banner {
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    z-index: 20;
-    display: none;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    padding: 1rem 1.2rem;
-    background: rgba(15,23,42,0.97);
-    border-top: 1px solid rgba(255,255,255,0.12);
-    backdrop-filter: blur(6px);
-  }
-  .cookie-banner p { color: #e2e8f0; font-size: 0.85rem; max-width: 640px; line-height: 1.5; margin: 0; }
-  .cookie-banner a { color: #38bdf8; }
-  .cookie-banner button {
-    padding: 0.55rem 1.2rem;
-    border-radius: 999px;
-    border: none;
-    background: #38bdf8;
-    color: #0f172a;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .cookie-banner button:hover { background: #0ea5e9; }
-
-  .newsletter-box {
-    position: relative;
-    display: none;
-    max-width: 420px;
-    margin: 3rem auto 1rem;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 12px;
-    padding: 1rem 1.1rem;
-  }
-  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.3rem; }
-  .newsletter-subtext { font-size: 0.74rem; color: #94a3b8; margin-bottom: 0.6rem; line-height: 1.4; }
-  .newsletter-form { display: flex; gap: 0.4rem; }
-  .newsletter-form input {
-    flex: 1;
-    min-width: 0;
-    padding: 0.45rem 0.6rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.06);
-    color: #f8fafc;
-    font-size: 0.78rem;
-    font-family: inherit;
-  }
-  .newsletter-form button {
-    padding: 0.45rem 0.7rem;
-    border-radius: 6px;
-    border: none;
-    background: #38bdf8;
-    color: #0f172a;
-    font-weight: 600;
-    font-size: 0.78rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .newsletter-form button:hover { background: #0ea5e9; }
-  .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
-
-  @media (max-width: 560px) {
-    body { padding: 1.8rem 1rem 4rem; }
-    h1 { font-size: 1.5rem; }
-    .newsletter-form { flex-direction: column; align-items: stretch; }
-    .newsletter-form button { align-self: stretch; }
-  }
-`;
-
 const COOKIE_BANNER_BLOCK = `
   <div class="cookie-banner" id="cookie-banner">
     <p>Diese Website verwendet ausschließlich technisch notwendige Funktionen – keine Cookies zu Tracking- oder Marketingzwecken. Mehr dazu in der <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
@@ -1523,153 +1390,126 @@ const LEGAL_FOOTER_BLOCK = `
   </div>
   <script src="/ticker.js" defer></script>`;
 
-function renderChoerleListPage(itemsHtml) {
-  return `<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Frühstückschörle – Lieder</title>
-<style>${CHOERLE_STYLE}</style>
-</head>
-<body>
-  ${TOP_NAV_BLOCK}
-  <div class="container">
-    <h1>🎶 Frühstückschörle</h1>
-    <p class="subtitle">Lied auswählen</p>
-    <ul class="song-grid">${itemsHtml}</ul>
-    <a class="home-link" href="/">&larr; zurück zur Startseite</a>
-  </div>
-  ${LEGAL_FOOTER_BLOCK}
-  ${COOKIE_BANNER_BLOCK}
-</body>
-</html>`;
+// --- Frühstücks-Chörle: Passwortschutz für Übe-Tracks & Noten ---
+// Ein gemeinsames Passwort für alle Mitsingenden. Groß-/Kleinschreibung egal,
+// "ö" darf auch als "oe" geschrieben werden (chörle = Chörle = choerle).
+const CHOERLE_COOKIE = 'choerle_auth';
+const CHOERLE_COOKIE_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
+
+function normalizeChoerlePassword(pw) {
+  return String(pw || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFC')
+    .replace(/ö/g, 'oe')
+    .replace(/ä/g, 'ae')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss');
 }
 
-function renderChoerleSongPage(song, notFound) {
-  let body;
-  if (notFound || !song) {
-    body = `<h1>🎶 Frühstückschörle</h1><p class="subtitle empty">Dieses Lied wurde nicht gefunden.</p>`;
-  } else {
-    const fileUrl = (filename) => `/choerle/${song.slug}/file/${encodeURIComponent(filename)}`;
+const CHOERLE_PASSWORD = normalizeChoerlePassword(process.env.CHOERLE_PASSWORD || 'choerle');
+// Das Cookie hängt am Passwort: wird es geändert, müssen alle das neue eingeben.
+const CHOERLE_TOKEN = crypto
+  .createHash('sha256')
+  .update(`choerle-v1:${CHOERLE_PASSWORD}:${process.env.CHOERLE_SECRET || ''}`)
+  .digest('hex');
 
-    const pdfSection = song.pdf
-      ? `<a class="file-link pdf-button" href="${fileUrl(song.pdf.name)}" target="_blank" rel="noopener">📄 PDF ansehen</a>`
-      : `<p class="empty">PDF derzeit nicht verfügbar.</p>`;
-
-    const sortedAudio = sortChoerleTracks(song.audio);
-    const audioSection = sortedAudio.length
-      ? `<div class="audio-list">${sortedAudio
-          .map(
-            (a) => `<div class="audio-item">
-              <span class="audio-name">${escapeHtml(a.name)}</span>
-              <audio controls preload="none" src="${fileUrl(a.name)}"></audio>
-              <div class="speed-controls">
-                <span class="speed-label">Tempo:</span>
-                <button type="button" class="speed-btn active" data-speed="1">1,0×</button>
-                <button type="button" class="speed-btn" data-speed="0.9">0,9×</button>
-                <button type="button" class="speed-btn" data-speed="0.8">0,8×</button>
-                <button type="button" class="speed-btn" data-speed="0.7">0,7×</button>
-              </div>
-              <a class="download-link" href="${fileUrl(a.name)}?download=1">Herunterladen</a>
-            </div>`
-          )
-          .join('')}</div>
-         <script>
-           (function () {
-             document.addEventListener('click', function (e) {
-               var btn = e.target.closest('.speed-btn');
-               if (!btn) return;
-               var item = btn.closest('.audio-item');
-               if (!item) return;
-               var audio = item.querySelector('audio');
-               var rate = parseFloat(btn.dataset.speed);
-               if (audio && !isNaN(rate)) {
-                 audio.playbackRate = rate;
-                 try { audio.preservesPitch = true; } catch (e) {}
-                 try { audio.mozPreservesPitch = true; } catch (e) {}
-                 try { audio.webkitPreservesPitch = true; } catch (e) {}
-               }
-               item.querySelectorAll('.speed-btn').forEach(function (b) {
-                 b.classList.toggle('active', b === btn);
-               });
-             });
-           })();
-         </script>`
-      : `<p class="empty">Keine Audiodatei zu diesem Lied vorhanden.</p>`;
-
-    body = `<h1>🎶 ${escapeHtml(song.title)}</h1>
-      <p class="subtitle">Frühstückschörle</p>
-      ${pdfSection}
-      ${audioSection}`;
+function readCookie(req, name) {
+  const header = req.headers.cookie || '';
+  for (const part of header.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    if (part.slice(0, idx).trim() === name) return decodeURIComponent(part.slice(idx + 1).trim());
   }
-
-  return `<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${song ? escapeHtml(song.title) : 'Lied nicht gefunden'} – Frühstückschörle</title>
-<style>${CHOERLE_STYLE}</style>
-</head>
-<body>
-  ${TOP_NAV_BLOCK}
-  <div class="container">
-    ${body}
-    <a class="home-link" href="/choerle">&larr; zurück zur Liedauswahl</a>
-  </div>
-  ${LEGAL_FOOTER_BLOCK}
-  ${COOKIE_BANNER_BLOCK}
-</body>
-</html>`;
+  return null;
 }
 
-app.get('/choerle', async (req, res) => {
+function hasChoerleAccess(req) {
+  const value = readCookie(req, CHOERLE_COOKIE);
+  if (!value || value.length !== CHOERLE_TOKEN.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(value), Buffer.from(CHOERLE_TOKEN));
+}
+
+function requireChoerleAccess(req, res, next) {
+  if (hasChoerleAccess(req)) return next();
+  res.status(401).json({ ok: false, needsPassword: true });
+}
+
+// Schutz gegen Durchprobieren: max. 10 Fehlversuche pro IP in 10 Minuten.
+const choerleFailedLogins = new Map();
+const CHOERLE_LOGIN_WINDOW_MS = 10 * 60 * 1000;
+
+app.post('/api/choerle/login', (req, res) => {
+  // Hinter Cloudflare/Railway ist req.ip nur die Proxy-Adresse.
+  const ip = req.headers['cf-connecting-ip'] || req.ip;
+  const now = Date.now();
+  const attempts = (choerleFailedLogins.get(ip) || []).filter((t) => now - t < CHOERLE_LOGIN_WINDOW_MS);
+  if (attempts.length >= 10) {
+    return res.status(429).json({ ok: false, error: 'Zu viele Versuche. Bitte in ein paar Minuten erneut probieren.' });
+  }
+  if (normalizeChoerlePassword((req.body || {}).password) !== CHOERLE_PASSWORD) {
+    attempts.push(now);
+    choerleFailedLogins.set(ip, attempts);
+    return res.status(401).json({ ok: false, error: 'Das Passwort stimmt leider nicht.' });
+  }
+  choerleFailedLogins.delete(ip);
+  res.cookie(CHOERLE_COOKIE, CHOERLE_TOKEN, {
+    maxAge: CHOERLE_COOKIE_MAX_AGE_MS,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+    path: '/',
+  });
+  res.json({ ok: true });
+});
+
+app.get('/api/choerle/songs', requireChoerleAccess, async (req, res) => {
   try {
     const folders = await listChoerleSongFolders();
-    if (folders.length === 0) {
-      res.send(renderChoerleListPage('<li class="empty">Noch keine Lieder-Ordner vorhanden.</li>'));
-      return;
-    }
-    const items = folders
-      .map(
-        (f) => `<li><a class="song-card" href="/choerle/${f.slug}">
-          <span class="song-card-icon">🎵</span>
-          <span class="song-card-title">${escapeHtml(f.title)}</span>
-          <span class="song-card-arrow">→</span>
-        </a></li>`
-      )
-      .join('\n');
-    res.send(renderChoerleListPage(items));
+    res.json({ ok: true, songs: folders.map((f) => ({ slug: f.slug, title: f.title })) });
   } catch (err) {
     console.error(err);
-    res
-      .status(500)
-      .send(renderChoerleListPage('<li class="empty">Die Lieder konnten gerade nicht geladen werden. Bitte später erneut versuchen.</li>'));
+    res.status(502).json({ ok: false, error: 'Die Lieder konnten gerade nicht geladen werden. Bitte später erneut versuchen.' });
   }
 });
 
-app.get('/choerle/:slug', async (req, res) => {
+app.get('/api/choerle/songs/:slug', requireChoerleAccess, async (req, res) => {
   try {
     const folders = await listChoerleSongFolders();
     const folder = folders.find((f) => f.slug === req.params.slug);
-    if (!folder) {
-      res.status(404).send(renderChoerleSongPage(null, true));
-      return;
-    }
+    if (!folder) return res.status(404).json({ ok: false, error: 'Dieses Lied wurde nicht gefunden.' });
     const { pdf, audio } = await getSongFiles(folder.path_lower);
-    res.send(renderChoerleSongPage({ title: folder.title, slug: folder.slug, pdf, audio }));
+    const fileUrl = (name) => `/choerle/${folder.slug}/file/${encodeURIComponent(name)}`;
+    res.json({
+      ok: true,
+      song: {
+        slug: folder.slug,
+        title: folder.title,
+        pdf: pdf ? { name: pdf.name, url: fileUrl(pdf.name) } : null,
+        audio: sortChoerleTracks(audio).map((a) => ({ name: a.name, url: fileUrl(a.name) })),
+      },
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).send(renderChoerleSongPage(null, true));
+    res.status(502).json({ ok: false, error: 'Das Lied konnte gerade nicht geladen werden. Bitte später erneut versuchen.' });
   }
 });
+
+// /choerle und /choerle/<lied> bleiben als Direktlinks erhalten: Sie liefern die
+// Startseite aus, die dort automatisch die Übe-Tracks über dem Chörle-Foto öffnet.
+function sendHomePage(req, res) {
+  res.set('X-Robots-Tag', 'noindex');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+}
+app.get('/choerle', sendHomePage);
+app.get('/choerle/:slug', sendHomePage);
 
 // Proxy: liefert PDF/MP3-Inhalte direkt von Dropbox aus, mit korrektem
 // Content-Type und "inline" (Ansehen/Abspielen) oder "attachment" (?download=1)
 // als Content-Disposition. Unterstützt HTTP-Range-Requests fürs Vor-/Zurückspulen
 // bei Audiodateien.
 app.get('/choerle/:slug/file/:filename', async (req, res) => {
+  if (!hasChoerleAccess(req)) return res.status(401).send('Bitte zuerst unter /choerle das Passwort eingeben.');
   try {
     const folders = await listChoerleSongFolders();
     const folder = folders.find((f) => f.slug === req.params.slug);
@@ -1842,7 +1682,8 @@ const KONZERTMEISTER_URL = process.env.KONZERTMEISTER_URL ||
 // Konzertmeister verlinkt je Termin nur eine iCal-Datei – Klick führt daher zur Konzertseite der Voctails.
 const VOCTAILS_EVENTS_URL = 'https://www.voctails.de/konzerte/';
 const TICKER_CACHE_TTL_MS = 30 * 60 * 1000;
-const TICKER_MAX_ITEMS = 10;
+// Alle kommenden Termine für die aufklappbare Übersicht; der Ticker selbst zeigt nur die ersten 10.
+const TICKER_MAX_ITEMS = 100;
 const tickerCache = { kreatief: null, voctails: null, fetchedAt: 0, pending: null };
 
 async function fetchWithTimeout(url, ms) {
