@@ -119,6 +119,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .evt-title-inner { display: inline-block; will-change: transform; }
+  /* Laufschrift für zu lange Titel: weich ausblenden statt "…" */
+  .evt-title.is-marquee { text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 22px), transparent); }
+  .evt-title.is-marquee.is-running { -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 22px), transparent); }
+  .evt-date-time { display: none; }
   .evt-meta {
     font-size: 0.68rem;
     color: #94a3b8;
@@ -275,11 +280,20 @@
     html.is-home { --evt-bottom: calc(10px + env(safe-area-inset-bottom)); }
   }
   @media (max-width: 600px) {
-    :root { --evt-h: 44px; }
+    /* Handy: Uhrzeit ins Datums-Kästchen, Titel darf zwei Zeilen haben */
+    :root { --evt-h: 56px; }
+    .evt { border-radius: 20px; }
     .evt-label { padding: 0 0.7rem 0 0.9rem; }
     .evt-label-text { display: none; }
-    .evt-item { gap: 0.5rem; padding: 0 0.55rem 0 0.6rem; }
-    .evt-title { font-size: 0.8rem; }
+    .evt-item { gap: 0.55rem; padding: 0 0.5rem 0 0.6rem; }
+    .evt-item .evt-date { display: flex; flex-direction: column; align-items: center; line-height: 1.15; padding: 0.28rem 0.45rem; font-size: 0.68rem; }
+    .evt-date-time { display: block; font-weight: 600; opacity: 0.85; font-size: 0.66rem; }
+    .evt-item .evt-meta { display: none; }
+    .evt-title { font-size: 0.82rem; line-height: 1.25; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .evt-title-inner { display: inline; }
+    /* Passt der Titel nicht in zwei Zeilen: einzeilige Laufschrift */
+    .evt-title.is-marquee { white-space: nowrap; display: block; }
+    .evt-title.is-marquee .evt-title-inner { display: inline-block; }
     /* Übersicht als Blatt von unten */
     .evt-panel {
       left: 0;
@@ -312,6 +326,8 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .evt, .evt-item, .evt-panel, .evt-backdrop { transition: none !important; }
+    /* keine Laufschrift – stattdessen darf der Titel zweizeilig werden */
+    .evt-title { white-space: normal; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 0.78rem; }
     .evt-dot::after { animation: none; }
     .evt-progress { display: none; }
   }
@@ -351,9 +367,10 @@
     if (!e.allDay) meta.push(part(date, { hour: '2-digit', minute: '2-digit' }) + ' Uhr');
     if (src.label) meta.push(src.label);
     var title = e.title + (e.location ? ' – ' + e.location : '');
+    var time = e.allDay ? '' : part(date, { hour: '2-digit', minute: '2-digit' });
     return '<a class="evt-item evt-src-' + esc(e.source) + '" href="' + esc(e.url) + '" target="_blank" rel="noopener" title="' + esc(title) + '">' +
-      '<span class="evt-date">' + esc(formatDate(date)) + '</span>' +
-      '<span class="evt-text"><span class="evt-title">' + esc(e.title) + '</span>' +
+      '<span class="evt-date">' + esc(formatDate(date)) + (time ? '<span class="evt-date-time">' + esc(time) + '</span>' : '') + '</span>' +
+      '<span class="evt-text"><span class="evt-title"><span class="evt-title-inner">' + esc(e.title) + '</span></span>' +
       '<span class="evt-meta">' + esc(meta.join(' · ')) + '</span></span>' +
       '<span class="evt-arrow">' + ARROW + '</span>' +
       '</a>';
@@ -461,6 +478,7 @@
     var progress = root.querySelector('.evt-progress');
     var current = 0;
     var timer = null;
+    var armed = false; // läuft der Wechsel-Zyklus?
     var holds = {};
     var remaining = INTERVAL_MS;
     var startedAt = 0;
@@ -473,46 +491,103 @@
     function hold(reason) {
       var wasRunning = !Object.keys(holds).length;
       holds[reason] = true;
-      if (wasRunning && rotating) {
+      if (wasRunning) {
         clearTimeout(timer);
         remaining = Math.max(300, remaining - (Date.now() - startedAt));
+        if (marquee) marquee.pause();
       }
     }
 
     function release(reason) {
       if (!holds[reason]) return;
       delete holds[reason];
-      if (!Object.keys(holds).length && rotating) schedule(remaining);
+      if (Object.keys(holds).length) return;
+      if (marquee) marquee.play();
+      if (armed) schedule(remaining);
+    }
+
+    var MARQUEE_SPEED = 40; // px pro Sekunde
+    var MARQUEE_DELAY = 1200; // erst kurz stillstehen, dann laufen
+    var MARQUEE_END_PAUSE = 1400; // am Ende kurz stehen lassen
+    var marquee = null;
+
+    // Passt der Titel nicht, läuft er als Laufschrift durch. Liefert, wie lange der Termin stehen soll.
+    function prepareItem(el) {
+      var title = el.querySelector('.evt-title');
+      var inner = el.querySelector('.evt-title-inner');
+      title.classList.remove('is-marquee', 'is-running');
+      inner.style.transform = '';
+      if (reduced) return interval;
+      // Handy: erst zweizeilig versuchen, erst wenn das nicht reicht Laufschrift.
+      if (title.scrollHeight > title.clientHeight + 2) title.classList.add('is-marquee');
+      var distance = inner.scrollWidth - title.clientWidth;
+      if (distance <= 2) {
+        title.classList.remove('is-marquee');
+        return interval;
+      }
+      title.classList.add('is-marquee');
+      distance = inner.scrollWidth - title.clientWidth + 26; // bis hinter die Ausblendung
+      var runMs = Math.round((distance / MARQUEE_SPEED) * 1000);
+      if (inner.animate) {
+        marquee = inner.animate(
+          [{ transform: 'translateX(0)' }, { transform: 'translateX(' + -distance + 'px)' }],
+          { duration: runMs, delay: MARQUEE_DELAY, easing: 'linear', fill: 'forwards' }
+        );
+        setTimeout(function () { title.classList.add('is-running'); }, MARQUEE_DELAY);
+        if (Object.keys(holds).length) marquee.pause();
+      }
+      return Math.max(interval, MARQUEE_DELAY + runMs + MARQUEE_END_PAUSE);
+    }
+
+    function resetItem(el) {
+      var inner = el.querySelector('.evt-title-inner');
+      inner.getAnimations && inner.getAnimations().forEach(function (a) { a.cancel(); });
+      el.querySelector('.evt-title').classList.remove('is-running');
     }
 
     els[0].classList.add('is-active');
     requestAnimationFrame(function () { root.classList.add('is-ready'); });
-    if (!rotating) return;
 
-    function restartProgress() {
+    function restartProgress(ms) {
       progress.classList.remove('is-running');
       void progress.offsetWidth; // Animation neu starten
-      progress.style.animationDuration = interval + 'ms';
+      progress.style.animationDuration = ms + 'ms';
       progress.classList.add('is-running');
     }
 
     function show(next) {
       var prev = els[current];
-      prev.classList.remove('is-active');
-      prev.classList.add('is-leaving');
-      setTimeout(function () { prev.classList.remove('is-leaving'); }, 650);
+      marquee = null;
+      if (prev !== els[next]) {
+        prev.classList.remove('is-active');
+        prev.classList.add('is-leaving');
+        setTimeout(function () {
+          prev.classList.remove('is-leaving');
+          resetItem(prev);
+        }, 650);
+      } else {
+        resetItem(prev);
+      }
       current = next;
       els[current].classList.add('is-active');
     }
 
+    function startCurrent() {
+      var ms = prepareItem(els[current]);
+      if (!rotating && ms === interval) return; // einzelner, kurzer Termin: nichts zu tun
+      restartProgress(ms);
+      schedule(ms);
+    }
+
     function schedule(ms) {
+      armed = true;
       clearTimeout(timer);
       startedAt = Date.now();
       remaining = ms;
+      if (Object.keys(holds).length) return;
       timer = setTimeout(function () {
         show((current + 1) % els.length);
-        restartProgress();
-        schedule(interval);
+        startCurrent();
       }, ms);
     }
 
@@ -525,8 +600,8 @@
       else release('hidden');
     });
 
-    restartProgress();
-    schedule(interval);
+    // Webfonts/Layout abwarten, damit die Titelbreite stimmt
+    requestAnimationFrame(function () { setTimeout(startCurrent, 50); });
   }
 
   function start() {
