@@ -4,6 +4,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
+const sharp = require('sharp');
 const { Readable } = require('stream');
 
 const app = express();
@@ -15,23 +16,7 @@ const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const NEWS_FILE = path.join(DATA_DIR, 'news.json');
-const VT_PHOTOS_FILE = path.join(DATA_DIR, 'vt-photos.json');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-
-// --- Veranstaltungstechnik: manuell hinterlegte Fotos je Material ---
-function loadVtPhotos() {
-  try {
-    const raw = fs.readFileSync(VT_PHOTOS_FILE, 'utf8');
-    return JSON.parse(raw);
-  } catch {
-    saveVtPhotos([]);
-    return [];
-  }
-}
-
-function saveVtPhotos(list) {
-  fs.writeFileSync(VT_PHOTOS_FILE, JSON.stringify(list, null, 2));
-}
 
 // --- News-Shoutbox (kurze Meldungen auf der Startseite) ---
 function loadNews() {
@@ -161,6 +146,84 @@ function saveProjects(list) {
   fs.writeFileSync(PROJECTS_FILE, JSON.stringify(list, null, 2));
 }
 
+// --- Bildvarianten für die Slideshow ---
+// Aus jedem hochgeladenen Projektfoto werden verkleinerte WebP-Varianten erzeugt
+// (<name>-w1600.webp usw.). Die Startseite wählt per srcset die passende Größe –
+// scharf auf großen/Retina-Displays, trotzdem schlank auf dem Handy.
+const IMAGE_WIDTHS = [960, 1600, 2560, 3840];
+const MAX_IMAGE_WIDTH = 3840;
+
+function variantName(filename, width) {
+  return `${path.parse(filename).name}-w${width}.webp`;
+}
+
+// Alle vorhandenen Varianten eines Fotos (aufsteigend nach Breite).
+function listVariantFiles(filename) {
+  const prefix = `${path.parse(filename).name}-w`;
+  let files = [];
+  try {
+    files = fs.readdirSync(UPLOADS_DIR);
+  } catch {
+    return [];
+  }
+  return files
+    .filter((f) => f.startsWith(prefix) && f.endsWith('.webp'))
+    .map((f) => ({ file: f, width: parseInt(f.slice(prefix.length), 10) }))
+    .filter((v) => Number.isFinite(v.width))
+    .sort((a, b) => a.width - b.width);
+}
+
+async function createImageVariants(filename) {
+  const src = path.join(UPLOADS_DIR, filename);
+  const meta = await sharp(src).metadata();
+  const rotated = meta.orientation && meta.orientation >= 5; // Hochkant laut EXIF -> Breite/Höhe vertauscht
+  const origWidth = rotated ? meta.height : meta.width;
+  const top = Math.min(origWidth, MAX_IMAGE_WIDTH);
+  // Standardbreiten unterhalb des Originals + das Original selbst (max. 4K), nie hochskalieren.
+  const widths = Array.from(new Set([...IMAGE_WIDTHS.filter((w) => w < top), top]));
+  for (const w of widths) {
+    const out = path.join(UPLOADS_DIR, variantName(filename, w));
+    if (fs.existsSync(out)) continue;
+    await sharp(src)
+      .rotate()
+      .resize({ width: w, withoutEnlargement: true })
+      .webp({ quality: 88, effort: 5 })
+      .toFile(out);
+  }
+}
+
+function imageVariants(imageUrl) {
+  if (!imageUrl || !imageUrl.startsWith('/uploads/')) return [];
+  return listVariantFiles(path.basename(imageUrl)).map((v) => ({ url: `/uploads/${v.file}`, width: v.width }));
+}
+
+function deleteUploadedImage(imageUrl) {
+  if (!imageUrl) return;
+  const filename = path.basename(imageUrl);
+  for (const v of listVariantFiles(filename)) fs.unlink(path.join(UPLOADS_DIR, v.file), () => {});
+  fs.unlink(path.join(UPLOADS_DIR, filename), () => {});
+}
+
+async function createImageVariantsSafe(filename) {
+  try {
+    await createImageVariants(filename);
+  } catch (err) {
+    // Ohne Varianten zeigt die Startseite einfach das Original an.
+    console.error(`Bildvarianten für ${filename} fehlgeschlagen:`, err.message);
+  }
+}
+
+async function ensureAllImageVariants() {
+  for (const p of loadProjects()) {
+    if (!p.image || !p.image.startsWith('/uploads/')) continue;
+    try {
+      await createImageVariants(path.basename(p.image));
+    } catch (err) {
+      console.error(`Bildvarianten für ${p.image} fehlgeschlagen:`, err.message);
+    }
+  }
+}
+
 function slugify(str) {
   return String(str)
     .toLowerCase()
@@ -206,7 +269,7 @@ const upload = multer({
     destination: (req, file, cb) => cb(null, UPLOADS_DIR),
     filename: (req, file, cb) => cb(null, crypto.randomUUID() + path.extname(file.originalname).toLowerCase()),
   }),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 30 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (/^image\//.test(file.mimetype)) cb(null, true);
     else cb(new Error('Nur Bilddateien sind erlaubt.'));
@@ -215,7 +278,9 @@ const upload = multer({
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use('/uploads', express.static(UPLOADS_DIR));
+// Dateinamen sind eindeutige UUIDs – ein neues Foto bekommt immer einen neuen Namen,
+// daher dürfen Browser die Bilder lange zwischenspeichern.
+app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '365d', immutable: true }));
 
 // --- Rechtliche Seiten & Kontaktformular (dynamisch, siehe unten) ---
 // Diese Routen müssen VOR der Static-Middleware registriert werden, damit sie
@@ -233,71 +298,7 @@ app.get('/apps', (req, res) => {
 });
 
 app.get('/kontakt', (req, res) => {
-  const { question, token } = createCaptcha();
-  res.send(renderKontaktPage(loadSettings(), { question, token }));
-});
-
-app.post('/kontakt', async (req, res) => {
-  const settings = loadSettings();
-  const { name, email, message, captchaAnswer, captchaToken, website } = req.body;
-
-  // Honeypot: Ein verstecktes Feld, das nur Bots ausfüllen. Wird es befüllt,
-  // tun wir so, als hätte alles geklappt, ohne wirklich etwas zu versenden.
-  if (website) {
-    return res.send(renderKontaktPage(settings, { success: true }));
-  }
-
-  if (!name || !email || !message) {
-    const { question, token } = createCaptcha();
-    return res.send(renderKontaktPage(settings, {
-      error: 'Bitte fülle alle Felder aus.',
-      question,
-      token,
-      values: { name, email, message },
-    }));
-  }
-
-  if (!verifyCaptcha(captchaToken, captchaAnswer)) {
-    const { question, token } = createCaptcha();
-    return res.send(renderKontaktPage(settings, {
-      error: 'Die Rechenaufgabe wurde nicht richtig gelöst (oder ist abgelaufen). Bitte erneut versuchen.',
-      question,
-      token,
-      values: { name, email, message },
-    }));
-  }
-
-  const transporter = getMailTransporter();
-  if (!transporter) {
-    console.error('Kontaktformular: Mailversand ist nicht konfiguriert (SMTP_HOST/SMTP_USER/SMTP_PASS fehlen).');
-    const { question, token } = createCaptcha();
-    return res.send(renderKontaktPage(settings, {
-      error: `Der Mailversand ist aktuell nicht konfiguriert. Bitte schreib mir direkt an ${settings.email}.`,
-      question,
-      token,
-      values: { name, email, message },
-    }));
-  }
-
-  try {
-    await transporter.sendMail({
-      from: process.env.MAIL_FROM || process.env.SMTP_USER,
-      to: process.env.CONTACT_TO || settings.email,
-      replyTo: email,
-      subject: `Kontaktanfrage von ${name} über martinrenner.de`,
-      text: `Name: ${name}\nE-Mail: ${email}\n\nNachricht:\n${message}`,
-    });
-    res.send(renderKontaktPage(settings, { success: true }));
-  } catch (err) {
-    console.error('Kontaktformular: Mailversand fehlgeschlagen:', err);
-    const { question, token } = createCaptcha();
-    res.send(renderKontaktPage(settings, {
-      error: `Beim Versand ist ein Fehler aufgetreten. Bitte schreib mir direkt an ${settings.email}.`,
-      question,
-      token,
-      values: { name, email, message },
-    }));
-  }
+  res.redirect(302, '/?p=martin-renner&form=kontakt');
 });
 
 // Statische Startseite (public/index.html) und weitere statische Seiten unter "/"
@@ -305,7 +306,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Öffentliche API für die Startseiten-Slideshow ---
 app.get('/api/projects', (req, res) => {
-  res.json(loadProjects());
+  res.json(loadProjects().map((p) => ({ ...p, imageVariants: imageVariants(p.image) })));
 });
 
 // --- Öffentliche API für die News-Shoutbox ---
@@ -364,74 +365,6 @@ app.post('/api/newsletter', async (req, res) => {
     res.status(502).json({ ok: false, error: 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.' });
   }
 });
-
-// --- Veranstaltungstechnik (/vt): Materialliste automatisch aus dem JPMR-Tool ---
-const JPMR_BASE_URL = 'https://jpmr-tool-production.up.railway.app';
-const VT_CACHE_TTL_MS = 15 * 60 * 1000; // 15 Minuten
-let vtCache = { data: null, fetchedAt: 0 };
-let jpmrSessionCookie = null;
-
-async function jpmrLogin() {
-  const username = process.env.JPMR_USERNAME;
-  const password = process.env.JPMR_PASSWORD;
-  if (!username || !password) {
-    const err = new Error('JPMR_NOT_CONFIGURED');
-    err.code = 'JPMR_NOT_CONFIGURED';
-    throw err;
-  }
-  const res = await fetch(`${JPMR_BASE_URL}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-  if (!res.ok) {
-    throw new Error(`JPMR-Login fehlgeschlagen (Status ${res.status})`);
-  }
-  const setCookie = res.headers.get('set-cookie');
-  if (!setCookie) {
-    throw new Error('JPMR-Login: kein Session-Cookie erhalten');
-  }
-  // Nur den eigentlichen Cookie-Namen=Wert-Teil übernehmen (vor dem ersten ";")
-  jpmrSessionCookie = setCookie.split(',').map((c) => c.split(';')[0].trim()).join('; ');
-  return jpmrSessionCookie;
-}
-
-async function fetchJpmrMaterial(retry) {
-  if (!jpmrSessionCookie) {
-    await jpmrLogin();
-  }
-  const res = await fetch(`${JPMR_BASE_URL}/api/material`, {
-    headers: { Cookie: jpmrSessionCookie },
-  });
-  if (res.status === 401 && !retry) {
-    // Session abgelaufen: einmal neu einloggen und erneut versuchen
-    jpmrSessionCookie = null;
-    return fetchJpmrMaterial(true);
-  }
-  if (!res.ok) {
-    throw new Error(`JPMR-Materialabruf fehlgeschlagen (Status ${res.status})`);
-  }
-  return res.json();
-}
-
-// Liefert die Materialliste aus dem 15-Minuten-Cache oder holt sie neu vom JPMR-Tool.
-async function getVtMaterial(forceRefresh) {
-  const isFresh = vtCache.data && Date.now() - vtCache.fetchedAt < VT_CACHE_TTL_MS;
-  if (isFresh && !forceRefresh) {
-    return { data: vtCache.data, fetchedAt: vtCache.fetchedAt, error: null };
-  }
-  try {
-    const data = await fetchJpmrMaterial(false);
-    vtCache = { data, fetchedAt: Date.now() };
-    return { data, fetchedAt: vtCache.fetchedAt, error: null };
-  } catch (err) {
-    // Bei Fehler: falls vorhanden, alten Cache-Stand weiterverwenden, sonst Fehler zurückgeben
-    if (vtCache.data) {
-      return { data: vtCache.data, fetchedAt: vtCache.fetchedAt, error: err.code || err.message };
-    }
-    return { data: null, fetchedAt: null, error: err.code || err.message };
-  }
-}
 
 // --- Admin-Bereich (Benutzername + Passwort) ---
 function requireAdminAuth(req, res, next) {
@@ -584,8 +517,7 @@ const TOP_NAV_BLOCK = `
             })
             .join('');
           html += '<span class="nav-divider"></span>';
-          var kontaktActive = location.pathname === '/kontakt';
-          html += '<a href="/kontakt"' + (kontaktActive ? ' class="active"' : '') + '>Kontakt</a>';
+          html += '<a href="/kontakt">Kontakt</a>';
           nav.innerHTML = html;
         })
         .catch(function () {});
@@ -797,7 +729,7 @@ function renderImpressumPage(settings) {
 
     <h2>Kontakt</h2>
     <p>E-Mail: <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a>${settings.phone ? `<br>Telefon: ${escapeHtml(settings.phone)}` : ''}</p>
-    <p>Für Anfragen nutze gerne auch die <a href="/kontakt">Kontakt-Seite</a>.</p>
+    <p>Für Anfragen nutze gerne auch das <a href="/kontakt">Kontaktformular</a>.</p>
 
     <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
     <p>${escapeHtml(settings.contactName)} (Anschrift wie oben)</p>
@@ -860,23 +792,26 @@ function renderDatenschutzPage(settings) {
     <p>Da die eingesetzten Dienstleister ihren Sitz bzw. Teile ihrer Infrastruktur außerhalb der EU/des EWR (insbesondere in den USA) haben können, ist eine Datenübermittlung in ein Drittland nicht auszuschließen. Ich achte bei der Auswahl meiner Dienstleister auf angemessene Garantien (z. B. EU-Standardvertragsklauseln nach Art. 46 DSGVO).</p>
 
     <h2>4. Kontaktaufnahme über das Kontaktformular</h2>
-    <p>Über die <a href="/kontakt">Kontakt-Seite</a> kannst du mir eine Nachricht senden. Die von dir eingegebenen Daten (Name, E-Mail-Adresse, Nachricht) werden dabei an den Server dieser Website (gehostet bei Railway) übermittelt und von dort per E-Mail an mein Postfach weitergeleitet. Es findet keine Speicherung deiner Nachricht in einer Datenbank statt – die Daten werden ausschließlich zur Bearbeitung deiner Anfrage genutzt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen) bzw. Art. 6 Abs. 1 lit. b DSGVO, sofern die Anfrage der Anbahnung eines Vertrags dient.</p>
+    <p>Über das <a href="/kontakt">Kontaktformular</a> auf der Startseite kannst du mir eine Nachricht senden. Die von dir eingegebenen Daten (Name, E-Mail-Adresse, Nachricht) werden dabei an den Server dieser Website (gehostet bei Railway) übermittelt und von dort per E-Mail an mein Postfach weitergeleitet. Es findet keine Speicherung deiner Nachricht in einer Datenbank statt – die Daten werden ausschließlich zur Bearbeitung deiner Anfrage genutzt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen) bzw. Art. 6 Abs. 1 lit. b DSGVO, sofern die Anfrage der Anbahnung eines Vertrags dient.</p>
     <p>Zum Schutz vor automatisiertem Missbrauch (Spam) enthält das Formular eine einfache Rechenaufgabe ("Captcha"). Diese wird ausschließlich serverseitig auf dieser Website erzeugt und geprüft – es wird kein Drittanbieter-Dienst (z. B. Google reCAPTCHA) eingebunden, es werden dabei keine Cookies gesetzt und keine personenbezogenen Daten an Dritte übermittelt.</p>
     <p>Alternativ kannst du mich auch direkt per E-Mail unter <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a> kontaktieren; in diesem Fall gelten die Datenschutzhinweise deines E-Mail-Anbieters.</p>
 
-    <h2>5. Materialanfrage im Bereich „/vt" (Veranstaltungstechnik)</h2>
-    <p>Im Bereich „/vt" kannst du über ein Formular eine unverbindliche Materialanfrage stellen. Die von dir eingegebenen Daten (Name, E-Mail-Adresse, optional Telefonnummer, Datum und Art der Veranstaltung, das von dir beschriebene gewünschte Material sowie optionale weitere Anmerkungen) werden dabei an den Server dieser Website übermittelt und von dort per E-Mail an mein Postfach weitergeleitet. Es findet keine Speicherung deiner Anfrage in einer Datenbank statt – die Daten werden ausschließlich zur Bearbeitung deiner Anfrage genutzt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Anbahnung eines Vertrags) bzw. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen). Bei der Anfrage handelt es sich um eine unverbindliche Anfrage; ein Angebot oder eine Reservierung des Materials kommt erst durch meine gesonderte Rückmeldung zustande.</p>
+    <h2>5. Anfrageformular Veranstaltungstechnik</h2>
+    <p>Über das Anfrageformular im Bereich „Veranstaltungstechnik" auf der Startseite kannst du eine unverbindliche Anfrage stellen. Die von dir eingegebenen Daten (Name, E-Mail-Adresse, optional Telefonnummer, Datum und Art der Veranstaltung, optional das gewünschte Material sowie optionale weitere Anmerkungen) werden dabei an den Server dieser Website übermittelt und von dort per E-Mail an mein Postfach weitergeleitet. Es findet keine Speicherung deiner Anfrage in einer Datenbank statt – die Daten werden ausschließlich zur Bearbeitung deiner Anfrage genutzt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Anbahnung eines Vertrags) bzw. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen). Bei der Anfrage handelt es sich um eine unverbindliche Anfrage; ein Angebot oder eine Reservierung kommt erst durch meine gesonderte Rückmeldung zustande.</p>
     <p>Zum Schutz vor automatisiertem Missbrauch (Spam) enthält auch dieses Formular eine einfache Rechenaufgabe ("Captcha"), die ausschließlich serverseitig auf dieser Website erzeugt und geprüft wird – es wird kein Drittanbieter-Dienst eingebunden, es werden dabei keine Cookies gesetzt und keine personenbezogenen Daten an Dritte übermittelt.</p>
 
-    <h2>6. Bereich „/choerle" – Dropbox-Anbindung</h2>
+    <h2>6. Terminhinweise (Eventticker)</h2>
+    <p>Am unteren Bildschirmrand werden die nächsten Veranstaltungen von Kreatief – Kultur im Unterland e.V. und den Voctails angezeigt. Die Termindaten werden serverseitig von www.kreatief-neckarsulm.de bzw. vom Dienst Konzertmeister abgerufen und zwischengespeichert; dein Browser nimmt dabei keinen direkten Kontakt zu diesen Anbietern auf und es werden keine Daten über dich übermittelt. Erst wenn du auf einen Termin klickst, wird die Seite des jeweiligen Anbieters in einem neuen Fenster geöffnet; dort gelten dessen Datenschutzhinweise.</p>
+
+    <h2>7. Bereich „/choerle" – Dropbox-Anbindung</h2>
     <p>Im Bereich „/choerle" werden Dateien (z. B. Noten) angezeigt, die serverseitig über die API des Cloud-Speicherdienstes Dropbox (Dropbox Inc., USA bzw. Dropbox International Unlimited Company, Irland) abgerufen werden. Dabei werden ausschließlich Dateiinformationen aus einem dediziert für diese Website angelegten Dropbox-Ordner abgerufen – es werden keine personenbezogenen Daten von Besuchern der Website an Dropbox übermittelt. Der Abruf erfolgt serverseitig über einen Zugriffstoken; Besucher der Seite treten mit Dropbox nicht in direkten Kontakt.</p>
 
-    <h2>7. Cookies und Tracking</h2>
+    <h2>8. Cookies und Tracking</h2>
     <p>Diese Website setzt keine Cookies und keine Analyse- oder Trackingdienste (z. B. Google Analytics) zu Marketing- oder Analysezwecken ein. Es findet kein Tracking des Nutzerverhaltens statt.</p>
     <p>Lediglich für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TDDDG). Eine Einwilligung ist hierfür nach § 25 TDDDG nicht erforderlich, da keine nicht-notwendigen Cookies gesetzt werden.</p>
     <p>Solltest du künftig Funktionen mit nicht-technisch-notwendigen Cookies (z. B. Statistik- oder Einbettungsdienste) hinzufügen, wird vor deren Einsatz eine Einwilligung über den Cookie-Banner eingeholt.</p>
 
-    <h2>8. Deine Rechte als betroffene Person</h2>
+    <h2>9. Deine Rechte als betroffene Person</h2>
     <p>Dir stehen gegenüber mir folgende Rechte hinsichtlich der dich betreffenden personenbezogenen Daten zu:</p>
     <ul>
       <li>Recht auf Auskunft (Art. 15 DSGVO)</li>
@@ -888,7 +823,7 @@ function renderDatenschutzPage(settings) {
     </ul>
     <p>Du hast zudem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung deiner personenbezogenen Daten durch mich zu beschweren (Art. 77 DSGVO).</p>
 
-    <h2>9. Aktualität und Änderung dieser Datenschutzerklärung</h2>
+    <h2>10. Aktualität und Änderung dieser Datenschutzerklärung</h2>
     <p>Diese Datenschutzerklärung ist aktuell gültig (Stand: September 2026). Durch die Weiterentwicklung der Website oder geänderte gesetzliche Vorgaben kann es notwendig werden, diese Erklärung anzupassen.</p>
 
     <a class="home-link" href="/">&larr; zurück zur Startseite</a>
@@ -900,53 +835,7 @@ function renderDatenschutzPage(settings) {
 </html>`;
 }
 
-function renderKontaktPage(settings, opts) {
-  opts = opts || {};
-  const values = opts.values || {};
-  return `<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kontakt – martinrenner.de</title>
-<style>${LEGAL_PAGE_STYLE}</style>
-</head>
-<body>
-  ${TOP_NAV_BLOCK}
-  <div class="container">
-    <h1>✉️ Kontakt</h1>
-    <div class="contact-card">
-      <p class="hint">Schreib mir eine Nachricht – ich melde mich so schnell wie möglich zurück. Direkt erreichst du mich auch per E-Mail unter <a href="mailto:${escapeAttr(settings.email)}">${escapeHtml(settings.email)}</a>${settings.phone ? ` oder telefonisch unter ${escapeHtml(settings.phone)}` : ''}.</p>
-
-      ${opts.success ? `<div class="message-box">Danke für deine Nachricht! Ich melde mich zeitnah bei dir.</div>` : ''}
-      ${opts.error ? `<div class="message-box error">${escapeHtml(opts.error)}</div>` : ''}
-
-      ${!opts.success ? `<form method="POST" action="/kontakt">
-        <label>Name<input type="text" name="name" value="${escapeAttr(values.name || '')}" required></label>
-        <label>Deine E-Mail-Adresse<input type="email" name="email" value="${escapeAttr(values.email || '')}" required></label>
-        <label>Nachricht<textarea name="message" required>${escapeHtml(values.message || '')}</textarea></label>
-        <label>Zum Nachweis, dass du kein Roboter bist: ${escapeHtml(opts.question || '')} = ?<input type="text" name="captchaAnswer" inputmode="numeric" required></label>
-        <input type="hidden" name="captchaToken" value="${escapeAttr(opts.token || '')}">
-        <label class="hp-field" aria-hidden="true">Bitte freilassen<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
-        <button type="submit">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          Nachricht senden
-        </button>
-      </form>` : ''}
-    </div>
-
-    <a class="home-link" href="/">&larr; zurück zur Startseite</a>
-  </div>
-
-  ${LEGAL_FOOTER_BLOCK}
-  ${COOKIE_BANNER_BLOCK}
-</body>
-</html>`;
-}
-
-function renderAdminPage(projects, settings, news, message, vtPhotos, vtMaterialNames) {
-  vtPhotos = vtPhotos || [];
-  vtMaterialNames = vtMaterialNames || [];
+function renderAdminPage(projects, settings, news, message) {
   const rows = projects
     .map(
       (p) => `
@@ -962,7 +851,7 @@ function renderAdminPage(projects, settings, news, message, vtPhotos, vtMaterial
             <label>Ausführliche Infos (Pop-up, optional)<textarea name="details">${escapeHtml(p.details || '')}</textarea></label>
             <label>Link<input type="text" name="link" value="${escapeAttr(p.link || '')}"></label>
             <label>Social-Media-Links (eine Zeile je Link: Label|URL)<textarea name="socials" placeholder="Instagram|https://instagram.com/...">${escapeHtml(socialsToText(p.socials))}</textarea></label>
-            <label>Foto ersetzen<input type="file" name="photo" accept="image/*"><span class="hint">Ideal: mindestens 1920×1080px, Querformat (16:9), JPG oder PNG, unter 3 MB</span></label>
+            <label>Foto ersetzen<input type="file" name="photo" accept="image/*"><span class="hint">Ideal: Querformat (16:9) in voller Auflösung, gern 3840×2160 px (mind. 2560×1440), JPG oder PNG, bis 30 MB – wird automatisch für schnelle Ladezeiten optimiert</span></label>
           </div>
         </div>
         <div class="actions">
@@ -1070,18 +959,6 @@ function renderAdminPage(projects, settings, news, message, vtPhotos, vtMaterial
   .news-admin-title { font-size: 0.92rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.15rem; }
   .news-admin-text { font-size: 0.88rem; color: #e2e8f0; }
   .news-admin-link { font-size: 0.78rem; color: #38bdf8; margin-top: 0.2rem; word-break: break-all; }
-  .vt-photo-admin-list { list-style: none; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.6rem; }
-  .vt-photo-admin-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.6rem;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-  }
-  .vt-photo-thumb { width: 80px; height: 56px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
-  .vt-photo-name { flex: 1; font-size: 0.88rem; color: #e2e8f0; }
   .home-link { display: inline-block; margin-top: 2rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
   .home-link:hover { text-decoration: underline; }
   @media (max-width: 560px) {
@@ -1091,7 +968,6 @@ function renderAdminPage(projects, settings, news, message, vtPhotos, vtMaterial
     .fields { min-width: 0; }
     .actions { flex-direction: column; align-items: stretch; gap: 0.6rem; }
     .news-admin-item { flex-direction: column; align-items: stretch; gap: 0.5rem; }
-    .vt-photo-admin-item { flex-direction: column; align-items: stretch; }
   }
 </style>
 </head>
@@ -1114,7 +990,7 @@ function renderAdminPage(projects, settings, news, message, vtPhotos, vtMaterial
           <label>Ausführliche Infos (Pop-up, optional)<textarea name="details"></textarea></label>
           <label>Link<input type="text" name="link" placeholder="https://..."></label>
           <label>Social-Media-Links (eine Zeile je Link: Label|URL)<textarea name="socials" placeholder="Instagram|https://instagram.com/..."></textarea></label>
-          <label>Foto<input type="file" name="photo" accept="image/*"><span class="hint">Ideal: mindestens 1920×1080px, Querformat (16:9), JPG oder PNG, unter 3 MB</span></label>
+          <label>Foto<input type="file" name="photo" accept="image/*"><span class="hint">Ideal: Querformat (16:9) in voller Auflösung, gern 3840×2160 px (mind. 2560×1440), JPG oder PNG, bis 30 MB – wird automatisch für schnelle Ladezeiten optimiert</span></label>
         </div>
         <div class="actions">
           <button type="submit">Projekt hinzufügen</button>
@@ -1176,91 +1052,14 @@ function renderAdminPage(projects, settings, news, message, vtPhotos, vtMaterial
       </form>
     </div>
 
-    <div class="new-project">
-      <h2>📷 Material-Fotos (Veranstaltungstechnik)</h2>
-      <p class="subtitle" style="margin-bottom:1rem;">Das Lager-Tool liefert selbst keine Fotos – hier kannst du je Artikel (nach genauer Bezeichnung aus der Materialliste) ein eigenes Foto hinterlegen. Es erscheint dann auf <a href="/vt" style="color:#38bdf8;">/vt</a>.</p>
-      ${
-        vtPhotos.length
-          ? `<ul class="vt-photo-admin-list">${vtPhotos
-              .map(
-                (p) => `<li class="vt-photo-admin-item">
-                  <img class="vt-photo-thumb" src="/uploads/${encodeURIComponent(p.filename)}" alt="">
-                  <span class="vt-photo-name">${escapeHtml(p.bezeichnung)}</span>
-                  <form method="POST" action="/admin/vt-photos/${encodeURIComponent(p.id)}/delete" onsubmit="return confirm('Foto für &quot;${escapeAttr(p.bezeichnung)}&quot; wirklich löschen?');">
-                    <button type="submit" class="delete-btn">Löschen</button>
-                  </form>
-                </li>`
-              )
-              .join('')}</ul>`
-          : '<p class="subtitle">Noch keine Fotos hinterlegt.</p>'
-      }
-      <form method="POST" action="/admin/vt-photos" enctype="multipart/form-data" style="margin-top:1rem;">
-        <div class="fields">
-          <label>Material (genaue Bezeichnung aus der Liste)
-            <input type="text" name="bezeichnung" list="vt-material-names" placeholder="z. B. Favo Lite Vader Pro 350 Moving Head Spot" required>
-            <datalist id="vt-material-names">${vtMaterialNames.map((n) => `<option value="${escapeAttr(n)}">`).join('')}</datalist>
-          </label>
-          <label>Foto<input type="file" name="photo" accept="image/*" required><span class="hint">Ideal: mindestens 1200×800px, JPG oder PNG, unter 3 MB</span></label>
-        </div>
-        <div class="actions">
-          <button type="submit">Foto hochladen</button>
-        </div>
-      </form>
-    </div>
-
     <a class="home-link" href="/">&larr; zur Startseite</a>
   </div>
 </body>
 </html>`;
 }
 
-app.get('/admin', requireAdminAuth, async (req, res) => {
-  let vtMaterialNames = [];
-  try {
-    const { data } = await getVtMaterial(false);
-    if (data) {
-      vtMaterialNames = Array.from(new Set(data.map((item) => item.bezeichnung).filter(Boolean))).sort((a, b) =>
-        a.localeCompare(b, 'de')
-      );
-    }
-  } catch {
-    // Materialliste gerade nicht erreichbar: Datalist bleibt leer, Freitext-Eingabe funktioniert trotzdem
-  }
-  res.send(renderAdminPage(loadProjects(), loadSettings(), loadNews(), undefined, loadVtPhotos(), vtMaterialNames));
-});
-
-app.post('/admin/vt-photos', requireAdminAuth, upload.single('photo'), (req, res) => {
-  const bezeichnung = (req.body.bezeichnung || '').trim();
-  if (!bezeichnung || !req.file) {
-    return res.redirect('/admin');
-  }
-  const photos = loadVtPhotos();
-  const existing = photos.find((p) => p.bezeichnung === bezeichnung);
-  if (existing) {
-    const oldPath = path.join(UPLOADS_DIR, existing.filename);
-    fs.unlink(oldPath, () => {});
-    existing.filename = req.file.filename;
-    existing.uploadedAt = new Date().toISOString();
-  } else {
-    photos.push({
-      id: crypto.randomUUID().slice(0, 8),
-      bezeichnung,
-      filename: req.file.filename,
-      uploadedAt: new Date().toISOString(),
-    });
-  }
-  saveVtPhotos(photos);
-  res.redirect('/admin');
-});
-
-app.post('/admin/vt-photos/:id/delete', requireAdminAuth, (req, res) => {
-  const photos = loadVtPhotos();
-  const entry = photos.find((p) => p.id === req.params.id);
-  if (entry) {
-    fs.unlink(path.join(UPLOADS_DIR, entry.filename), () => {});
-  }
-  saveVtPhotos(photos.filter((p) => p.id !== req.params.id));
-  res.redirect('/admin');
+app.get('/admin', requireAdminAuth, (req, res) => {
+  res.send(renderAdminPage(loadProjects(), loadSettings(), loadNews()));
 });
 
 app.post('/admin/news', requireAdminAuth, (req, res) => {
@@ -1301,7 +1100,7 @@ app.post('/admin/settings', requireAdminAuth, (req, res) => {
   res.redirect('/admin');
 });
 
-app.post('/admin/projects', requireAdminAuth, upload.single('photo'), (req, res) => {
+app.post('/admin/projects', requireAdminAuth, upload.single('photo'), async (req, res) => {
   const projects = loadProjects();
   const id = slugify(req.body.title) + '-' + crypto.randomUUID().slice(0, 6);
   const project = {
@@ -1315,12 +1114,13 @@ app.post('/admin/projects', requireAdminAuth, upload.single('photo'), (req, res)
     image: req.file ? `/uploads/${req.file.filename}` : null,
     socials: parseSocials(req.body.socials),
   };
+  if (req.file) await createImageVariantsSafe(req.file.filename);
   projects.push(project);
   saveProjects(projects);
   res.redirect('/admin');
 });
 
-app.post('/admin/projects/:id', requireAdminAuth, upload.single('photo'), (req, res) => {
+app.post('/admin/projects/:id', requireAdminAuth, upload.single('photo'), async (req, res) => {
   const projects = loadProjects();
   const idx = projects.findIndex((p) => p.id === req.params.id);
   if (idx === -1) return res.status(404).send('Projekt nicht gefunden.');
@@ -1328,10 +1128,8 @@ app.post('/admin/projects/:id', requireAdminAuth, upload.single('photo'), (req, 
   const existing = projects[idx];
   let image = existing.image;
   if (req.file) {
-    if (existing.image) {
-      const oldPath = path.join(UPLOADS_DIR, path.basename(existing.image));
-      fs.unlink(oldPath, () => {});
-    }
+    await createImageVariantsSafe(req.file.filename);
+    deleteUploadedImage(existing.image);
     image = `/uploads/${req.file.filename}`;
   }
 
@@ -1355,10 +1153,7 @@ app.post('/admin/projects/:id/delete', requireAdminAuth, (req, res) => {
   const idx = projects.findIndex((p) => p.id === req.params.id);
   if (idx !== -1) {
     const [removed] = projects.splice(idx, 1);
-    if (removed.image) {
-      const oldPath = path.join(UPLOADS_DIR, path.basename(removed.image));
-      fs.unlink(oldPath, () => {});
-    }
+    deleteUploadedImage(removed.image);
     saveProjects(projects);
   }
   res.redirect('/admin');
@@ -1725,7 +1520,8 @@ const LEGAL_FOOTER_BLOCK = `
     <a href="/impressum.html">Impressum</a>
     <a href="/datenschutz.html">Datenschutz</a>
     <a href="/kontakt">Kontakt</a>
-  </div>`;
+  </div>
+  <script src="/ticker.js" defer></script>`;
 
 function renderChoerleListPage(itemsHtml) {
   return `<!DOCTYPE html>
@@ -1828,374 +1624,6 @@ function renderChoerleSongPage(song, notFound) {
 </html>`;
 }
 
-// --- Veranstaltungstechnik (/vt): Materialliste ---
-const VT_STYLE = `
-  ${TOP_NAV_STYLE}
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-    color: #f8fafc;
-    min-height: 100vh;
-    padding: 6.2rem 1rem 5rem;
-  }
-  .container { max-width: 860px; margin: 0 auto; }
-  h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); margin-bottom: 0.25rem; }
-  p.subtitle { color: #cbd5e1; margin-bottom: 0.75rem; }
-  .vt-stand { color: #64748b; font-size: 0.78rem; margin-bottom: 2rem; }
-  .vt-warning {
-    background: rgba(250,204,21,0.1);
-    border: 1px solid rgba(250,204,21,0.35);
-    color: #fde68a;
-    border-radius: 8px;
-    padding: 0.7rem 0.9rem;
-    font-size: 0.82rem;
-    margin-bottom: 1.5rem;
-  }
-  .empty { color: #94a3b8; }
-  .home-link { display: inline-block; margin-top: 2rem; color: #94a3b8; font-size: 0.9rem; text-decoration: none; }
-  .home-link:hover { text-decoration: underline; }
-  .vt-category { margin-bottom: 2.2rem; }
-  .vt-category h2 { font-size: 1.15rem; color: #38bdf8; margin-bottom: 0.8rem; }
-  .vt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.8rem; }
-  .vt-item {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    padding: 0.8rem 0.95rem;
-    overflow: hidden;
-  }
-  .vt-item-photo {
-    display: block;
-    width: calc(100% + 1.9rem);
-    margin: -0.8rem -0.95rem 0.6rem;
-    height: 140px;
-    object-fit: cover;
-  }
-  .vt-item-name { font-size: 0.95rem; color: #f8fafc; margin-bottom: 0.35rem; }
-  .vt-item-meta { font-size: 0.78rem; color: #94a3b8; display: flex; flex-direction: column; gap: 0.15rem; }
-  .vt-avail { color: #4ade80; }
-  .vt-avail.vt-avail-low { color: #fbbf24; }
-  .vt-avail.vt-avail-none { color: #f87171; }
-  .vt-list-heading { font-size: 1.25rem; margin: 0 0 0.3rem; }
-
-  .vt-request-box {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(56,189,248,0.3);
-    border-radius: 14px;
-    padding: 1.4rem 1.5rem;
-    margin-bottom: 2.5rem;
-  }
-  .vt-request-box h2 { font-size: 1.2rem; margin-bottom: 0.3rem; }
-  .vt-request-hint { font-size: 0.8rem; color: #94a3b8; margin-bottom: 1.1rem; }
-  .vt-request-box form { display: flex; flex-direction: column; gap: 0.8rem; }
-  .vt-request-box label { font-size: 0.8rem; color: #94a3b8; display: flex; flex-direction: column; gap: 0.3rem; }
-  .vt-request-box input,
-  .vt-request-box textarea {
-    padding: 0.65rem 0.75rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.05);
-    color: #f8fafc;
-    font-family: inherit;
-    font-size: 0.9rem;
-  }
-  .vt-request-box textarea { min-height: 70px; resize: vertical; }
-  .vt-request-box button[type="submit"] {
-    padding: 0.75rem 1.2rem;
-    border-radius: 8px;
-    border: none;
-    background: #38bdf8;
-    color: #0f172a;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.9rem;
-    align-self: flex-start;
-  }
-  .vt-request-box button[type="submit"]:hover { background: #0ea5e9; }
-  .vt-request-box button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
-  .vt-request-msg { font-size: 0.8rem; color: #94a3b8; margin-top: 0.8rem; min-height: 1em; }
-  .hp-field { position: absolute; left: -9999px; top: -9999px; }
-  .legal-footer {
-    position: fixed;
-    right: 1rem;
-    bottom: 0.75rem;
-    display: flex;
-    gap: 0.9rem;
-    font-size: 0.78rem;
-  }
-  .legal-footer a { color: #64748b; text-decoration: none; }
-  .legal-footer a:hover { color: #94a3b8; }
-  .cookie-banner {
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    z-index: 20;
-    display: none;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    padding: 1rem 1.2rem;
-    background: rgba(15,23,42,0.97);
-    border-top: 1px solid rgba(255,255,255,0.12);
-    backdrop-filter: blur(6px);
-  }
-  .cookie-banner p { color: #e2e8f0; font-size: 0.85rem; max-width: 640px; line-height: 1.5; margin: 0; }
-  .cookie-banner a { color: #38bdf8; }
-  .cookie-banner button {
-    padding: 0.55rem 1.2rem;
-    border-radius: 999px;
-    border: none;
-    background: #38bdf8;
-    color: #0f172a;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .cookie-banner button:hover { background: #0ea5e9; }
-
-  .newsletter-box {
-    position: relative;
-    display: none;
-    max-width: 420px;
-    margin: 3rem auto 1rem;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 12px;
-    padding: 1rem 1.1rem;
-  }
-  .newsletter-text { font-size: 0.82rem; color: #f8fafc; margin-bottom: 0.3rem; }
-  .newsletter-subtext { font-size: 0.74rem; color: #94a3b8; margin-bottom: 0.6rem; line-height: 1.4; }
-  .newsletter-form { display: flex; gap: 0.4rem; }
-  .newsletter-form input {
-    flex: 1;
-    min-width: 0;
-    padding: 0.45rem 0.6rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.06);
-    color: #f8fafc;
-    font-size: 0.78rem;
-    font-family: inherit;
-  }
-  .newsletter-form button {
-    padding: 0.45rem 0.7rem;
-    border-radius: 6px;
-    border: none;
-    background: #38bdf8;
-    color: #0f172a;
-    font-weight: 600;
-    font-size: 0.78rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .newsletter-form button:hover { background: #0ea5e9; }
-  .newsletter-msg { font-size: 0.72rem; color: #94a3b8; margin-top: 0.4rem; min-height: 1em; }
-
-  @media (max-width: 560px) {
-    body { padding: 1.8rem 1rem 4rem; }
-    h1 { font-size: 1.5rem; }
-    .vt-grid { grid-template-columns: 1fr; }
-    .newsletter-form { flex-direction: column; align-items: stretch; }
-    .newsletter-form button { align-self: stretch; }
-    .vt-request-box { padding: 1.1rem; }
-  }
-`;
-
-// Materialübersicht auf /vt zeigt nur eine kuratierte Auswahl relevanter Bereiche,
-// nicht das komplette Lager-Tool-Inventar (z. B. keine Transportkosten, Kleinteile etc.).
-const VT_GROUP_ORDER = ['Ton- und Lichttechnik', 'Funkmikrofone', 'Mobile Bühne', 'Event-Bestuhlung'];
-
-function vtOverviewGroup(item) {
-  const bez = (item.bezeichnung || '').toLowerCase();
-  const kat = (item.kategorie || '').trim();
-  const isTonLicht = kat === 'Tontechnik' || kat === 'Ton' || kat === 'Lichttechnik';
-  const isFunk = /funk|headset|in-?ear|iem\b/.test(bez);
-  if (isTonLicht && isFunk) return 'Funkmikrofone';
-  if (/bühne|buehne|podest/.test(bez)) return 'Mobile Bühne';
-  if (/bestuhlung|bestuhl/.test(bez)) return 'Event-Bestuhlung';
-  if (isTonLicht) return 'Ton- und Lichttechnik';
-  return null;
-}
-
-function renderVtPage(result, vtPhotos) {
-  const { data, fetchedAt, error } = result;
-  const photoByName = new Map((vtPhotos || []).map((p) => [p.bezeichnung, p.filename]));
-
-  const requestBoxHtml = `<div class="vt-request-box">
-    <h2>Materialanfrage stellen</h2>
-    <p class="vt-request-hint">Unverbindliche Anfrage – ich melde mich anschließend mit einem Angebot. Die Materialübersicht weiter unten hilft dir bei der Orientierung.</p>
-    <form id="vt-request-form">
-      <label>Veranstaltungsdatum<input type="date" name="eventDate" required></label>
-      <label>Veranstaltungsart<input type="text" name="eventType" placeholder="z. B. Hochzeit, Firmenfeier, Konzert" required></label>
-      <label>Name<input type="text" name="name" required></label>
-      <label>E-Mail<input type="email" name="email" required></label>
-      <label>Telefon (optional)<input type="text" name="phone"></label>
-      <label>Gewünschtes Material<textarea name="material" placeholder="z. B. Beschallung für ca. 100 Personen, 2× Moving Head Spot, Bühnenpodest ..." required></textarea></label>
-      <label>Weitere Anmerkungen (optional)<textarea name="message"></textarea></label>
-      <label>Zum Nachweis, dass du kein Roboter bist: <span id="vt-captcha-question">…</span> = ?<input type="text" name="captchaAnswer" inputmode="numeric" required></label>
-      <label class="hp-field" aria-hidden="true">Bitte freilassen<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
-      <button type="submit">Anfrage absenden</button>
-    </form>
-    <p class="vt-request-msg" id="vt-request-msg"></p>
-  </div>`;
-
-  let listHtml;
-  if (!data) {
-    const msg =
-      error === 'JPMR_NOT_CONFIGURED'
-        ? 'Die Materialübersicht ist aktuell noch nicht angebunden.'
-        : 'Die Materialübersicht konnte gerade nicht geladen werden. Bitte später erneut versuchen.';
-    listHtml = `<p class="subtitle empty">${escapeHtml(msg)}</p>`;
-  } else {
-    const items = data.filter((item) => Number(item.defekt) !== 1);
-
-    const groups = new Map();
-    for (const item of items) {
-      const kat = vtOverviewGroup(item);
-      if (!kat) continue;
-      if (!groups.has(kat)) groups.set(kat, []);
-      groups.get(kat).push(item);
-    }
-
-    const sortedKategorien = VT_GROUP_ORDER.filter((kat) => groups.has(kat));
-
-    const categoriesHtml = sortedKategorien
-      .map((kat) => {
-        const katItems = groups
-          .get(kat)
-          .slice()
-          .sort((a, b) => (a.bezeichnung || '').localeCompare(b.bezeichnung || '', 'de'));
-
-        const itemsHtml = katItems
-          .map((item) => {
-            const ortHtml = item.lagerort ? `<span>📍 ${escapeHtml(item.lagerort)}</span>` : '';
-            const photoFilename = photoByName.get(item.bezeichnung);
-            const photoHtml = photoFilename
-              ? `<img class="vt-item-photo" src="/uploads/${encodeURIComponent(photoFilename)}" alt="${escapeAttr(item.bezeichnung || '')}" loading="lazy">`
-              : '';
-            const bez = item.bezeichnung || 'Unbenannt';
-            return `<div class="vt-item">
-              ${photoHtml}
-              <div class="vt-item-name">${escapeHtml(bez)}</div>
-              <div class="vt-item-meta">
-                ${ortHtml}
-              </div>
-            </div>`;
-          })
-          .join('');
-
-        return `<div class="vt-category">
-          <h2>${escapeHtml(kat)}</h2>
-          <div class="vt-grid">${itemsHtml}</div>
-        </div>`;
-      })
-      .join('');
-
-    const standDate = fetchedAt
-      ? new Date(fetchedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })
-      : '';
-
-    const warningHtml = error
-      ? `<div class="vt-warning">⚠️ Die Liste konnte gerade nicht aktualisiert werden – angezeigt wird der letzte erfolgreich geladene Stand.</div>`
-      : '';
-
-    listHtml = `<p class="vt-stand">Stand: ${escapeHtml(standDate)}</p>
-      ${warningHtml}
-      ${categoriesHtml || '<p class="empty">Keine Materialien vorhanden.</p>'}`;
-  }
-
-  return `<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Veranstaltungstechnik – martinrenner.de</title>
-<style>${VT_STYLE}</style>
-</head>
-<body>
-  ${TOP_NAV_BLOCK}
-  <div class="container">
-    <h1>🎛️ Veranstaltungstechnik</h1>
-    <p class="subtitle">Material für deine Veranstaltung</p>
-
-    ${requestBoxHtml}
-
-    <h2 class="vt-list-heading">📋 Materialübersicht</h2>
-    ${listHtml}
-
-    <a class="home-link" href="/">&larr; zurück zur Startseite</a>
-  </div>
-
-  <script>
-    (function () {
-      var captchaQuestionEl = document.getElementById('vt-captcha-question');
-      var captchaTokenValue = '';
-      var form = document.getElementById('vt-request-form');
-      var msgEl = document.getElementById('vt-request-msg');
-
-      function loadCaptcha() {
-        fetch('/api/vt-captcha')
-          .then(function (r) { return r.json(); })
-          .then(function (data) {
-            captchaTokenValue = data.token;
-            if (captchaQuestionEl) captchaQuestionEl.textContent = data.question;
-          })
-          .catch(function () {});
-      }
-      loadCaptcha();
-
-      if (form) {
-        form.addEventListener('submit', function (e) {
-          e.preventDefault();
-          var fd = new FormData(form);
-          var payload = {
-            name: fd.get('name'),
-            email: fd.get('email'),
-            phone: fd.get('phone'),
-            eventDate: fd.get('eventDate'),
-            eventType: fd.get('eventType'),
-            material: fd.get('material'),
-            message: fd.get('message'),
-            website: fd.get('website'),
-            captchaAnswer: fd.get('captchaAnswer'),
-            captchaToken: captchaTokenValue,
-          };
-          var submitBtn = form.querySelector('button[type=submit]');
-          submitBtn.disabled = true;
-          msgEl.textContent = 'Wird gesendet …';
-          fetch('/api/vt-anfrage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          })
-            .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
-            .then(function (result) {
-              submitBtn.disabled = false;
-              if (result.ok && result.data.ok) {
-                msgEl.textContent = 'Danke! Deine Anfrage wurde versendet – ich melde mich mit einem Angebot.';
-                form.reset();
-              } else {
-                msgEl.textContent = (result.data && result.data.error) || 'Anfrage fehlgeschlagen. Bitte später erneut versuchen.';
-                loadCaptcha();
-              }
-            })
-            .catch(function () {
-              submitBtn.disabled = false;
-              msgEl.textContent = 'Anfrage fehlgeschlagen. Bitte später erneut versuchen.';
-            });
-        });
-      }
-    })();
-  </script>
-
-  ${LEGAL_FOOTER_BLOCK}
-  ${COOKIE_BANNER_BLOCK}
-</body>
-</html>`;
-}
-
 app.get('/choerle', async (req, res) => {
   try {
     const folders = await listChoerleSongFolders();
@@ -2291,21 +1719,18 @@ app.get('/choerle/:slug/file/:filename', async (req, res) => {
   }
 });
 
-app.get('/vt', async (req, res) => {
-  try {
-    const result = await getVtMaterial(false);
-    res.send(renderVtPage(result, loadVtPhotos()));
-  } catch (err) {
-    console.error(err);
-    res.status(500).send(renderVtPage({ data: null, fetchedAt: null, error: err.message }, loadVtPhotos()));
-  }
+// Die Formulare (Anfrage Veranstaltungstechnik, Kontakt) liegen als Overlay auf der
+// Startseite – die alten Unterseiten leiten dorthin weiter.
+app.get('/vt', (req, res) => {
+  res.redirect(302, '/?p=veranstaltungstechnik&form=anfrage');
 });
 
-// --- Materialanfrage von /vt aus (Warenkorb → Anfrage per E-Mail) ---
-app.get('/api/vt-captcha', (req, res) => {
+app.get('/api/captcha', (req, res) => {
   const { question, token } = createCaptcha();
   res.json({ question, token });
 });
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 app.post('/api/vt-anfrage', async (req, res) => {
   const {
@@ -2326,14 +1751,14 @@ app.post('/api/vt-anfrage', async (req, res) => {
     return res.json({ ok: true });
   }
 
-  if (!name || !email || !eventDate || !eventType || !material || !String(material).trim()) {
+  if (!name || !email || !eventDate || !eventType) {
     return res.status(400).json({ ok: false, error: 'Bitte fülle alle Pflichtfelder aus.' });
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!EMAIL_RE.test(email)) {
     return res.status(400).json({ ok: false, error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
   }
   if (!verifyCaptcha(captchaToken, captchaAnswer)) {
-    return res.status(400).json({ ok: false, error: 'Die Rechenaufgabe wurde nicht richtig gelöst (oder ist abgelaufen). Bitte Seite neu laden und erneut versuchen.' });
+    return res.status(400).json({ ok: false, error: 'Die Rechenaufgabe wurde nicht richtig gelöst (oder ist abgelaufen). Bitte erneut versuchen.', captchaExpired: true });
   }
 
   const transporter = getMailTransporter();
@@ -2343,20 +1768,21 @@ app.post('/api/vt-anfrage', async (req, res) => {
   }
 
   const settings = loadSettings();
+  const materialText = material && String(material).trim() ? material : '– (nicht angegeben)';
 
   try {
     await transporter.sendMail({
       from: process.env.MAIL_FROM || process.env.SMTP_USER,
       to: process.env.CONTACT_TO || settings.email,
       replyTo: email,
-      subject: `Materialanfrage über martinrenner.de/vt von ${name}`,
-      text: `Neue Materialanfrage über /vt\n\n` +
+      subject: `Anfrage Veranstaltungstechnik über martinrenner.de von ${name}`,
+      text: `Neue Anfrage Veranstaltungstechnik über martinrenner.de\n\n` +
         `Name: ${name}\n` +
         `E-Mail: ${email}\n` +
         `${phone ? `Telefon: ${phone}\n` : ''}` +
         `Veranstaltungsdatum: ${eventDate}\n` +
         `Veranstaltungsart: ${eventType}\n` +
-        `\nGewünschtes Material:\n${material}\n` +
+        `\nGewünschtes Material:\n${materialText}\n` +
         `${message ? `\nWeitere Anmerkungen:\n${message}\n` : ''}`,
     });
     res.json({ ok: true });
@@ -2366,6 +1792,181 @@ app.post('/api/vt-anfrage', async (req, res) => {
   }
 });
 
+app.post('/api/kontakt', async (req, res) => {
+  const { name, email, message, captchaAnswer, captchaToken, website } = req.body || {};
+
+  // Honeypot: Ein verstecktes Feld, das nur Bots ausfüllen. Wird es befüllt,
+  // tun wir so, als hätte alles geklappt, ohne wirklich etwas zu versenden.
+  if (website) {
+    return res.json({ ok: true });
+  }
+
+  if (!name || !email || !message || !String(message).trim()) {
+    return res.status(400).json({ ok: false, error: 'Bitte fülle alle Felder aus.' });
+  }
+  if (!EMAIL_RE.test(email)) {
+    return res.status(400).json({ ok: false, error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
+  }
+  if (!verifyCaptcha(captchaToken, captchaAnswer)) {
+    return res.status(400).json({ ok: false, error: 'Die Rechenaufgabe wurde nicht richtig gelöst (oder ist abgelaufen). Bitte erneut versuchen.', captchaExpired: true });
+  }
+
+  const settings = loadSettings();
+  const transporter = getMailTransporter();
+  if (!transporter) {
+    console.error('Kontaktformular: Mailversand ist nicht konfiguriert (SMTP_HOST/SMTP_USER/SMTP_PASS fehlen).');
+    return res.status(503).json({ ok: false, error: `Der Mailversand ist aktuell nicht konfiguriert. Bitte schreib mir direkt an ${settings.email}.` });
+  }
+
+  try {
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM || process.env.SMTP_USER,
+      to: process.env.CONTACT_TO || settings.email,
+      replyTo: email,
+      subject: `Kontaktanfrage von ${name} über martinrenner.de`,
+      text: `Name: ${name}\nE-Mail: ${email}\n\nNachricht:\n${message}`,
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Kontaktformular: Mailversand fehlgeschlagen:', err);
+    res.status(502).json({ ok: false, error: `Beim Versand ist ein Fehler aufgetreten. Bitte schreib mir direkt an ${settings.email}.` });
+  }
+});
+
+// --- Eventticker (unten auf allen Seiten): nächste Termine von Kreatief + Voctails ---
+const KREATIEF_API_URL = 'https://api.kreatief-neckarsulm.de/frontend/veranstaltung/list-items';
+const KREATIEF_EVENT_URL = 'https://www.kreatief-neckarsulm.de/veranstaltungen/';
+const KREATIEF_ORGANIZER_ID = 1; // nur Kreatief-eigene Termine, keine Fremdveranstalter
+const KONZERTMEISTER_URL = process.env.KONZERTMEISTER_URL ||
+  'https://rest.konzertmeister.app/api/v3/org/OALS_61f21604-97b8-4e79-bd31-f16cc0332b78/upcomingappointments?types=2&showDescription=false&onlyPublicsite=false&limit=30&display=light&lang=de&hash=454c4cfbeb43c2de3d4263cf0d5bbf14f0e6b5cf8879aae8ca970088140fa104';
+// Konzertmeister verlinkt je Termin nur eine iCal-Datei – Klick führt daher zur Konzertseite der Voctails.
+const VOCTAILS_EVENTS_URL = 'https://www.voctails.de/konzerte/';
+const TICKER_CACHE_TTL_MS = 30 * 60 * 1000;
+const TICKER_MAX_ITEMS = 10;
+const tickerCache = { kreatief: null, voctails: null, fetchedAt: 0, pending: null };
+
+async function fetchWithTimeout(url, ms) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'martinrenner.de Eventticker' } });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    return res;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function fetchKreatiefEvents() {
+  const res = await fetchWithTimeout(KREATIEF_API_URL, 10000);
+  const list = await res.json();
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((e) => e && e.showEvent !== false && !e.cancelledReason && e.organizer === KREATIEF_ORGANIZER_ID && e.date)
+    .map((e) => ({
+      source: 'kreatief',
+      title: String(e.name || '').trim(),
+      start: e.date,
+      location: e.locationTextname || '',
+      url: KREATIEF_EVENT_URL + encodeURIComponent(e.id),
+    }));
+}
+
+function decodeEntities(str) {
+  return String(str)
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&([aou])uml;/gi, (m, c) => ({ a: 'ä', o: 'ö', u: 'ü', A: 'Ä', O: 'Ö', U: 'Ü' }[c]))
+    .replace(/&szlig;/g, 'ß')
+    .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(parseInt(n, 10)));
+}
+
+function kmText(html, cls) {
+  const m = html.match(new RegExp(`class="(?:[^"]*\\s)?${cls}(?:\\s[^"]*)?"[^>]*>([\\s\\S]*?)</`, 'i'));
+  return m ? decodeEntities(m[1].replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim() : '';
+}
+
+const KM_MONTHS = { jan: 0, feb: 1, mär: 2, mae: 2, mar: 2, apr: 3, mai: 4, jun: 5, jul: 6, aug: 7, sep: 8, okt: 9, nov: 10, dez: 11 };
+
+// Wandelt eine Uhrzeit in Europe/Berlin in einen UTC-Zeitpunkt um (berücksichtigt Sommer-/Winterzeit).
+function berlinToIso(year, month, day, hour, minute) {
+  const guess = Date.UTC(year, month, day, hour, minute);
+  const berlin = new Date(new Date(guess).toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  const utc = new Date(new Date(guess).toLocaleString('en-US', { timeZone: 'UTC' }));
+  return new Date(guess - (berlin - utc)).toISOString();
+}
+
+// Konzertmeister liefert kein JSON, sondern ein HTML-Widget – daraus die Termine auslesen.
+async function fetchVoctailsEvents() {
+  const res = await fetchWithTimeout(KONZERTMEISTER_URL, 10000);
+  const html = await res.text();
+  const parts = html.split(/(?=<div[^>]*class="(?:[^"]*\s)?km-list-item(?:\s[^"]*)?")/i).slice(1);
+  const now = new Date();
+  const events = [];
+  const seen = new Set();
+  for (const part of parts) {
+    const title = kmText(part, 'km-appointment-name');
+    const day = parseInt(kmText(part, 'km-date'), 10);
+    const monthKey = kmText(part, 'km-month').toLowerCase().replace('.', '').slice(0, 3);
+    const month = KM_MONTHS[monthKey];
+    if (!title || !Number.isFinite(day) || month === undefined) continue;
+    if (/class="(?:[^"]*\s)?km-app-date\s(?:[^"]*\s)?cancelled[\s"]/i.test(part)) continue;
+    const timeMatch = kmText(part, 'km-time').match(/(\d{1,2})[:.](\d{2})/);
+    const yearMatch = kmText(part, 'km-year').match(/\d{4}/);
+    let year = yearMatch ? parseInt(yearMatch[0], 10) : now.getFullYear();
+    if (!yearMatch && new Date(year, month, day + 1) < now) year += 1;
+    const start = berlinToIso(year, month, day, timeMatch ? +timeMatch[1] : 0, timeMatch ? +timeMatch[2] : 0);
+    const url = VOCTAILS_EVENTS_URL;
+    const key = title + start;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    events.push({ source: 'voctails', title, start, location: kmText(part, 'km-location'), url, allDay: !timeMatch });
+  }
+  return events;
+}
+
+async function refreshTicker() {
+  const [kreatief, voctails] = await Promise.allSettled([fetchKreatiefEvents(), fetchVoctailsEvents()]);
+  // Bei einem Fehler den letzten erfolgreichen Stand der jeweiligen Quelle weiterverwenden.
+  if (kreatief.status === 'fulfilled') tickerCache.kreatief = kreatief.value;
+  else console.error('Eventticker: Kreatief-Abruf fehlgeschlagen:', kreatief.reason && kreatief.reason.message);
+  if (voctails.status === 'fulfilled') tickerCache.voctails = voctails.value;
+  else console.error('Eventticker: Konzertmeister-Abruf fehlgeschlagen:', voctails.reason && voctails.reason.message);
+  tickerCache.fetchedAt = Date.now();
+}
+
+async function getTickerEvents() {
+  if (Date.now() - tickerCache.fetchedAt > TICKER_CACHE_TTL_MS) {
+    if (!tickerCache.pending) {
+      tickerCache.pending = refreshTicker().finally(() => {
+        tickerCache.pending = null;
+      });
+    }
+    await tickerCache.pending;
+  }
+  const cutoff = Date.now() - 2 * 60 * 60 * 1000; // laufende Veranstaltungen noch kurz anzeigen
+  return [...(tickerCache.kreatief || []), ...(tickerCache.voctails || [])]
+    .filter((e) => new Date(e.start).getTime() >= cutoff)
+    .sort((a, b) => new Date(a.start) - new Date(b.start))
+    .slice(0, TICKER_MAX_ITEMS);
+}
+
+app.get('/api/events-ticker', async (req, res) => {
+  try {
+    const items = await getTickerEvents();
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json({ items });
+  } catch (err) {
+    console.error('Eventticker:', err);
+    res.json({ items: [] });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server läuft auf Port ${PORT}`);
+  ensureAllImageVariants();
 });

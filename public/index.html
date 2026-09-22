@@ -85,12 +85,15 @@
   .slide-photo {
     position: absolute;
     inset: 0;
-    background-size: cover;
-    background-position: center;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
   }
   @media (max-width: 700px) {
     .slide-bg-blur { display: block; }
-    .slide-photo { background-size: contain; background-repeat: no-repeat; background-position: center; }
+    .slide-photo { object-fit: contain; }
   }
 
   /* Platzhalter-Grafik je Kategorie, solange keine echten Fotos hinterlegt sind */
@@ -216,6 +219,137 @@
     border-color: rgba(255,255,255,0.5);
   }
   .banner .social-btn svg { display: block; }
+
+  .banner .form-btn {
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 999px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .banner .form-btn:hover { background: #0ea5e9; }
+  .banner .form-btn svg { display: block; }
+
+  /* Formular (Kontakt / Anfrage) direkt über dem Bild, links über dem Banner-Text */
+  .form-panel {
+    display: none;
+    position: relative;
+    width: min(480px, 100%);
+    max-height: calc(100vh - 19rem);
+    overflow-y: auto;
+    margin-bottom: 1.4rem;
+    padding: 1.3rem 1.3rem 1.2rem;
+    background: rgba(15,23,42,0.78);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    backdrop-filter: blur(14px) saturate(140%);
+    animation: panel-in 0.35s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes panel-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .banner.form-open .form-panel { display: block; }
+  .banner.form-open p.info,
+  .banner.form-open .banner-actions { display: none; }
+  .form-panel h2 { font-size: 1.05rem; margin-bottom: 0.25rem; padding-right: 2rem; }
+  .form-panel .form-hint { font-size: 0.8rem; color: #94a3b8; line-height: 1.45; margin-bottom: 0.9rem; }
+  .form-panel form { display: none; }
+  .form-panel form.active { display: block; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 0.7rem; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-panel label { display: block; font-size: 0.74rem; font-weight: 600; color: #cbd5e1; }
+  .form-panel label .opt { font-weight: 400; color: #64748b; }
+  .form-panel input,
+  .form-panel textarea {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #f8fafc;
+    font-size: 0.88rem;
+    font-family: inherit;
+  }
+  .form-panel input:focus,
+  .form-panel textarea:focus { outline: none; border-color: #38bdf8; background: rgba(255,255,255,0.09); }
+  .form-panel input[type="date"] { color-scheme: dark; }
+  .form-panel textarea { min-height: 70px; resize: vertical; }
+  .form-panel .hp-field { position: absolute; left: -9999px; top: -9999px; }
+  .form-panel .form-submit {
+    margin-top: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.2rem;
+    border-radius: 999px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.88rem;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .form-panel .form-submit:hover { background: #0ea5e9; }
+  .form-panel .form-submit:disabled { opacity: 0.6; cursor: default; }
+  .form-panel .form-msg { font-size: 0.82rem; margin-top: 0.7rem; min-height: 1em; color: #94a3b8; }
+  .form-panel .form-msg.error { color: #fca5a5; }
+  .form-panel .form-success {
+    display: none;
+    padding: 0.9rem 1rem;
+    border-radius: 10px;
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.35);
+    color: #bbf7d0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .form-panel.sent .form-success { display: block; }
+  .form-panel.sent form,
+  .form-panel.sent .form-hint { display: none !important; }
+  .form-close {
+    position: absolute;
+    top: 0.8rem;
+    right: 0.8rem;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: #f8fafc;
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .form-close:hover { background: rgba(255,255,255,0.18); }
+  @media (max-width: 700px) {
+    /* Auf dem Handy als Vollbild-Ebene, damit das Formular bequem scrollbar ist */
+    .form-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      width: auto;
+      max-height: none;
+      margin: 0;
+      border-radius: 0;
+      border: none;
+      padding: 4.2rem 1.2rem 2rem;
+      background: rgba(15,23,42,0.96);
+    }
+    .banner.form-open { z-index: 45; }
+    .form-close { top: 1rem; right: 1rem; width: 36px; height: 36px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-panel input, .form-panel textarea { font-size: 16px; }
+  }
 
   .info-modal-overlay {
     position: fixed;
@@ -415,7 +549,41 @@
 
   <div class="slideshow" id="slideshow"></div>
 
-  <div class="banner">
+  <div class="banner" id="banner">
+    <div class="form-panel" id="form-panel" role="dialog" aria-modal="false" aria-labelledby="form-panel-title">
+      <button type="button" class="form-close" id="form-close" aria-label="Formular schließen">&times;</button>
+      <h2 id="form-panel-title"></h2>
+      <p class="form-hint" id="form-panel-hint"></p>
+      <div class="form-success" id="form-success"></div>
+
+      <form id="form-kontakt" data-form="kontakt" novalidate>
+        <div class="form-grid">
+          <label>Name<input type="text" name="name" autocomplete="name" required></label>
+          <label>E-Mail<input type="email" name="email" autocomplete="email" required></label>
+          <label class="full">Nachricht<textarea name="message" required></textarea></label>
+          <label class="full">Kein Roboter? <span class="captcha-q">…</span> = ?<input type="text" name="captchaAnswer" inputmode="numeric" autocomplete="off" required></label>
+        </div>
+        <label class="hp-field" aria-hidden="true">Bitte freilassen<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        <button type="submit" class="form-submit">Nachricht senden</button>
+        <p class="form-msg" aria-live="polite"></p>
+      </form>
+
+      <form id="form-anfrage" data-form="anfrage" novalidate>
+        <div class="form-grid">
+          <label>Veranstaltungsdatum<input type="date" name="eventDate" required></label>
+          <label>Veranstaltungsart<input type="text" name="eventType" placeholder="z. B. Hochzeit, Konzert" required></label>
+          <label>Name<input type="text" name="name" autocomplete="name" required></label>
+          <label>E-Mail<input type="email" name="email" autocomplete="email" required></label>
+          <label class="full">Telefon <span class="opt">(optional)</span><input type="tel" name="phone" autocomplete="tel"></label>
+          <label class="full">Gewünschtes Material <span class="opt">(falls bekannt)</span><textarea name="material" placeholder="z. B. Beschallung für ca. 100 Personen, Licht, Bühnenpodest …"></textarea></label>
+          <label class="full">Weitere Anmerkungen <span class="opt">(optional)</span><textarea name="message"></textarea></label>
+          <label class="full">Kein Roboter? <span class="captcha-q">…</span> = ?<input type="text" name="captchaAnswer" inputmode="numeric" autocomplete="off" required></label>
+        </div>
+        <label class="hp-field" aria-hidden="true">Bitte freilassen<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        <button type="submit" class="form-submit">Anfrage senden</button>
+        <p class="form-msg" aria-live="polite"></p>
+      </form>
+    </div>
     <div class="banner-text">
       <div class="eyebrow" id="banner-eyebrow">Projekt</div>
       <h1 id="banner-title"></h1>
@@ -426,6 +594,7 @@
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
         Homepage
       </a>
+      <button type="button" class="form-btn" id="banner-form-btn"></button>
       <button type="button" class="info-btn" id="banner-info-btn" style="display:none;"></button>
       <div class="socials" id="banner-socials"></div>
     </div>
@@ -457,7 +626,7 @@
   <div class="legal-footer">
     <a href="/impressum.html">Impressum</a>
     <a href="/datenschutz.html">Datenschutz</a>
-    <a href="/kontakt">Kontakt</a>
+    <a href="/kontakt" id="footer-kontakt">Kontakt</a>
   </div>
 
   <div class="cookie-banner" id="cookie-banner">
@@ -561,7 +730,36 @@
     const infoModalTitle = document.getElementById('info-modal-title');
     const infoModalText = document.getElementById('info-modal-text');
     const infoModalClose = document.getElementById('info-modal-close');
+    const bannerEl = document.getElementById('banner');
+    const bannerFormBtn = document.getElementById('banner-form-btn');
+    const formPanel = document.getElementById('form-panel');
+    const formPanelTitle = document.getElementById('form-panel-title');
+    const formPanelHint = document.getElementById('form-panel-hint');
+    const formSuccess = document.getElementById('form-success');
+    const formClose = document.getElementById('form-close');
 
+    // Projekte, die statt eines externen Links ein Formular über dem Bild öffnen.
+    const FORMS = {
+      kontakt: {
+        slide: 'martin-renner',
+        button: 'Kontakt',
+        title: 'Schreib mir eine Nachricht',
+        hint: 'Ich melde mich so schnell wie möglich zurück.',
+        endpoint: '/api/kontakt',
+        success: 'Danke für deine Nachricht! Ich melde mich zeitnah bei dir.',
+      },
+      anfrage: {
+        slide: 'veranstaltungstechnik',
+        button: 'Anfrage',
+        title: 'Anfrage Veranstaltungstechnik',
+        hint: 'Unverbindlich – ich melde mich anschließend mit einem Angebot.',
+        endpoint: '/api/vt-anfrage',
+        success: 'Danke für deine Anfrage! Ich melde mich zeitnah mit einem Angebot bei dir.',
+      },
+    };
+    let openFormKey = null;
+
+    const ICON_MAIL = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>';
     const ICON_INFO = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
 
     const SOCIAL_ICONS = {
@@ -613,7 +811,12 @@
         div.className = 'slide' + (i === 0 ? ' active' : '');
         div.dataset.key = key;
         if (s.image) {
-          div.innerHTML = `<div class="slide-bg-blur" style="background-image:url(${s.image})"></div><div class="slide-photo" style="background-image:url(${s.image})"></div>`;
+          // Bild wird erst geladen, wenn die Slide gleich dran ist (siehe ensureLoaded).
+          const variants = Array.isArray(s.imageVariants) ? s.imageVariants : [];
+          const srcset = variants.map((v) => `${v.url} ${v.width}w`).join(', ');
+          const fallback = variants.length ? variants[Math.min(1, variants.length - 1)].url : s.image;
+          const blur = variants.length ? variants[0].url : s.image;
+          div.innerHTML = `<div class="slide-bg-blur" data-bg="${escapeHtmlClient(blur)}"></div><img class="slide-photo" alt="" decoding="async" sizes="${PHOTO_SIZES}" data-src="${escapeHtmlClient(fallback)}"${srcset ? ` data-srcset="${escapeHtmlClient(srcset)}"` : ''}>`;
         } else {
           const grad = placeholderGradient(key);
           div.innerHTML = `<div class="slide-placeholder" style="background: ${grad};">
@@ -641,7 +844,42 @@
       contactLink.className = 'nav-item nav-contact';
       contactLink.href = '/kontakt';
       contactLink.textContent = 'Kontakt';
+      contactLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showForm('kontakt');
+      });
       topNavEl.appendChild(contactLink);
+    }
+
+    // Desktop: Foto füllt den Bildschirm (cover) – bei schmalen Fenstern bestimmt die Höhe die Breite.
+    const PHOTO_SIZES = '(max-width: 700px) 100vw, (min-aspect-ratio: 16/9) 100vw, 178vh';
+    const isMobile = window.matchMedia('(max-width: 700px)');
+
+    function ensureLoaded(i, priority) {
+      const el = slideEls[i];
+      if (!el) return;
+      const img = el.querySelector('img.slide-photo[data-src]');
+      if (img) {
+        if (priority) img.fetchPriority = 'high';
+        if (img.dataset.srcset) img.srcset = img.dataset.srcset;
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+        img.removeAttribute('data-srcset');
+      }
+      const blur = el.querySelector('.slide-bg-blur[data-bg]');
+      if (blur && isMobile.matches) {
+        blur.style.backgroundImage = `url("${blur.dataset.bg}")`;
+        blur.removeAttribute('data-bg');
+      }
+    }
+
+    function slideKey(s) {
+      return String(s.id || s.key || s.title);
+    }
+
+    function formForSlide(s) {
+      const key = slideKey(s);
+      return Object.keys(FORMS).find((k) => FORMS[k].slide === key) || null;
     }
 
     function updateInfoAffordance(s) {
@@ -665,9 +903,16 @@
       bannerEyebrow.textContent = s.eyebrow || '';
       bannerTitle.textContent = s.title || '';
       bannerInfo.textContent = s.info || '';
-      const hasLink = !!(s.link && s.link !== '#');
+      const formKey = formForSlide(s);
+      // Alte /vt-Unterseite gibt es nicht mehr – dort ersetzt das Formular den Link.
+      const hasLink = !!(s.link && s.link !== '#' && !(formKey && s.link === '/vt'));
       bannerLink.style.display = hasLink ? 'inline-flex' : 'none';
       bannerLink.href = hasLink ? s.link : '#';
+      bannerFormBtn.style.display = formKey ? 'inline-flex' : 'none';
+      bannerFormBtn.innerHTML = formKey ? ICON_MAIL + '<span>' + FORMS[formKey].button + '</span>' : '';
+      bannerFormBtn.dataset.form = formKey || '';
+      ensureLoaded(current, true);
+      if (slides.length > 1) ensureLoaded((current + 1) % slides.length);
       bannerSocials.innerHTML = (s.socials || [])
         .map((soc) => `<a class="social-btn" href="${escapeHtmlClient(soc.href)}" target="_blank" rel="noopener">${socialIcon(soc.label)}<span>${escapeHtmlClient(soc.label)}</span></a>`)
         .join('');
@@ -692,17 +937,133 @@
       if (e.target === infoModalOverlay) closeInfoModal();
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeInfoModal();
+      if (e.key === 'Escape') {
+        closeInfoModal();
+        closeForm();
+      }
     });
 
-    function goTo(i) {
-      current = i;
-      render();
-      // Karussell anhalten, sobald der Besucher aktiv über die Navigation wechselt.
+    // --- Formulare (Kontakt / Anfrage) ---
+    function loadCaptcha(form) {
+      const q = form.querySelector('.captcha-q');
+      q.textContent = '…';
+      form.dataset.captchaToken = '';
+      return fetch('/api/captcha')
+        .then((r) => r.json())
+        .then((data) => {
+          q.textContent = data.question;
+          form.dataset.captchaToken = data.token;
+        })
+        .catch(() => {
+          q.textContent = '?';
+        });
+    }
+
+    function showForm(key) {
+      const cfg = FORMS[key];
+      if (!cfg) return;
+      const idx = slides.findIndex((s) => slideKey(s) === cfg.slide);
+      if (idx !== -1 && idx !== current) goTo(idx);
+      stopCarousel();
+      openFormKey = key;
+      formPanelTitle.textContent = cfg.title;
+      formPanelHint.textContent = cfg.hint;
+      formSuccess.textContent = cfg.success;
+      formPanel.classList.remove('sent');
+      formPanel.querySelectorAll('form').forEach((f) => {
+        const active = f.dataset.form === key;
+        f.classList.toggle('active', active);
+        if (active) {
+          f.querySelector('.form-msg').textContent = '';
+          loadCaptcha(f);
+        }
+      });
+      closeInfoModal();
+      bannerEl.classList.add('form-open');
+      const first = formPanel.querySelector('form.active input:not([tabindex="-1"])');
+      if (first && !isMobile.matches) first.focus({ preventScroll: true });
+    }
+
+    function closeForm() {
+      if (!openFormKey) return;
+      openFormKey = null;
+      bannerEl.classList.remove('form-open');
+    }
+
+    bannerFormBtn.addEventListener('click', () => showForm(bannerFormBtn.dataset.form));
+    formClose.addEventListener('click', closeForm);
+    document.getElementById('footer-kontakt').addEventListener('click', (e) => {
+      e.preventDefault();
+      showForm('kontakt');
+    });
+
+    formPanel.querySelectorAll('form').forEach((form) => {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const cfg = FORMS[form.dataset.form];
+        const msg = form.querySelector('.form-msg');
+        const btn = form.querySelector('.form-submit');
+        const missing = Array.from(form.querySelectorAll('[required]')).find((el) => !el.value.trim());
+        if (missing) {
+          msg.className = 'form-msg error';
+          msg.textContent = 'Bitte fülle alle Pflichtfelder aus.';
+          missing.focus();
+          return;
+        }
+        const email = form.querySelector('input[name="email"]');
+        if (email && !email.checkValidity()) {
+          msg.className = 'form-msg error';
+          msg.textContent = 'Bitte eine gültige E-Mail-Adresse eingeben.';
+          email.focus();
+          return;
+        }
+        const data = Object.fromEntries(new FormData(form).entries());
+        data.captchaToken = form.dataset.captchaToken || '';
+        btn.disabled = true;
+        msg.className = 'form-msg';
+        msg.textContent = 'Wird gesendet …';
+        fetch(cfg.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+          .then((r) => r.json().then((body) => ({ ok: r.ok, body })))
+          .then((result) => {
+            if (result.ok && result.body.ok) {
+              form.reset();
+              formPanel.classList.add('sent');
+              return;
+            }
+            msg.className = 'form-msg error';
+            msg.textContent = (result.body && result.body.error) || 'Senden fehlgeschlagen. Bitte später erneut versuchen.';
+            // Jede Rechenaufgabe gilt nur einmal sinnvoll – nach Fehler neue holen.
+            form.querySelector('input[name="captchaAnswer"]').value = '';
+            loadCaptcha(form);
+          })
+          .catch(() => {
+            msg.className = 'form-msg error';
+            msg.textContent = 'Senden fehlgeschlagen. Bitte später erneut versuchen.';
+          })
+          .finally(() => {
+            btn.disabled = false;
+          });
+      });
+    });
+
+    function stopCarousel() {
       if (timer) {
         clearInterval(timer);
         timer = null;
       }
+    }
+
+    function goTo(i) {
+      current = i;
+      // Formular gehört zu einer bestimmten Slide – beim Wechsel zu einer anderen schließen.
+      if (openFormKey && FORMS[openFormKey].slide !== slideKey(slides[i])) closeForm();
+      render();
+      // Karussell anhalten, sobald der Besucher aktiv über die Navigation wechselt.
+      stopCarousel();
     }
 
     function next() {
@@ -732,9 +1093,13 @@
       current = requestedIndex !== -1 ? requestedIndex : 0;
       render();
       restart();
+      // ?form=kontakt / ?form=anfrage (z. B. Weiterleitung von /kontakt und /vt) öffnet das Formular direkt.
+      const requestedForm = new URLSearchParams(location.search).get('form');
+      if (requestedForm && FORMS[requestedForm]) showForm(requestedForm);
     }
 
     loadSlides();
   </script>
+  <script src="/ticker.js" defer></script>
 </body>
 </html>
