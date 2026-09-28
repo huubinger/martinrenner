@@ -404,6 +404,39 @@
     cursor: pointer;
   }
   .ch-speed.active { background: #38bdf8; border-color: #38bdf8; color: #0f172a; font-weight: 600; }
+  .ch-practice { margin-top: 0.55rem; padding-top: 0.55rem; border-top: 1px dashed rgba(255,255,255,0.1); }
+  .ch-bar {
+    position: relative;
+    height: 22px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.06);
+    cursor: pointer;
+    overflow: hidden;
+    touch-action: none;
+  }
+  .ch-bar-loop { position: absolute; top: 0; bottom: 0; background: rgba(34,197,94,0.22); border-left: 2px solid #22c55e; border-right: 2px solid #22c55e; display: none; }
+  .ch-bar-loop.on { background: rgba(34,197,94,0.38); }
+  .ch-bar-pos { position: absolute; top: 0; bottom: 0; left: 0; background: rgba(56,189,248,0.25); pointer-events: none; }
+  .ch-bar-cue { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fbbf24; pointer-events: none; }
+  .ch-bar-cue span { position: absolute; top: 1px; left: 3px; font-size: 0.6rem; font-weight: 700; color: #fbbf24; }
+  .ch-practice-row { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.45rem; font-size: 0.72rem; color: #94a3b8; }
+  .ch-speed.loop-on { background: #22c55e; border-color: #22c55e; color: #0f172a; font-weight: 600; }
+  .ch-speed:disabled { opacity: 0.4; cursor: default; }
+  .ch-cues { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-top: 0.4rem; }
+  .ch-cues:empty { display: none; }
+  .ch-cue {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid rgba(251,191,36,0.45);
+    background: rgba(251,191,36,0.1);
+    font-size: 0.72rem;
+    overflow: hidden;
+  }
+  .ch-cue button { border: none; background: transparent; color: #fde68a; font-family: inherit; font-size: 0.72rem; cursor: pointer; padding: 0.2rem 0.45rem; }
+  .ch-cue button:hover { background: rgba(251,191,36,0.2); }
+  .ch-cue [data-cue-del] { padding-left: 0.25rem; color: #94a3b8; }
+  .ch-help { margin-top: 0.35rem; font-size: 0.68rem; color: #64748b; line-height: 1.4; }
   .ch-note { margin-top: 1rem; font-size: 0.72rem; line-height: 1.45; color: #94a3b8; }
   .ch-download { margin-left: auto; color: #38bdf8; text-decoration: none; font-weight: 600; }
   .ch-download:hover { text-decoration: underline; }
@@ -1541,7 +1574,7 @@
           : '<p class="ch-status">Noten derzeit nicht verfügbar.</p>';
         const tracks = song.audio.length
           ? `<div class="ch-tracks">${song.audio
-              .map((a) => `<div class="ch-track">
+              .map((a) => `<div class="ch-track" data-url="${escapeHtmlClient(a.url)}">
                 <div class="ch-track-name">${escapeHtmlClient(trackLabel(a.name))}</div>
                 <audio controls preload="none" src="${escapeHtmlClient(a.url)}"></audio>
                 <div class="ch-track-tools">Tempo:
@@ -1551,13 +1584,212 @@
                   <button type="button" class="ch-speed" data-speed="0.7">0,7×</button>
                   <a class="ch-download" href="${escapeHtmlClient(a.url)}?download=1">Herunterladen</a>
                 </div>
+                <div class="ch-practice">
+                  <div class="ch-bar" title="Klicken zum Springen"><div class="ch-bar-loop"></div><div class="ch-bar-pos"></div></div>
+                  <div class="ch-practice-row">Üben:
+                    <button type="button" class="ch-speed" data-act="cue">+ Cue</button>
+                    <button type="button" class="ch-speed" data-act="a">A setzen</button>
+                    <button type="button" class="ch-speed" data-act="b">B setzen</button>
+                    <button type="button" class="ch-speed" data-act="loop" disabled>🔁 Loop</button>
+                    <button type="button" class="ch-speed" data-act="clear" hidden>Loop löschen</button>
+                  </div>
+                  <div class="ch-cues"></div>
+                </div>
               </div>`)
               .join('')}</div>`
           : '<p class="ch-status">Keine Übe-Tracks zu diesem Lied vorhanden.</p>';
-        chSong.innerHTML = `${back}<div class="ch-song-head">🎶 ${escapeHtmlClient(song.title)}</div>${pdf}${tracks}<p class="ch-note">Noten und Übe-Tracks sind nur zum persönlichen Üben für die Mitsingenden des Frühstücks-Chörle bestimmt. Weitergabe, Veröffentlichung oder sonstige Nutzung ist nicht gestattet.</p>`;
+        const help = song.audio.length
+          ? '<p class="ch-help">Tipp: „+ Cue" merkt sich die aktuelle Stelle zum schnellen Hinspringen. Mit „A setzen" und „B setzen" legst du Anfang und Ende eines Abschnitts fest, der dann in Schleife läuft. Cues und Loops bleiben in diesem Browser gespeichert.</p>'
+          : '';
+        chSong.innerHTML = `${back}<div class="ch-song-head">🎶 ${escapeHtmlClient(song.title)}</div>${pdf}${tracks}${help}<p class="ch-note">Noten und Übe-Tracks sind nur zum persönlichen Üben für die Mitsingenden des Frühstücks-Chörle bestimmt. Weitergabe, Veröffentlichung oder sonstige Nutzung ist nicht gestattet.</p>`;
+        chSong.querySelectorAll('.ch-track').forEach(chInitPractice);
         chShow('song');
         formPanel.scrollTop = 0;
       }).catch(() => chShow('song', 'Das Lied konnte gerade nicht geladen werden.', true));
+    }
+
+    // --- Übe-Werkzeuge: Cues (Sprungmarken) und A-B-Loop pro Track ---
+    // Gespeichert nur lokal im Browser (localStorage), je Track-Adresse.
+    const CH_MARKS_PREFIX = 'ch-marks:';
+
+    function chFmtTime(t) {
+      if (!isFinite(t) || t < 0) t = 0;
+      const m = Math.floor(t / 60);
+      const sec = Math.floor(t % 60);
+      return m + ':' + String(sec).padStart(2, '0');
+    }
+
+    function chLoadMarks(url) {
+      try {
+        const m = JSON.parse(localStorage.getItem(CH_MARKS_PREFIX + url) || 'null');
+        if (m && Array.isArray(m.cues)) return { cues: m.cues.filter(isFinite), a: isFinite(m.a) ? m.a : null, b: isFinite(m.b) ? m.b : null, loop: !!m.loop };
+      } catch (e) {}
+      return { cues: [], a: null, b: null, loop: false };
+    }
+
+    function chSaveMarks(track) {
+      const m = track._marks;
+      try {
+        if (!m.cues.length && m.a === null && m.b === null) localStorage.removeItem(CH_MARKS_PREFIX + track.dataset.url);
+        else localStorage.setItem(CH_MARKS_PREFIX + track.dataset.url, JSON.stringify(m));
+      } catch (e) {}
+    }
+
+    function chDuration(audio) {
+      return isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null;
+    }
+
+    function chRenderPractice(track) {
+      const m = track._marks;
+      const audio = track.querySelector('audio');
+      const dur = chDuration(audio);
+      const pct = (t) => Math.min(100, Math.max(0, (t / dur) * 100)) + '%';
+      const btn = (act) => track.querySelector(`[data-act="${act}"]`);
+      btn('a').textContent = m.a !== null ? 'A ' + chFmtTime(m.a) : 'A setzen';
+      btn('b').textContent = m.b !== null ? 'B ' + chFmtTime(m.b) : 'B setzen';
+      btn('a').classList.toggle('active', m.a !== null);
+      btn('b').classList.toggle('active', m.b !== null);
+      const loop = btn('loop');
+      loop.disabled = m.a === null || m.b === null;
+      loop.classList.toggle('loop-on', m.loop && !loop.disabled);
+      loop.textContent = m.loop && !loop.disabled ? '🔁 Loop an' : '🔁 Loop';
+      btn('clear').hidden = m.a === null && m.b === null;
+
+      const bar = track.querySelector('.ch-bar');
+      bar.querySelectorAll('.ch-bar-cue').forEach((c) => c.remove());
+      const region = bar.querySelector('.ch-bar-loop');
+      if (dur) {
+        m.cues.forEach((t, i) => {
+          const c = document.createElement('div');
+          c.className = 'ch-bar-cue';
+          c.style.left = pct(t);
+          c.innerHTML = '<span>' + (i + 1) + '</span>';
+          bar.appendChild(c);
+        });
+        const start = m.a !== null ? m.a : null;
+        const end = m.b !== null ? m.b : null;
+        if (start !== null || end !== null) {
+          const s = start !== null ? start : 0;
+          const e = end !== null ? end : dur;
+          region.style.display = 'block';
+          region.style.left = pct(s);
+          region.style.width = 'calc(' + pct(e) + ' - ' + pct(s) + ')';
+          region.style.borderLeftWidth = start !== null ? '2px' : '0';
+          region.style.borderRightWidth = end !== null ? '2px' : '0';
+          region.classList.toggle('on', m.loop && start !== null && end !== null);
+        } else region.style.display = 'none';
+      } else region.style.display = 'none';
+
+      track.querySelector('.ch-cues').innerHTML = m.cues
+        .map((t, i) => `<span class="ch-cue"><button type="button" data-cue-go="${i}" title="Zu dieser Stelle springen">▶ ${i + 1} · ${chFmtTime(t)}</button><button type="button" data-cue-del="${i}" title="Cue löschen" aria-label="Cue löschen">✕</button></span>`)
+        .join('');
+      chRenderPos(track);
+    }
+
+    function chRenderPos(track) {
+      const audio = track.querySelector('audio');
+      const dur = chDuration(audio);
+      track.querySelector('.ch-bar-pos').style.width = dur ? Math.min(100, (audio.currentTime / dur) * 100) + '%' : '0';
+    }
+
+    function chSeek(audio, t) {
+      const dur = chDuration(audio);
+      audio.currentTime = Math.max(0, dur ? Math.min(t, dur - 0.05) : t);
+    }
+
+    // Loop-Ende prüfen: bei "timeupdate" (läuft auch bei gesperrtem Handy weiter) und
+    // zusätzlich per Timer, weil "timeupdate" nur ca. 4× pro Sekunde feuert.
+    function chCheckLoop(track) {
+      const audio = track.querySelector('audio');
+      const m = track._marks;
+      if (m.loop && m.a !== null && m.b !== null && audio.currentTime >= m.b) chSeek(audio, m.a);
+    }
+
+    function chInitPractice(track) {
+      track._marks = chLoadMarks(track.dataset.url);
+      const audio = track.querySelector('audio');
+      const bar = track.querySelector('.ch-bar');
+      audio.addEventListener('loadedmetadata', () => chRenderPractice(track));
+      audio.addEventListener('timeupdate', () => {
+        chCheckLoop(track);
+        chRenderPos(track);
+      });
+      audio.addEventListener('play', () => {
+        const m = track._marks;
+        // Beim Start im Loop-Modus außerhalb des Abschnitts → an den Anfang des Abschnitts.
+        if (m.loop && m.a !== null && m.b !== null && (audio.currentTime < m.a - 0.5 || audio.currentTime >= m.b)) chSeek(audio, m.a);
+        clearInterval(track._timer);
+        track._timer = setInterval(() => {
+          if (audio.paused) return clearInterval(track._timer);
+          chCheckLoop(track);
+          chRenderPos(track);
+        }, 50);
+      });
+      audio.addEventListener('ended', () => {
+        const m = track._marks;
+        if (m.loop && m.a !== null && m.b !== null) {
+          chSeek(audio, m.a);
+          audio.play();
+        }
+      });
+      bar.addEventListener('click', (e) => {
+        const dur = chDuration(audio);
+        const rect = bar.getBoundingClientRect();
+        const ratio = (e.clientX - rect.left) / rect.width;
+        if (!dur) {
+          // Noch nicht geladen: erst Metadaten holen, dann springen.
+          audio.preload = 'metadata';
+          audio.addEventListener('loadedmetadata', () => { chSeek(audio, ratio * audio.duration); chRenderPos(track); }, { once: true });
+          audio.load();
+          return;
+        }
+        chSeek(audio, ratio * dur);
+        chRenderPos(track);
+      });
+      chRenderPractice(track);
+    }
+
+    function chPracticeClick(e) {
+      const track = e.target.closest('.ch-track');
+      if (!track || !track._marks) return false;
+      const audio = track.querySelector('audio');
+      const m = track._marks;
+      const t = Math.round(audio.currentTime * 100) / 100;
+      const go = e.target.closest('[data-cue-go]');
+      const del = e.target.closest('[data-cue-del]');
+      const act = e.target.closest('[data-act]');
+      if (go) {
+        chSeek(audio, m.cues[+go.dataset.cueGo]);
+        if (audio.paused) audio.play();
+      } else if (del) {
+        m.cues.splice(+del.dataset.cueDel, 1);
+      } else if (act) {
+        const a = act.dataset.act;
+        if (a === 'cue') {
+          // Doppelte Cues (weniger als eine halbe Sekunde auseinander) vermeiden
+          if (!m.cues.some((c) => Math.abs(c - t) < 0.5)) {
+            m.cues.push(t);
+            m.cues.sort((x, y) => x - y);
+          }
+        } else if (a === 'a' || a === 'b') {
+          m[a] = t;
+          if (m.a !== null && m.b !== null) {
+            if (m.b < m.a) [m.a, m.b] = [m.b, m.a];
+            if (m.b - m.a < 0.3) m.b = null;
+            else m.loop = true;
+          }
+        } else if (a === 'loop') {
+          m.loop = !m.loop;
+          if (m.loop && (t < m.a || t >= m.b)) chSeek(audio, m.a);
+        } else if (a === 'clear') {
+          m.a = null;
+          m.b = null;
+          m.loop = false;
+        }
+      } else return false;
+      chSaveMarks(track);
+      chRenderPractice(track);
+      return true;
     }
 
     chSongs.addEventListener('click', (e) => {
@@ -1574,7 +1806,8 @@
         chLoadList();
         return;
       }
-      const speed = e.target.closest('.ch-speed');
+      if (chPracticeClick(e)) return;
+      const speed = e.target.closest('.ch-speed[data-speed]');
       if (!speed) return;
       const track = speed.closest('.ch-track');
       const audio = track.querySelector('audio');
@@ -1583,7 +1816,7 @@
         audio.playbackRate = rate;
         audio.preservesPitch = true;
       }
-      track.querySelectorAll('.ch-speed').forEach((b) => b.classList.toggle('active', b === speed));
+      track.querySelectorAll('.ch-speed[data-speed]').forEach((b) => b.classList.toggle('active', b === speed));
     });
 
     // Immer nur ein Übe-Track gleichzeitig
