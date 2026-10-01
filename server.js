@@ -882,7 +882,7 @@ function renderDatenschutzPage(settings) {
 
     <h2>9. Bereich „/choerle" (Übe-Tracks & Noten) – Passwort und Dropbox-Anbindung</h2>
     <p>Im Bereich „/choerle" werden Dateien (z. B. Noten) angezeigt, die serverseitig über die API des Cloud-Speicherdienstes Dropbox (Dropbox Inc., USA bzw. Dropbox International Unlimited Company, Irland) abgerufen werden. Dabei werden ausschließlich Dateiinformationen aus einem dediziert für diese Website angelegten Dropbox-Ordner abgerufen – es werden keine personenbezogenen Daten von Besuchern der Website an Dropbox übermittelt. Der Abruf erfolgt serverseitig über einen Zugriffstoken; Besucher der Seite treten mit Dropbox nicht in direkten Kontakt.</p>
-    <p>Die Übe-Tracks und Noten sind nur für Mitsingende gedacht und durch ein gemeinsames Passwort geschützt. Nach der richtigen Eingabe wird in deinem Browser ein technisch notwendiges Cookie („choerle_auth") gespeichert, damit du das Passwort nicht bei jedem Besuch erneut eingeben musst. Es enthält keine personenbezogenen Daten, dient ausschließlich der Zugangsfreigabe und wird nach 180 Tagen automatisch gelöscht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG i. V. m. Art. 6 Abs. 1 lit. f DSGVO; eine Einwilligung ist hierfür nicht erforderlich. Setzt du im Übe-Player Sprungmarken (Cues) oder einen Loop-Abschnitt, werden diese Zeitpunkte im Speicher deines Browsers (localStorage) abgelegt, damit sie beim nächsten Besuch wieder da sind. Damit du sie auf mehreren Geräten (z. B. Handy und Computer) nutzen kannst, werden sie zusätzlich auf unserem Server gespeichert und einem zufällig erzeugten Code aus drei Wörtern (Sync-Code) zugeordnet; der Code wird beim ersten Cue automatisch erstellt und in deinem Browser gemerkt. Gespeichert werden nur die Zeitpunkte, die zugehörige Track-Adresse und ein Hash-Wert des Codes – kein Name, keine E-Mail-Adresse und keine IP-Adresse. Wer den Code kennt, kann die Cues auf einem weiteren Gerät abrufen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b bzw. f DSGVO (Bereitstellung der von dir genutzten Funktion). Du kannst Cues jederzeit im Player löschen und den Sync auf einem Gerät beenden; auf Wunsch löschen wir die zu deinem Code gespeicherten Daten vollständig (Kontakt siehe oben). Zum Schutz vor dem Durchprobieren von Codes wird die IP-Adresse bei falschen Codes für höchstens 15 Minuten im Arbeitsspeicher des Servers vorgehalten. Zum Schutz vor dem Durchprobieren von Passwörtern wird die IP-Adresse bei Fehleingaben für höchstens 10 Minuten im Arbeitsspeicher des Servers vorgehalten und danach verworfen.</p>
+    <p>Die Übe-Tracks und Noten sind nur für Mitsingende gedacht und durch ein gemeinsames Passwort geschützt. Nach der richtigen Eingabe wird in deinem Browser ein technisch notwendiges Cookie („choerle_auth") gespeichert, damit du das Passwort nicht bei jedem Besuch erneut eingeben musst. Es enthält keine personenbezogenen Daten, dient ausschließlich der Zugangsfreigabe und wird nach 180 Tagen automatisch gelöscht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG i. V. m. Art. 6 Abs. 1 lit. f DSGVO; eine Einwilligung ist hierfür nicht erforderlich. Setzt du im Übe-Player Sprungmarken (Cues) oder einen Loop-Abschnitt, werden diese Zeitpunkte im Speicher deines Browsers (localStorage) abgelegt, damit sie beim nächsten Besuch wieder da sind. Damit du sie auf mehreren Geräten (z. B. Handy und Computer) nutzen kannst, werden sie zusätzlich auf unserem Server gespeichert und einem zufällig erzeugten Code aus drei Wörtern (Sync-Code) zugeordnet; der Code wird beim ersten Cue automatisch erstellt und in deinem Browser gemerkt. Gespeichert werden nur die Zeitpunkte, von dir vergebene Namen für Cues (z. B. „Refrain“), die zugehörige Track-Adresse und ein Hash-Wert des Codes – kein Name, keine E-Mail-Adresse und keine IP-Adresse. Wer den Code kennt, kann die Cues auf einem weiteren Gerät abrufen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b bzw. f DSGVO (Bereitstellung der von dir genutzten Funktion). Du kannst Cues jederzeit im Player löschen und den Sync auf einem Gerät beenden; auf Wunsch löschen wir die zu deinem Code gespeicherten Daten vollständig (Kontakt siehe oben). Zum Schutz vor dem Durchprobieren von Codes wird die IP-Adresse bei falschen Codes für höchstens 15 Minuten im Arbeitsspeicher des Servers vorgehalten. Zum Schutz vor dem Durchprobieren von Passwörtern wird die IP-Adresse bei Fehleingaben für höchstens 10 Minuten im Arbeitsspeicher des Servers vorgehalten und danach verworfen.</p>
 
     <h2>10. Cookies, lokaler Speicher und Tracking</h2>
     <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahme ist das technisch notwendige Zugangs-Cookie für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9), das nur nach Eingabe des Passworts gesetzt wird.</p>
@@ -1685,9 +1685,16 @@ const choerleCodeKey = (c) => crypto.createHash('sha256').update('choerle-sync:'
 
 function cleanChoerleMarks(rec) {
   const time = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Math.max(0, Math.round(Number(v) * 100) / 100));
-  const cues = (Array.isArray(rec && rec.cues) ? rec.cues : []).map(time).filter((t) => t !== null).slice(0, 100);
+  // Cues: { t: Zeitpunkt, n: Name } – ältere Stände speichern nur den Zeitpunkt als Zahl
+  const cues = new Map();
+  for (const c of (Array.isArray(rec && rec.cues) ? rec.cues : []).slice(0, 100)) {
+    const t = time(c && typeof c === 'object' ? c.t : c);
+    if (t === null || cues.has(t)) continue;
+    const n = c && typeof c === 'object' ? String(c.n || '').replace(/\s+/g, ' ').trim().slice(0, 40) : '';
+    cues.set(t, { t, n });
+  }
   return {
-    cues: [...new Set(cues)].sort((x, y) => x - y),
+    cues: [...cues.values()].sort((x, y) => x.t - y.t),
     a: time(rec && rec.a),
     b: time(rec && rec.b),
     loop: !!(rec && rec.loop),
@@ -1825,6 +1832,191 @@ app.get('/choerle/:slug/file/:filename', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send('Fehler beim Laden der Datei.');
+  }
+});
+
+// --- Wellenform der Übe-Tracks ---
+// Wird pro Datei-Version (Dropbox content_hash) einmal berechnet und in DATA_DIR
+// zwischengespeichert. Die Datei wird dabei gestreamt, nicht komplett in den Speicher geladen.
+const CHOERLE_PEAKS_DIR = path.join(DATA_DIR, 'choerle-peaks');
+const CHOERLE_PEAK_COUNT = 800;
+const choerlePeaksMemo = new Map();
+let choerlePeaksQueue = Promise.resolve();
+
+// Sammelt den lautesten Wert je Block; am Ende auf CHOERLE_PEAK_COUNT Werte (0–100) verdichtet.
+function createPeakCollector() {
+  const BLOCK = 1024;
+  const blocks = [];
+  let cur = 0;
+  let n = 0;
+  let samples = 0;
+  let sampleRate = 0;
+  return {
+    add(channels, count, rate) {
+      sampleRate = rate;
+      samples += count;
+      for (let i = 0; i < count; i++) {
+        for (let c = 0; c < channels.length; c++) {
+          const v = Math.abs(channels[c][i]);
+          if (v > cur) cur = v;
+        }
+        if (++n === BLOCK) {
+          blocks.push(cur);
+          cur = 0;
+          n = 0;
+        }
+      }
+    },
+    result() {
+      if (n) blocks.push(cur);
+      if (!blocks.length || !sampleRate) return null;
+      const count = Math.min(CHOERLE_PEAK_COUNT, blocks.length);
+      const out = new Array(count).fill(0);
+      blocks.forEach((v, i) => {
+        const k = Math.min(count - 1, Math.floor((i * count) / blocks.length));
+        if (v > out[k]) out[k] = v;
+      });
+      const max = Math.max(...out) || 1;
+      return { duration: Math.round((samples / sampleRate) * 1000) / 1000, peaks: out.map((v) => Math.round((v / max) * 100)) };
+    },
+  };
+}
+
+async function mp3Peaks(chunks) {
+  const { MPEGDecoder } = await import('mpg123-decoder');
+  const decoder = new MPEGDecoder();
+  await decoder.ready;
+  const peaks = createPeakCollector();
+  try {
+    for await (const chunk of chunks) {
+      for (let off = 0; off < chunk.length; off += 65536) {
+        const r = decoder.decode(chunk.subarray(off, off + 65536));
+        if (r.samplesDecoded) peaks.add(r.channelData, r.samplesDecoded, r.sampleRate);
+      }
+    }
+  } finally {
+    decoder.free();
+  }
+  return peaks.result();
+}
+
+// WAV: PCM 16/24/32 Bit oder Float32
+async function wavPeaks(chunks) {
+  const peaks = createPeakCollector();
+  let head = Buffer.alloc(0);
+  let fmt = null;
+  let rest = Buffer.alloc(0);
+  let remaining = 0; // Bytes im data-Abschnitt (danach folgen evtl. Metadaten)
+  for await (const chunk of chunks) {
+    let buf = Buffer.from(chunk);
+    if (!fmt) {
+      head = Buffer.concat([head, buf]);
+      if (head.length < 12) continue;
+      if (head.toString('ascii', 0, 4) !== 'RIFF' || head.toString('ascii', 8, 12) !== 'WAVE') return null;
+      let pos = 12;
+      let info = null;
+      let dataStart = -1;
+      while (pos + 8 <= head.length) {
+        const id = head.toString('ascii', pos, pos + 4);
+        const size = head.readUInt32LE(pos + 4);
+        if (id === 'fmt ' && pos + 8 + 16 <= head.length) {
+          const format = head.readUInt16LE(pos + 8);
+          info = {
+            float: format === 3 || (format === 0xfffe && head.readUInt16LE(pos + 32) === 3),
+            channels: head.readUInt16LE(pos + 10),
+            rate: head.readUInt32LE(pos + 12),
+            bits: head.readUInt16LE(pos + 22),
+          };
+        }
+        if (id === 'data') {
+          dataStart = pos + 8;
+          remaining = size;
+          break;
+        }
+        pos += 8 + size + (size % 2);
+      }
+      if (dataStart < 0) {
+        if (head.length > 1024 * 1024) return null;
+        continue;
+      }
+      if (!info || !info.channels || ![16, 24, 32].includes(info.bits)) return null;
+      fmt = info;
+      buf = head.subarray(dataStart);
+    }
+    if (remaining <= 0) break;
+    if (buf.length > remaining) buf = buf.subarray(0, remaining);
+    remaining -= buf.length;
+    buf = rest.length ? Buffer.concat([rest, buf]) : buf;
+    const bytes = fmt.bits / 8;
+    const frame = bytes * fmt.channels;
+    const frames = Math.floor(buf.length / frame);
+    const channels = Array.from({ length: fmt.channels }, () => new Float32Array(frames));
+    for (let i = 0; i < frames; i++) {
+      for (let c = 0; c < fmt.channels; c++) {
+        const o = i * frame + c * bytes;
+        let v;
+        if (fmt.float) v = buf.readFloatLE(o);
+        else if (fmt.bits === 16) v = buf.readInt16LE(o) / 32768;
+        else if (fmt.bits === 24) v = buf.readIntLE(o, 3) / 8388608;
+        else v = buf.readInt32LE(o) / 2147483648;
+        channels[c][i] = v;
+      }
+    }
+    peaks.add(channels, frames, fmt.rate);
+    rest = Buffer.from(buf.subarray(frames * frame));
+  }
+  return peaks.result();
+}
+
+async function computeChoerlePeaks(file) {
+  const ext = path.extname(file.name).toLowerCase();
+  const calc = ext === '.mp3' ? mp3Peaks : ext === '.wav' ? wavPeaks : null;
+  if (!calc) return null;
+  const token = await getDropboxAccessToken();
+  const dropboxRes = await fetch('https://content.dropboxapi.com/2/files/download', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Dropbox-API-Arg': asciiSafeJson({ path: file.path_lower }) },
+  });
+  if (!dropboxRes.ok) throw new Error(`Dropbox download fehlgeschlagen: ${dropboxRes.status}`);
+  return calc(Readable.fromWeb(dropboxRes.body));
+}
+
+function getChoerlePeaks(file) {
+  const key = crypto.createHash('sha256').update(file.path_lower + ':' + (file.content_hash || file.rev || '')).digest('hex').slice(0, 32);
+  if (choerlePeaksMemo.has(key)) return choerlePeaksMemo.get(key);
+  const cacheFile = path.join(CHOERLE_PEAKS_DIR, key + '.json');
+  // Immer nur eine Datei gleichzeitig berechnen (Speicher/CPU schonen)
+  const job = choerlePeaksQueue.then(async () => {
+    try {
+      return JSON.parse(await fs.promises.readFile(cacheFile, 'utf8'));
+    } catch (e) {}
+    const result = await computeChoerlePeaks(file);
+    if (result) {
+      await fs.promises.mkdir(CHOERLE_PEAKS_DIR, { recursive: true });
+      await fs.promises.writeFile(cacheFile, JSON.stringify(result));
+    }
+    return result;
+  });
+  choerlePeaksQueue = job.catch(() => {});
+  choerlePeaksMemo.set(key, job);
+  job.catch(() => choerlePeaksMemo.delete(key));
+  return job;
+}
+
+app.get('/choerle/:slug/peaks/:filename', async (req, res) => {
+  if (!hasChoerleAccess(req)) return res.status(401).json({ ok: false });
+  try {
+    const folders = await listChoerleSongFolders();
+    const folder = folders.find((f) => f.slug === req.params.slug);
+    const file = folder && (await findSongFile(folder.path_lower, req.params.filename));
+    if (!file) return res.status(404).json({ ok: false });
+    const result = await getChoerlePeaks(file);
+    if (!result) return res.status(415).json({ ok: false });
+    res.set('Cache-Control', 'private, max-age=3600');
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Wellenform fehlgeschlagen:', err);
+    res.status(500).json({ ok: false });
   }
 });
 

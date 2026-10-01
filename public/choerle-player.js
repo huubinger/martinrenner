@@ -1,4 +1,4 @@
-// Frühstücks-Chörle: Übe-Player (Tempo, Cues, A-B-Loop) und Geräte-Sync per 3-Wort-Code.
+// Frühstücks-Chörle: Übe-Player (Wellenform, Tempo, benannte Cues, A-B-Loop) und Geräte-Sync per 3-Wort-Code.
 // Gemeinsam genutzt von der Startseite (Panel über dem Foto) und der Vollbild-Seite.
 (function () {
   const MARKS_PREFIX = 'ch-marks:';
@@ -23,11 +23,19 @@
   // Gelöschte Marken bleiben als leerer Eintrag stehen, damit das Löschen auch auf den anderen Geräten ankommt.
   const num = (v) => (v === null || v === undefined || v === '' || !isFinite(v) ? null : Number(v));
 
+  // Cue = { t: Zeitpunkt in s, n: Name }; ältere Stände speichern nur den Zeitpunkt als Zahl.
+  function cleanCues(list) {
+    return list
+      .map((c) => (c && typeof c === 'object' ? { t: num(c.t), n: String(c.n || '') } : { t: num(c), n: '' }))
+      .filter((c) => c.t !== null)
+      .sort((x, y) => x.t - y.t);
+  }
+
   function readMarks(url) {
     try {
       const m = JSON.parse(localStorage.getItem(MARKS_PREFIX + url) || 'null');
       if (m && Array.isArray(m.cues)) {
-        return { cues: m.cues.filter((c) => num(c) !== null), a: num(m.a), b: num(m.b), loop: !!m.loop, updatedAt: Number(m.updatedAt) || 0 };
+        return { cues: cleanCues(m.cues), a: num(m.a), b: num(m.b), loop: !!m.loop, updatedAt: Number(m.updatedAt) || 0 };
       }
     } catch (e) {}
     return { cues: [], a: null, b: null, loop: false, updatedAt: 0 };
@@ -66,7 +74,7 @@
         <a class="ch-download" href="${esc(a.url)}?download=1">Herunterladen</a>
       </div>
       <div class="ch-practice">
-        <div class="ch-bar" title="Klicken zum Springen"><div class="ch-bar-loop"></div><div class="ch-bar-pos"></div></div>
+        <div class="ch-bar" title="Tippen oder ziehen zum Springen"><canvas class="ch-wave" aria-hidden="true"></canvas><div class="ch-bar-loop"></div><div class="ch-bar-pos"></div></div>
         <div class="ch-practice-row">Üben:
           <button type="button" class="ch-speed" data-act="cue">+ Cue</button>
           <button type="button" class="ch-speed" data-act="a">A setzen</button>
@@ -76,23 +84,27 @@
         </div>
         <div class="ch-cues"></div>
         <div class="ch-practice-row ch-edit-row" hidden>
-          <button type="button" class="ch-speed" data-act="edit">✎ Cues bearbeiten</button>
+          <button type="button" class="ch-speed" data-act="edit">✎ Cues benennen / löschen</button>
         </div>
       </div>
     </div>`;
   }
 
-  const HELP_HTML = '<p class="ch-help">Tipp: „+ Cue" merkt sich die aktuelle Stelle zum schnellen Hinspringen. Mit „A setzen" und „B setzen" legst du Anfang und Ende eines Abschnitts fest, der dann in Schleife läuft. Cues löschen: „✎ Cues bearbeiten". Cues und Loops bleiben in diesem Browser gespeichert und lassen sich per Geräte-Sync auf Handy und Computer gleichzeitig nutzen.</p>';
+  const HELP_HTML = '<p class="ch-help">Tipp: „+ Cue" merkt sich die aktuelle Stelle zum schnellen Hinspringen. Mit „A setzen" und „B setzen" legst du Anfang und Ende eines Abschnitts fest, der dann in Schleife läuft. Unter „✎ Cues benennen / löschen" kannst du Cues einen Namen geben (z. B. „Refrain") oder sie löschen. Cues und Loops bleiben in diesem Browser gespeichert und lassen sich per Geräte-Sync auf Handy und Computer gleichzeitig nutzen.</p>';
 
   function duration(audio) {
     return isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null;
   }
 
+  // Länge für die Anzeige: aus der Audiodatei oder – solange die noch nicht geladen ist – aus der Wellenform
+  function shownDuration(track) {
+    return duration(track.querySelector('audio')) || (track._wave && track._wave.duration) || null;
+  }
+
+  const cueLabel = (c, i) => (c.n ? c.n : String(i + 1));
+
   function render(track) {
     const m = track._marks;
-    const audio = track.querySelector('audio');
-    const dur = duration(audio);
-    const pct = (t) => Math.min(100, Math.max(0, (t / dur) * 100)) + '%';
     const btn = (act) => track.querySelector(`[data-act="${act}"]`);
     btn('a').textContent = m.a !== null ? 'A ' + fmtTime(m.a) : 'A setzen';
     btn('b').textContent = m.b !== null ? 'B ' + fmtTime(m.b) : 'B setzen';
@@ -108,18 +120,35 @@
     if (!m.cues.length) track._editing = false;
     track.querySelector('.ch-edit-row').hidden = !m.cues.length;
     const edit = btn('edit');
-    edit.textContent = track._editing ? '✓ Fertig' : '✎ Cues bearbeiten';
+    edit.textContent = track._editing ? '✓ Fertig' : '✎ Cues benennen / löschen';
     edit.classList.toggle('edit-on', !!track._editing);
 
+    renderBar(track);
+
+    const cues = track.querySelector('.ch-cues');
+    cues.classList.toggle('editing', !!track._editing);
+    cues.innerHTML = m.cues
+      .map((c, i) => track._editing
+        ? `<span class="ch-cue"><span class="ch-cue-time">${fmtTime(c.t)}</span><input type="text" data-cue-name="${i}" value="${esc(c.n)}" placeholder="Cue ${i + 1} – Name, z. B. Refrain" maxlength="40" enterkeyhint="done" aria-label="Name für Cue ${i + 1}"><button type="button" data-cue-del="${i}" title="Cue löschen" aria-label="Cue ${i + 1} löschen">✕ Löschen</button></span>`
+        : `<span class="ch-cue"><button type="button" data-cue-go="${i}" title="Zu dieser Stelle springen">▶ ${esc(cueLabel(c, i))} · ${fmtTime(c.t)}</button></span>`)
+      .join('');
+    renderPos(track);
+  }
+
+  // Cue-Fähnchen und Loop-Bereich auf der Wellenform
+  function renderBar(track) {
+    const m = track._marks;
+    const dur = shownDuration(track);
+    const pct = (t) => Math.min(100, Math.max(0, (t / dur) * 100)) + '%';
     const bar = track.querySelector('.ch-bar');
     bar.querySelectorAll('.ch-bar-cue').forEach((c) => c.remove());
     const region = bar.querySelector('.ch-bar-loop');
     if (dur) {
-      m.cues.forEach((t, i) => {
+      m.cues.forEach((cue, i) => {
         const c = document.createElement('div');
         c.className = 'ch-bar-cue';
-        c.style.left = pct(t);
-        c.innerHTML = '<span>' + (i + 1) + '</span>';
+        c.style.left = pct(cue.t);
+        c.innerHTML = '<span>' + esc(cueLabel(cue, i)) + '</span>';
         bar.appendChild(c);
       });
       if (m.a !== null || m.b !== null) {
@@ -133,19 +162,62 @@
         region.classList.toggle('on', m.loop && m.a !== null && m.b !== null);
       } else region.style.display = 'none';
     } else region.style.display = 'none';
-
-    const cues = track.querySelector('.ch-cues');
-    cues.classList.toggle('editing', !!track._editing);
-    cues.innerHTML = m.cues
-      .map((t, i) => `<span class="ch-cue"><button type="button" data-cue-go="${i}" title="Zu dieser Stelle springen">▶ ${i + 1} · ${fmtTime(t)}</button>${track._editing ? `<button type="button" data-cue-del="${i}" title="Cue löschen" aria-label="Cue ${i + 1} löschen">✕ Löschen</button>` : ''}</span>`)
-      .join('');
-    renderPos(track);
   }
 
   function renderPos(track) {
     const audio = track.querySelector('audio');
-    const dur = duration(audio);
-    track.querySelector('.ch-bar-pos').style.width = dur ? Math.min(100, (audio.currentTime / dur) * 100) + '%' : '0';
+    const dur = shownDuration(track);
+    const ratio = dur ? Math.min(1, audio.currentTime / dur) : 0;
+    track.querySelector('.ch-bar-pos').style.width = ratio * 100 + '%';
+    drawWave(track, ratio);
+  }
+
+  // --- Wellenform: Balken, der gespielte Teil in Akzentfarbe ---
+  function drawWave(track, ratio, force) {
+    const w = track._wave;
+    if (!w) return;
+    const canvas = track.querySelector('.ch-wave');
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    if (!width || !height) return;
+    const dpr = window.devicePixelRatio || 1;
+    const step = 3; // Balken 2 px + 1 px Abstand
+    const count = Math.max(1, Math.floor(width / step));
+    const played = Math.round(ratio * count);
+    if (!force && canvas.width === Math.round(width * dpr) && track._wavePlayed === played) return;
+    track._wavePlayed = played;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    const peaks = w.peaks;
+    const x0 = (width - count * step) / 2;
+    for (let i = 0; i < count; i++) {
+      // lautester Wert im Abschnitt dieses Balkens
+      const from = Math.floor((i * peaks.length) / count);
+      const to = Math.max(from + 1, Math.floor(((i + 1) * peaks.length) / count));
+      let v = 0;
+      for (let k = from; k < to && k < peaks.length; k++) if (peaks[k] > v) v = peaks[k];
+      const h = Math.max(2, (v / 100) * (height - 4));
+      ctx.fillStyle = i < played ? '#38bdf8' : 'rgba(148,163,184,0.45)';
+      ctx.fillRect(x0 + i * step, (height - h) / 2, 2, h);
+    }
+  }
+
+  function loadWave(track) {
+    const url = track.dataset.url.replace('/file/', '/peaks/');
+    fetch(url, { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (!body || !Array.isArray(body.peaks) || !body.peaks.length) return;
+        track._wave = { peaks: body.peaks, duration: Number(body.duration) || null };
+        track.querySelector('.ch-bar').classList.add('has-wave');
+        render(track);
+        drawWave(track, 0, true);
+        renderPos(track);
+      })
+      .catch(() => {});
   }
 
   function seek(audio, t) {
@@ -188,10 +260,11 @@
         audio.play();
       }
     });
-    bar.addEventListener('click', (e) => {
+    // Tippen oder Ziehen auf der Wellenform springt an die Stelle
+    const seekTo = (e) => {
       const dur = duration(audio);
       const rect = bar.getBoundingClientRect();
-      const ratio = (e.clientX - rect.left) / rect.width;
+      const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
       if (!dur) {
         // Noch nicht geladen: erst Metadaten holen, dann springen.
         audio.preload = 'metadata';
@@ -201,8 +274,20 @@
       }
       seek(audio, ratio * dur);
       renderPos(track);
+    };
+    bar.addEventListener('pointerdown', (e) => {
+      if (e.button) return;
+      track._dragging = true;
+      try { bar.setPointerCapture(e.pointerId); } catch (err) {}
+      seekTo(e);
     });
+    bar.addEventListener('pointermove', (e) => { if (track._dragging) seekTo(e); });
+    const stop = () => { track._dragging = false; };
+    bar.addEventListener('pointerup', stop);
+    bar.addEventListener('pointercancel', stop);
+    if (window.ResizeObserver) new ResizeObserver(() => drawWave(track, Math.min(1, audio.currentTime / (shownDuration(track) || Infinity)), true)).observe(bar);
     render(track);
+    loadWave(track);
   }
 
   function practiceClick(e) {
@@ -215,7 +300,7 @@
     const del = e.target.closest('[data-cue-del]');
     const act = e.target.closest('[data-act]');
     if (go) {
-      seek(audio, m.cues[+go.dataset.cueGo]);
+      seek(audio, m.cues[+go.dataset.cueGo].t);
       if (audio.paused) audio.play();
       return true;
     } else if (del) {
@@ -228,9 +313,9 @@
         return true;
       } else if (a === 'cue') {
         // Doppelte Cues (weniger als eine halbe Sekunde auseinander) vermeiden
-        if (!m.cues.some((c) => Math.abs(c - t) < 0.5)) {
-          m.cues.push(t);
-          m.cues.sort((x, y) => x - y);
+        if (!m.cues.some((c) => Math.abs(c.t - t) < 0.5)) {
+          m.cues.push({ t, n: '' });
+          m.cues.sort((x, y) => x.t - y.t);
         }
       } else if (a === 'a' || a === 'b') {
         m[a] = t;
@@ -279,6 +364,22 @@
       if (practiceClick(e) || speedClick(e)) return;
       syncClick(e);
     });
+    // Cue-Namen: beim Tippen speichern, ohne die Liste neu zu zeichnen (Fokus bleibt im Feld)
+    container.addEventListener('input', (e) => {
+      const input = e.target.closest('[data-cue-name]');
+      const track = input && input.closest('.ch-track');
+      if (!track || !track._marks) return;
+      const cue = track._marks.cues[+input.dataset.cueName];
+      if (!cue) return;
+      cue.n = input.value.replace(/\s+/g, ' ').slice(0, 40);
+      track._marks.updatedAt = Date.now();
+      writeMarks(track.dataset.url, track._marks);
+      renderBar(track);
+      Sync.changed();
+    });
+    container.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.closest('[data-cue-name]')) e.target.blur();
+    });
     container.addEventListener('submit', (e) => {
       if (!e.target.closest('.ch-sync')) return;
       e.preventDefault();
@@ -299,6 +400,8 @@
       const fresh = readMarks(track.dataset.url);
       if (fresh.updatedAt === track._marks.updatedAt) return;
       track._marks = fresh;
+      // Nicht neu zeichnen, während hier gerade ein Cue-Name getippt wird (Fokus ginge verloren)
+      if (track.contains(document.activeElement) && document.activeElement.matches('[data-cue-name]')) return renderBar(track);
       render(track);
     });
   }

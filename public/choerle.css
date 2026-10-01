@@ -165,3 +165,39 @@
 }
 .ch-sync .ch-speed { font-size: 0.75rem; padding: 0.3rem 0.65rem; }
 .ch-practice-row[hidden] { display: none; }
+
+/* Wellenform (sobald der Server sie geliefert hat) */
+.ch-wave { position: absolute; inset: 0; width: 100%; height: 100%; display: none; pointer-events: none; }
+.ch-bar.has-wave { height: 46px; background: rgba(255,255,255,0.03); }
+.ch-bar.has-wave .ch-wave { display: block; }
+.ch-bar.has-wave .ch-bar-pos { background: transparent; border-right: 2px solid #f8fafc; box-shadow: 1px 0 6px rgba(248,250,252,0.5); }
+.ch-bar.has-wave .ch-bar-loop { background: rgba(34,197,94,0.14); }
+.ch-bar.has-wave .ch-bar-loop.on { background: rgba(34,197,94,0.26); }
+.ch-bar-cue span {
+  max-width: 7.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: rgba(15,23,42,0.75);
+  line-height: 1.3;
+}
+
+/* Cues benennen: im Bearbeiten-Modus eine Zeile je Cue */
+.ch-cues.editing { flex-direction: column; flex-wrap: nowrap; }
+.ch-cues.editing .ch-cue { display: flex; border-radius: 10px; }
+.ch-cue-time { padding: 0 0.5rem; color: #fde68a; font-variant-numeric: tabular-nums; flex: none; }
+.ch-cue input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  border: none;
+  border-left: 1px solid rgba(251,191,36,0.3);
+  background: rgba(15,23,42,0.55);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 16px; /* verhindert Auto-Zoom auf dem iPhone */
+}
+.ch-cue input::placeholder { color: #64748b; }
+.ch-cue input:focus { outline: none; background: rgba(15,23,42,0.85); }
