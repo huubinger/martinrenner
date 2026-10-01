@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0b1120">
+<!-- Als Lesezeichen auf dem Home-Bildschirm öffnet sich die Seite ohne Browserleisten -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chörle">
+<title>Chörle – Noten &amp; Übe-Tracks</title>
+<link rel="stylesheet" href="/choerle.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --top: 52px; --sheet: 0px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #0b1120;
+    color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font-family: inherit; }
+
+  /* Kopfzeile */
+  .fv-top {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: var(--top);
+    padding: 0.4rem max(0.6rem, env(safe-area-inset-right)) 0.4rem max(0.6rem, env(safe-area-inset-left));
+    padding-top: max(0.4rem, env(safe-area-inset-top));
+    background: rgba(11,17,32,0.94);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .fv-title { flex: 1; min-width: 0; font-weight: 700; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fv-btn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 0.7rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #e2e8f0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .fv-btn:hover { background: rgba(255,255,255,0.12); }
+  .fv-btn.on { background: #fbbf24; border-color: #fbbf24; color: #0f172a; }
+  .fv-btn[hidden], .fv-zoom[hidden] { display: none; }
+  .fv-zoom { display: inline-flex; gap: 0.25rem; }
+  .fv-label { display: inline; }
+  @media (max-width: 560px) {
+    .fv-label { display: none; }
+    .fv-btn { padding: 0 0.55rem; }
+  }
+
+  .fv-msg { max-width: 520px; margin: 2rem auto; padding: 0 1rem; color: #94a3b8; font-size: 0.95rem; line-height: 1.5; }
+  .fv-msg.error { color: #fca5a5; }
+
+  /* Passwort und Liederliste */
+  .fv-box { max-width: 520px; margin: 1.5rem auto; padding: 0 1rem 2rem; }
+  .fv-box h2 { font-size: 1.15rem; margin-bottom: 0.8rem; }
+  .fv-box p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; line-height: 1.45; }
+  .fv-login { display: flex; gap: 0.5rem; }
+  .fv-login input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.7rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    color: #f8fafc;
+    font-size: 16px;
+    font-family: inherit;
+  }
+  .fv-login button { border: none; border-radius: 12px; padding: 0 1.1rem; background: #38bdf8; color: #0f172a; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
+  .fv-login-msg { margin-top: 0.6rem; color: #fca5a5; font-size: 0.85rem; min-height: 1.2em; }
+  .fv-box .ch-song { color: #f8fafc; text-decoration: none; }
+
+  /* Lied: Noten + Tracks */
+  .fv-song { display: grid; grid-template-columns: minmax(0, 1fr) 400px; align-items: start; }
+  .fv-song.no-pdf { grid-template-columns: minmax(0, 1fr); max-width: 640px; margin: 0 auto; }
+  .fv-notes { min-width: 0; padding: 0.75rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fv-pages { display: grid; gap: 0.75rem; margin: 0 auto; }
+  .fv-page { position: relative; background: #fff; border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.4); overflow: hidden; }
+  .fv-page canvas { display: block; width: 100%; height: 100%; }
+  .fv-page-no { position: absolute; right: 6px; bottom: 4px; font-size: 0.65rem; color: #94a3b8; }
+  .fv-side {
+    position: sticky;
+    top: var(--top);
+    max-height: calc(100vh - var(--top));
+    max-height: calc(100dvh - var(--top));
+    overflow-y: auto;
+    padding: 0.75rem 0.75rem 1.5rem;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    background: #0f172a;
+  }
+  .fv-song.no-pdf .fv-side { position: static; max-height: none; border-left: none; background: transparent; }
+  .fv-sheet-head { display: none; }
+  .fv-side .ch-track.current { border-color: rgba(56,189,248,0.45); }
+
+  /* Handy & Tablet hochkant: Noten über die ganze Breite, Übe-Tracks als Leiste unten */
+  @media (max-width: 899px) {
+    .fv-song { grid-template-columns: minmax(0, 1fr); }
+    .fv-notes { padding: 0.4rem 0.4rem calc(var(--sheet) + 0.6rem); }
+    .fv-pages { gap: 0.4rem; }
+    .fv-song:not(.no-pdf) .fv-side {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      top: auto;
+      z-index: 15;
+      max-height: 70vh;
+      max-height: 70dvh;
+      padding: 0 max(0.6rem, env(safe-area-inset-right)) max(0.6rem, env(safe-area-inset-bottom)) max(0.6rem, env(safe-area-inset-left));
+      border-left: none;
+      border-top: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
+    }
+    .fv-song:not(.no-pdf) .fv-sheet-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.55rem 0.2rem 0.5rem;
+      border: none;
+      background: #0f172a;
+      color: #cbd5e1;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .fv-sheet-head::before { content: ''; position: absolute; top: 5px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: rgba(255,255,255,0.25); }
+    .fv-sheet-head span:first-child { flex: 1; text-align: left; padding-top: 4px; }
+    .fv-sheet-head .fv-sheet-arrow { padding-top: 4px; color: #38bdf8; }
+    /* Eingeklappt: nur der aktuelle Track, damit die Noten möglichst viel Platz haben */
+    .fv-side.collapsed .ch-track:not(.current),
+    .fv-side.collapsed .ch-sync,
+    .fv-side.collapsed .ch-help,
+    .fv-side.collapsed .ch-note,
+    .fv-side.collapsed .ch-download,
+    .fv-side.collapsed .ch-pdf,
+    .fv-side.collapsed > .ch-status { display: none; }
+    .fv-side.collapsed .ch-track { padding: 0.5rem 0.6rem; }
+    .fv-side.collapsed .ch-track-name { display: none; }
+    .fv-side .ch-speed { padding: 0.32rem 0.6rem; font-size: 0.78rem; }
+    .fv-side .ch-bar { height: 28px; }
+  }
+</style>
+<script src="/choerle-player.js"></script>
+</head>
+<body>
+  <header class="fv-top">
+    <a class="fv-btn" id="fv-back" href="/choerle/vollbild" aria-label="Alle Lieder">←<span class="fv-label">&nbsp;Lieder</span></a>
+    <div class="fv-title" id="fv-title">Frühstücks-Chörle</div>
+    <span class="fv-zoom" id="fv-zoom" hidden>
+      <button type="button" class="fv-btn" data-zoom="-1" aria-label="Noten kleiner">A−</button>
+      <button type="button" class="fv-btn" data-zoom="1" aria-label="Noten größer">A+</button>
+    </span>
+    <button type="button" class="fv-btn" id="fv-wake" hidden title="Bildschirm bleibt an, solange diese Seite offen ist">☀<span class="fv-label">&nbsp;Bildschirm an</span></button>
+    <button type="button" class="fv-btn" id="fv-fs" hidden title="Browserleisten ausblenden">⛶<span class="fv-label">&nbsp;Bildschirm füllen</span></button>
+    <a class="fv-btn" id="fv-close" href="/choerle" aria-label="Vollbild schließen">✕</a>
+  </header>
+  <main id="fv-main"><p class="fv-msg">Wird geladen …</p></main>
+
+<script>
+(function () {
+  const esc = ChoerlePlayer.esc;
+  const main = document.getElementById('fv-main');
+  const titleEl = document.getElementById('fv-title');
+  const m = location.pathname.match(/^\/choerle\/(?:([^/]+)\/)?vollbild\/?$/);
+  const slug = m && m[1] ? decodeURIComponent(m[1]) : null;
+  const NOTE = '<p class="ch-note">Noten und Übe-Tracks sind nur zum persönlichen Üben für die Mitsingenden des Frühstücks-Chörle bestimmt. Weitergabe, Veröffentlichung oder sonstige Nutzung ist nicht gestattet.</p>';
+
+  document.getElementById('fv-back').hidden = !slug;
+  document.getElementById('fv-close').href = slug ? '/choerle/' + encodeURIComponent(slug) : '/choerle';
+
+  function getJson(url) {
+    return fetch(url, { credentials: 'same-origin' }).then((r) =>
+      r.json().then((body) => ({ status: r.status, body }), () => ({ status: r.status, body: {} }))
+    );
+  }
+
+  function showLogin() {
+    titleEl.textContent = 'Frühstücks-Chörle';
+    main.innerHTML = `<div class="fv-box">
+      <h2>Nur für Mitsingende</h2>
+      <p>Bitte das Chörle-Passwort eingeben.</p>
+      <form class="fv-login" novalidate>
+        <input type="password" autocomplete="current-password" aria-label="Passwort" placeholder="Passwort">
+        <button type="submit">Weiter</button>
+      </form>
+      <p class="fv-login-msg" aria-live="polite"></p>
+    </div>`;
+    const form = main.querySelector('form');
+    const input = form.querySelector('input');
+    const msg = main.querySelector('.fv-login-msg');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!input.value.trim()) { msg.textContent = 'Bitte das Passwort eingeben.'; return; }
+      fetch('/api/choerle/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ password: input.value }),
+      })
+        .then((r) => r.json())
+        .then((body) => {
+          if (body.ok) load();
+          else { msg.textContent = body.error || 'Das Passwort stimmt leider nicht.'; input.select(); }
+        })
+        .catch(() => { msg.textContent = 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.'; });
+    });
+  }
+
+  function showList() {
+    getJson('/api/choerle/songs').then(({ status, body }) => {
+      if (status === 401) return showLogin();
+      if (!body.ok) return showError(body.error || 'Die Lieder konnten gerade nicht geladen werden.');
+      titleEl.textContent = 'Frühstücks-Chörle';
+      main.innerHTML = `<div class="fv-box"><h2>Lied auswählen</h2><ul class="ch-songs">${body.songs
+        .map((s) => `<li><a class="ch-song" href="/choerle/${encodeURIComponent(s.slug)}/vollbild"><span class="ch-song-icon">♪</span><span class="ch-song-title">${esc(s.title)}</span><span class="ch-song-arrow">→</span></a></li>`)
+        .join('') || '<li class="fv-msg">Noch keine Lieder vorhanden.</li>'}</ul></div>`;
+    }).catch(() => showError('Die Lieder konnten gerade nicht geladen werden.'));
+  }
+
+  function showError(text) {
+    main.innerHTML = `<p class="fv-msg error">${esc(text)}</p>`;
+  }
+
+  function showSong() {
+    getJson('/api/choerle/songs/' + encodeURIComponent(slug)).then(({ status, body }) => {
+      if (status === 401) return showLogin();
+      if (!body.ok) return showError(body.error || 'Das Lied konnte gerade nicht geladen werden.');
+      const song = body.song;
+      titleEl.textContent = song.title;
+      document.title = song.title + ' – Chörle';
+      const tracks = song.audio.length
+        ? `<div class="ch-tracks">${song.audio.map(ChoerlePlayer.trackHtml).join('')}</div>${ChoerlePlayer.SYNC_HTML}${ChoerlePlayer.HELP_HTML}`
+        : '<p class="ch-status">Keine Übe-Tracks zu diesem Lied vorhanden.</p>';
+      const pdfLinks = song.pdf
+        ? `<div class="ch-pdf" style="margin-top:0.8rem"><a class="ch-btn ghost" href="${esc(song.pdf.url)}" target="_blank" rel="noopener">📄 PDF öffnen</a><a class="ch-btn ghost" href="${esc(song.pdf.url)}?download=1">Herunterladen</a></div>`
+        : '';
+      main.innerHTML = `<div class="fv-song${song.pdf ? '' : ' no-pdf'}">
+        ${song.pdf ? '<section class="fv-notes" aria-label="Noten"><div class="fv-pages"><p class="fv-msg">Noten werden geladen …</p></div></section>' : ''}
+        <aside class="fv-side${song.pdf ? ' collapsed' : ''}" aria-label="Übe-Tracks">
+          <button type="button" class="fv-sheet-head" aria-expanded="false"><span>🎧 Übe-Tracks</span><span class="fv-sheet-arrow">▲ alle anzeigen</span></button>
+          ${song.pdf ? '' : '<p class="ch-status">Noten derzeit nicht verfügbar.</p>'}
+          ${tracks}${pdfLinks}${NOTE}
+        </aside>
+      </div>`;
+      const side = main.querySelector('.fv-side');
+      ChoerlePlayer.attach(side);
+      ChoerlePlayer.pull();
+      initSheet(side);
+      if (song.pdf) renderPdf(song.pdf.url, main.querySelector('.fv-pages'));
+    }).catch(() => showError('Das Lied konnte gerade nicht geladen werden.'));
+  }
+
+  // Übe-Tracks-Leiste am Handy: eingeklappt nur der aktuelle Track, aufgeklappt alle
+  function initSheet(side) {
+    const head = side.querySelector('.fv-sheet-head');
+    const first = side.querySelector('.ch-track');
+    const label = head.querySelector('span');
+    function setCurrent(track) {
+      if (!track) return;
+      side.querySelectorAll('.ch-track').forEach((t) => t.classList.toggle('current', t === track));
+      // Eingeklappt ist der Track-Name ausgeblendet – deshalb in der Kopfzeile anzeigen
+      label.textContent = '🎧 ' + track.querySelector('.ch-track-name').textContent;
+    }
+    setCurrent(first);
+    side.addEventListener('play', (e) => setCurrent(e.target.closest('.ch-track')), true);
+    head.addEventListener('click', () => {
+      const collapsed = side.classList.toggle('collapsed');
+      head.setAttribute('aria-expanded', String(!collapsed));
+      head.querySelector('.fv-sheet-arrow').textContent = collapsed ? '▲ alle anzeigen' : '▼ einklappen';
+      if (collapsed) side.scrollTop = 0;
+    });
+    // Ausgeklappt: Tippen auf einen anderen Track macht ihn zum aktuellen
+    side.addEventListener('click', (e) => {
+      const track = e.target.closest('.ch-track');
+      if (track && !side.classList.contains('collapsed')) setCurrent(track);
+    });
+    // Platz unter den Noten freihalten, damit die letzte Zeile nicht verdeckt ist
+    const setSheet = () => {
+      const fixed = getComputedStyle(side).position === 'fixed';
+      document.documentElement.style.setProperty('--sheet', fixed ? side.offsetHeight + 'px' : '0px');
+    };
+    if (window.ResizeObserver) new ResizeObserver(setSheet).observe(side);
+    window.addEventListener('resize', setSheet);
+    setSheet();
+  }
+
+  // --- Noten mit PDF.js: jede Seite als Bild in Spaltenbreite (funktioniert auch auf iPhone/iPad,
+  // wo eingebettete PDFs oft nur die erste Seite zeigen). Nur Seiten in Sichtweite werden gezeichnet.
+  const ZOOMS = [1, 1.25, 1.5, 1.75, 2, 2.5];
+  let zoomIdx = 0;
+  try { zoomIdx = Math.max(0, ZOOMS.indexOf(Number(localStorage.getItem('ch-fv-zoom')))); } catch (e) {}
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function renderPdf(url, pagesEl) {
+    try {
+      await loadScript('/vendor/pdfjs/pdf.min.js');
+      const pdfjsLib = window.pdfjsLib;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+      const doc = await pdfjsLib.getDocument({ url, isEvalSupported: false, withCredentials: true }).promise;
+      pagesEl.innerHTML = '';
+      const pages = [];
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        const vp = page.getViewport({ scale: 1 });
+        const wrap = document.createElement('div');
+        wrap.className = 'fv-page';
+        wrap.style.aspectRatio = vp.width + ' / ' + vp.height;
+        wrap.innerHTML = `<span class="fv-page-no">${i} / ${doc.numPages}</span>`;
+        pagesEl.appendChild(wrap);
+        pages.push({ page, wrap, vp, canvas: null, width: 0, task: null, visible: false });
+      }
+      setupPages(pages, pagesEl);
+    } catch (err) {
+      console.error(err);
+      pagesEl.innerHTML = '<p class="fv-msg error">Die Noten konnten nicht angezeigt werden. Über „PDF öffnen" bei den Übe-Tracks lassen sie sich direkt öffnen.</p>';
+    }
+  }
+
+  function setupPages(pages, pagesEl) {
+    const notes = pagesEl.parentElement;
+    const zoomBox = document.getElementById('fv-zoom');
+    zoomBox.hidden = false;
+
+    function applyZoom() {
+      // Bei Zoom wird die Notenspalte breiter und lässt sich seitlich verschieben
+      pagesEl.style.width = ZOOMS[zoomIdx] * 100 + '%';
+    }
+
+    function draw(p) {
+      const cssWidth = p.wrap.clientWidth;
+      if (!cssWidth || (p.canvas && Math.abs(p.width - cssWidth) < 2)) return;
+      // Schärfe passend zum Bildschirm, aber begrenzt (iPhone/iPad haben wenig Grafikspeicher)
+      let scale = (cssWidth * Math.min(window.devicePixelRatio || 1, 3)) / p.vp.width;
+      const maxPixels = 6e6;
+      if (p.vp.width * p.vp.height * scale * scale > maxPixels) scale = Math.sqrt(maxPixels / (p.vp.width * p.vp.height));
+      const viewport = p.page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      if (p.task) p.task.cancel();
+      p.task = p.page.render({ canvasContext: canvas.getContext('2d'), viewport });
+      p.width = cssWidth;
+      p.task.promise.then(() => {
+        p.task = null;
+        if (!p.visible) return free(canvas);
+        if (p.canvas) free(p.canvas);
+        p.canvas = canvas;
+        p.wrap.prepend(canvas);
+      }, () => free(canvas));
+    }
+
+    function free(canvas) {
+      canvas.width = 0;
+      canvas.height = 0;
+      canvas.remove();
+    }
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const p = pages.find((x) => x.wrap === entry.target);
+        p.visible = entry.isIntersecting;
+        if (p.visible) draw(p);
+        else if (p.canvas) {
+          free(p.canvas);
+          p.canvas = null;
+          p.width = 0;
+        }
+      });
+    }, { rootMargin: '150% 0px' });
+    pages.forEach((p) => io.observe(p.wrap));
+
+    let t = null;
+    const redraw = () => {
+      clearTimeout(t);
+      t = setTimeout(() => pages.forEach((p) => p.visible && draw(p)), 150);
+    };
+    window.addEventListener('resize', redraw);
+
+    zoomBox.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-zoom]');
+      if (!b) return;
+      const before = notes.scrollLeft / Math.max(1, notes.scrollWidth);
+      zoomIdx = Math.min(ZOOMS.length - 1, Math.max(0, zoomIdx + Number(b.dataset.zoom)));
+      try { localStorage.setItem('ch-fv-zoom', ZOOMS[zoomIdx]); } catch (err) {}
+      applyZoom();
+      notes.scrollLeft = before * notes.scrollWidth;
+      redraw();
+    });
+    applyZoom();
+  }
+
+  // --- Bildschirm füllen (Fullscreen-API; am iPhone nicht verfügbar, dort ausgeblendet) ---
+  const fsBtn = document.getElementById('fv-fs');
+  const root = document.documentElement;
+  const fsEnabled = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+  if (fsEnabled) {
+    fsBtn.hidden = false;
+    fsBtn.addEventListener('click', () => {
+      if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+    });
+    const onFs = () => fsBtn.classList.toggle('on', !!fsElement());
+    document.addEventListener('fullscreenchange', onFs);
+    document.addEventListener('webkitfullscreenchange', onFs);
+  }
+
+  // --- Bildschirm bleibt an (Wake Lock), Standard: an; Einstellung wird gemerkt ---
+  const wakeBtn = document.getElementById('fv-wake');
+  let wakeWanted = true;
+  let wakeLock = null;
+  try { wakeWanted = localStorage.getItem('ch-fv-wake') !== '0'; } catch (e) {}
+  async function updateWake() {
+    if (wakeWanted && !wakeLock && document.visibilityState === 'visible') {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; wakeBtn.classList.remove('on'); });
+      } catch (e) {
+        wakeLock = null;
+      }
+    } else if (!wakeWanted && wakeLock) {
+      wakeLock.release();
+      wakeLock = null;
+    }
+    wakeBtn.classList.toggle('on', !!wakeLock);
+  }
+  if ('wakeLock' in navigator) {
+    wakeBtn.hidden = false;
+    wakeBtn.addEventListener('click', () => {
+      wakeWanted = !wakeLock;
+      try { localStorage.setItem('ch-fv-wake', wakeWanted ? '1' : '0'); } catch (e) {}
+      updateWake();
+    });
+    document.addEventListener('visibilitychange', updateWake);
+    // Manche Browser erlauben es erst nach einer Berührung
+    document.addEventListener('pointerdown', () => { if (wakeWanted && !wakeLock) updateWake(); });
+    updateWake();
+  }
+
+  function load() {
+    if (slug) showSong();
+    else showList();
+  }
+  load();
+})();
+</script>
+</body>
+</html>

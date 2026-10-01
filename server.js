@@ -882,7 +882,7 @@ function renderDatenschutzPage(settings) {
 
     <h2>9. Bereich „/choerle" (Übe-Tracks & Noten) – Passwort und Dropbox-Anbindung</h2>
     <p>Im Bereich „/choerle" werden Dateien (z. B. Noten) angezeigt, die serverseitig über die API des Cloud-Speicherdienstes Dropbox (Dropbox Inc., USA bzw. Dropbox International Unlimited Company, Irland) abgerufen werden. Dabei werden ausschließlich Dateiinformationen aus einem dediziert für diese Website angelegten Dropbox-Ordner abgerufen – es werden keine personenbezogenen Daten von Besuchern der Website an Dropbox übermittelt. Der Abruf erfolgt serverseitig über einen Zugriffstoken; Besucher der Seite treten mit Dropbox nicht in direkten Kontakt.</p>
-    <p>Die Übe-Tracks und Noten sind nur für Mitsingende gedacht und durch ein gemeinsames Passwort geschützt. Nach der richtigen Eingabe wird in deinem Browser ein technisch notwendiges Cookie („choerle_auth") gespeichert, damit du das Passwort nicht bei jedem Besuch erneut eingeben musst. Es enthält keine personenbezogenen Daten, dient ausschließlich der Zugangsfreigabe und wird nach 180 Tagen automatisch gelöscht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG i. V. m. Art. 6 Abs. 1 lit. f DSGVO; eine Einwilligung ist hierfür nicht erforderlich. Setzt du im Übe-Player Sprungmarken (Cues) oder einen Loop-Abschnitt, werden diese Zeitpunkte ausschließlich lokal im Speicher deines Browsers (localStorage) abgelegt, damit sie beim nächsten Besuch wieder da sind; sie werden nicht an den Server übertragen und lassen sich jederzeit im Player oder über die Browsereinstellungen löschen. Zum Schutz vor dem Durchprobieren von Passwörtern wird die IP-Adresse bei Fehleingaben für höchstens 10 Minuten im Arbeitsspeicher des Servers vorgehalten und danach verworfen.</p>
+    <p>Die Übe-Tracks und Noten sind nur für Mitsingende gedacht und durch ein gemeinsames Passwort geschützt. Nach der richtigen Eingabe wird in deinem Browser ein technisch notwendiges Cookie („choerle_auth") gespeichert, damit du das Passwort nicht bei jedem Besuch erneut eingeben musst. Es enthält keine personenbezogenen Daten, dient ausschließlich der Zugangsfreigabe und wird nach 180 Tagen automatisch gelöscht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG i. V. m. Art. 6 Abs. 1 lit. f DSGVO; eine Einwilligung ist hierfür nicht erforderlich. Setzt du im Übe-Player Sprungmarken (Cues) oder einen Loop-Abschnitt, werden diese Zeitpunkte im Speicher deines Browsers (localStorage) abgelegt, damit sie beim nächsten Besuch wieder da sind. Damit du sie auf mehreren Geräten (z. B. Handy und Computer) nutzen kannst, werden sie zusätzlich auf unserem Server gespeichert und einem zufällig erzeugten Code aus drei Wörtern (Sync-Code) zugeordnet; der Code wird beim ersten Cue automatisch erstellt und in deinem Browser gemerkt. Gespeichert werden nur die Zeitpunkte, die zugehörige Track-Adresse und ein Hash-Wert des Codes – kein Name, keine E-Mail-Adresse und keine IP-Adresse. Wer den Code kennt, kann die Cues auf einem weiteren Gerät abrufen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b bzw. f DSGVO (Bereitstellung der von dir genutzten Funktion). Du kannst Cues jederzeit im Player löschen und den Sync auf einem Gerät beenden; auf Wunsch löschen wir die zu deinem Code gespeicherten Daten vollständig (Kontakt siehe oben). Zum Schutz vor dem Durchprobieren von Codes wird die IP-Adresse bei falschen Codes für höchstens 15 Minuten im Arbeitsspeicher des Servers vorgehalten. Zum Schutz vor dem Durchprobieren von Passwörtern wird die IP-Adresse bei Fehleingaben für höchstens 10 Minuten im Arbeitsspeicher des Servers vorgehalten und danach verworfen.</p>
 
     <h2>10. Cookies, lokaler Speicher und Tracking</h2>
     <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahme ist das technisch notwendige Zugangs-Cookie für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9), das nur nach Eingabe des Passworts gesetzt wird.</p>
@@ -1656,6 +1656,113 @@ app.get('/api/choerle/songs/:slug', requireChoerleAccess, async (req, res) => {
     res.status(502).json({ ok: false, error: 'Das Lied konnte gerade nicht geladen werden. Bitte später erneut versuchen.' });
   }
 });
+
+// --- Geräte-Sync für Cues/Loops im Übe-Player (3-Wort-Code wie im Playback-Tool) ---
+// Gespeichert wird nur der Hash des Codes und je Track-Adresse die Zeitpunkte.
+const CHOERLE_SYNC_FILE = path.join(DATA_DIR, 'choerle-sync.json');
+const CHOERLE_WORDS = require('./words');
+let choerleSync = { users: {} };
+try {
+  if (fs.existsSync(CHOERLE_SYNC_FILE)) choerleSync = JSON.parse(fs.readFileSync(CHOERLE_SYNC_FILE, 'utf8'));
+} catch (err) {
+  console.error('choerle-sync.json konnte nicht gelesen werden:', err);
+}
+let choerleSyncTimer = null;
+function saveChoerleSync() {
+  clearTimeout(choerleSyncTimer);
+  choerleSyncTimer = setTimeout(() => {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const tmp = CHOERLE_SYNC_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(choerleSync));
+    fs.renameSync(tmp, CHOERLE_SYNC_FILE);
+  }, 300);
+}
+
+const normChoerleCode = (c) => String(c || '').toLowerCase()
+  .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+  .split(/[^a-z0-9]+/).filter(Boolean).join('-');
+const choerleCodeKey = (c) => crypto.createHash('sha256').update('choerle-sync:' + normChoerleCode(c)).digest('hex');
+
+function cleanChoerleMarks(rec) {
+  const time = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Math.max(0, Math.round(Number(v) * 100) / 100));
+  const cues = (Array.isArray(rec && rec.cues) ? rec.cues : []).map(time).filter((t) => t !== null).slice(0, 100);
+  return {
+    cues: [...new Set(cues)].sort((x, y) => x - y),
+    a: time(rec && rec.a),
+    b: time(rec && rec.b),
+    loop: !!(rec && rec.loop),
+    updatedAt: Math.min(Date.now() + 60000, Number(rec && rec.updatedAt) || 0),
+  };
+}
+
+function mergeChoerleMarks(target, incoming) {
+  for (const [url, rec] of Object.entries(incoming || {}).slice(0, 2000)) {
+    if (!/^\/choerle\/[^\s]{1,400}$/.test(url)) continue;
+    const clean = cleanChoerleMarks(rec);
+    if (!target[url] || clean.updatedAt > (target[url].updatedAt || 0)) target[url] = clean;
+  }
+  return target;
+}
+
+// Bremse gegen Durchprobieren von Codes und gegen Spam
+const choerleSyncLimits = new Map();
+function choerleLimited(key, max, windowMs) {
+  const now = Date.now();
+  const e = choerleSyncLimits.get(key);
+  if (!e || e.reset < now) {
+    choerleSyncLimits.set(key, { n: 0, reset: now + windowMs });
+    return false;
+  }
+  return e.n >= max;
+}
+function choerleHit(key) {
+  const e = choerleSyncLimits.get(key);
+  if (e) e.n++;
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, e] of choerleSyncLimits) if (e.reset < now) choerleSyncLimits.delete(k);
+}, 10 * 60 * 1000).unref();
+
+app.post('/api/choerle/sync/new', requireChoerleAccess, (req, res) => {
+  const key = 'new:' + (req.headers['cf-connecting-ip'] || req.ip);
+  if (choerleLimited(key, 20, 60 * 60 * 1000)) return res.status(429).json({ ok: false, error: 'Zu viele Anfragen, bitte später erneut versuchen.' });
+  choerleHit(key);
+  let code;
+  do {
+    code = Array.from({ length: 3 }, () => CHOERLE_WORDS[crypto.randomInt(CHOERLE_WORDS.length)]).join('-');
+  } while (choerleSync.users[choerleCodeKey(code)]);
+  const user = { marks: mergeChoerleMarks({}, (req.body || {}).marks), createdAt: Date.now(), updatedAt: Date.now() };
+  choerleSync.users[choerleCodeKey(code)] = user;
+  saveChoerleSync();
+  res.json({ ok: true, code, marks: user.marks });
+});
+
+// Abgleich: Server übernimmt neuere Einträge und liefert den zusammengeführten Stand zurück
+app.post('/api/choerle/sync', requireChoerleAccess, (req, res) => {
+  const key = 'code:' + (req.headers['cf-connecting-ip'] || req.ip);
+  if (choerleLimited(key, 10, 15 * 60 * 1000)) return res.status(429).json({ ok: false, error: 'Zu viele falsche Codes. Bitte in 15 Minuten erneut versuchen.' });
+  const user = choerleSync.users[choerleCodeKey((req.body || {}).code)];
+  if (!user) {
+    choerleHit(key);
+    return res.status(404).json({ ok: false, error: 'Diesen Sync-Code gibt es nicht.' });
+  }
+  mergeChoerleMarks(user.marks, req.body.marks);
+  user.updatedAt = Date.now();
+  saveChoerleSync();
+  res.json({ ok: true, code: normChoerleCode(req.body.code), marks: user.marks });
+});
+
+// Vollbild: Noten und Übe-Tracks auf einer eigenen Seite (Liederauswahl bzw. ein Lied)
+function sendChoerleFullPage(req, res) {
+  res.set('X-Robots-Tag', 'noindex');
+  res.sendFile(path.join(__dirname, 'public', 'choerle-vollbild.html'));
+}
+app.get('/choerle/vollbild', sendChoerleFullPage);
+app.get('/choerle/:slug/vollbild', sendChoerleFullPage);
+
+// PDF.js (Noten-Anzeige auf der Vollbild-Seite) – lokal ausgeliefert, kein externer Dienst
+app.use('/vendor/pdfjs', express.static(path.join(__dirname, 'node_modules', 'pdfjs-dist', 'legacy', 'build'), { maxAge: '30d' }));
 
 // /choerle und /choerle/<lied> bleiben als Direktlinks erhalten: Sie liefern die
 // Startseite aus, die dort automatisch die Übe-Tracks über dem Chörle-Foto öffnet.

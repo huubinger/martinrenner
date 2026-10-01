@@ -1,0 +1,167 @@
+/* Frühstücks-Chörle: Übe-Tracks & Noten – gemeinsam für Startseite (Panel) und Vollbild-Seite */
+.ch-login label { margin-bottom: 0.2rem; }
+.ch-login .ch-login-row { display: flex; gap: 0.5rem; align-items: flex-end; }
+.ch-login .ch-login-row label { flex: 1; }
+.ch-login .form-submit { margin-top: 0; white-space: nowrap; }
+.ch-status { font-size: 0.85rem; color: #94a3b8; padding: 0.4rem 0; }
+.ch-status.error { color: #fca5a5; }
+.ch-songs { list-style: none; display: grid; gap: 0.45rem; }
+.ch-song {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ch-song:hover { background: rgba(255,255,255,0.09); border-color: rgba(56,189,248,0.5); }
+.ch-song-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34,197,94,0.16);
+  color: #86efac;
+}
+.ch-song-title { flex: 1; min-width: 0; }
+.ch-song-arrow { color: #64748b; }
+.ch-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.7rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: #cbd5e1;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ch-back:hover { background: rgba(255,255,255,0.12); color: #f8fafc; }
+.ch-song-head { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.7rem; }
+.ch-pdf { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.ch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: #38bdf8;
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.ch-btn:hover { background: #0ea5e9; }
+.ch-btn.ghost { background: rgba(255,255,255,0.08); color: #f8fafc; border: 1px solid rgba(255,255,255,0.2); }
+.ch-btn.ghost:hover { background: rgba(255,255,255,0.15); }
+.ch-tracks { display: grid; gap: 0.6rem; }
+.ch-track {
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.ch-track-name { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.45rem; }
+.ch-track audio { width: 100%; height: 36px; display: block; }
+.ch-track-tools { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.45rem; font-size: 0.72rem; color: #94a3b8; }
+.ch-speed {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: transparent;
+  color: #cbd5e1;
+  font-family: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.ch-speed.active { background: #38bdf8; border-color: #38bdf8; color: #0f172a; font-weight: 600; }
+.ch-practice { margin-top: 0.55rem; padding-top: 0.55rem; border-top: 1px dashed rgba(255,255,255,0.1); }
+.ch-bar {
+  position: relative;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: none;
+}
+.ch-bar-loop { position: absolute; top: 0; bottom: 0; background: rgba(34,197,94,0.22); border-left: 2px solid #22c55e; border-right: 2px solid #22c55e; display: none; }
+.ch-bar-loop.on { background: rgba(34,197,94,0.38); }
+.ch-bar-pos { position: absolute; top: 0; bottom: 0; left: 0; background: rgba(56,189,248,0.25); pointer-events: none; }
+.ch-bar-cue { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fbbf24; pointer-events: none; }
+.ch-bar-cue span { position: absolute; top: 1px; left: 3px; font-size: 0.6rem; font-weight: 700; color: #fbbf24; }
+.ch-practice-row { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.45rem; font-size: 0.72rem; color: #94a3b8; }
+.ch-speed.loop-on { background: #22c55e; border-color: #22c55e; color: #0f172a; font-weight: 600; }
+.ch-speed:disabled { opacity: 0.4; cursor: default; }
+.ch-cues { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-top: 0.4rem; }
+.ch-cues:empty { display: none; }
+.ch-cue {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(251,191,36,0.45);
+  background: rgba(251,191,36,0.1);
+  font-size: 0.72rem;
+  overflow: hidden;
+}
+.ch-cue button { border: none; background: transparent; color: #fde68a; font-family: inherit; font-size: 0.72rem; cursor: pointer; padding: 0.2rem 0.45rem; }
+.ch-cue button:hover { background: rgba(251,191,36,0.2); }
+.ch-cue [data-cue-del] { padding-left: 0.25rem; color: #94a3b8; }
+.ch-help { margin-top: 0.35rem; font-size: 0.68rem; color: #64748b; line-height: 1.4; }
+.ch-note { margin-top: 1rem; font-size: 0.72rem; line-height: 1.45; color: #94a3b8; }
+.ch-download { margin-left: auto; color: #38bdf8; text-decoration: none; font-weight: 600; }
+.ch-download:hover { text-decoration: underline; }
+.ch-cue [data-cue-go] { padding: 0.25rem 0.6rem; }
+.ch-cues.editing .ch-cue { border-color: rgba(248,113,113,0.5); }
+.ch-cues.editing .ch-cue [data-cue-del] { color: #fca5a5; padding: 0.25rem 0.55rem; border-left: 1px solid rgba(248,113,113,0.35); }
+.ch-cues.editing .ch-cue [data-cue-del]:hover { background: rgba(248,113,113,0.2); }
+.ch-speed.edit-on { background: #f87171; border-color: #f87171; color: #0f172a; font-weight: 600; }
+
+/* Geräte-Sync per 3-Wort-Code */
+.ch-sync {
+  margin-top: 0.9rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(56,189,248,0.25);
+  background: rgba(56,189,248,0.06);
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+.ch-sync-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.ch-sync-head strong { color: #f8fafc; }
+.ch-sync-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; color: #7dd3fc; letter-spacing: 0.02em; }
+.ch-sync-state { margin-left: auto; font-size: 0.7rem; color: #94a3b8; }
+.ch-sync-state.error { color: #fca5a5; }
+.ch-sync-body { margin-top: 0.5rem; }
+.ch-sync-body p { margin: 0 0 0.45rem; color: #94a3b8; font-size: 0.72rem; }
+.ch-sync-row { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+.ch-sync input {
+  flex: 1;
+  min-width: 10rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(15,23,42,0.6);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 16px; /* verhindert Auto-Zoom auf dem iPhone */
+}
+.ch-sync .ch-speed { font-size: 0.75rem; padding: 0.3rem 0.65rem; }
+.ch-practice-row[hidden] { display: none; }
