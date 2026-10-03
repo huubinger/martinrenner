@@ -201,3 +201,8 @@
 }
 .ch-cue input::placeholder { color: #64748b; }
 .ch-cue input:focus { outline: none; background: rgba(15,23,42,0.85); }
+
+/* Frisch angelegter Sync-Code: deutlich hervorheben, bis er bestätigt ist */
+.ch-sync.fresh { border-color: rgba(251,191,36,0.7); background: rgba(251,191,36,0.1); }
+.ch-sync-big { margin-top: 0.4rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.25rem; font-weight: 800; color: #fde68a; letter-spacing: 0.03em; word-break: break-word; }
+.ch-sync.fresh .ch-sync-body p { color: #e2e8f0; font-size: 0.78rem; }

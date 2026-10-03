@@ -3,6 +3,7 @@
 (function () {
   const MARKS_PREFIX = 'ch-marks:';
   const SYNC_KEY = 'ch-sync-code';
+  const SYNC_ACK_KEY = 'ch-sync-ack';   // Code, dessen Hinweis „bitte aufschreiben“ schon bestätigt wurde
 
   function esc(str) {
     return String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -90,7 +91,7 @@
     </div>`;
   }
 
-  const HELP_HTML = '<p class="ch-help">Tipp: „+ Cue" merkt sich die aktuelle Stelle zum schnellen Hinspringen. Mit „A setzen" und „B setzen" legst du Anfang und Ende eines Abschnitts fest, der dann in Schleife läuft. Unter „✎ Cues benennen / löschen" kannst du Cues einen Namen geben (z. B. „Refrain") oder sie löschen. Cues und Loops bleiben in diesem Browser gespeichert und lassen sich per Geräte-Sync auf Handy und Computer gleichzeitig nutzen.</p>';
+  const HELP_HTML = '<p class="ch-help">Tipp: „+ Cue" merkt sich die aktuelle Stelle zum schnellen Hinspringen. Mit „A setzen" und „B setzen" legst du Anfang und Ende eines Abschnitts fest, der dann in Schleife läuft. Unter „✎ Cues benennen / löschen" kannst du Cues einen Namen geben (z. B. „Refrain") oder sie löschen. Cues und Loops bleiben in diesem Browser gespeichert und lassen sich per Geräte-Sync auf Handy und Computer gleichzeitig nutzen. Wichtig: Den 3-Wort-Code aufschreiben – damit holst du deine Cues auch nach einer neuen Anmeldung oder in einem anderen Browser zurück.</p>';
 
   function duration(audio) {
     return isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null;
@@ -427,6 +428,17 @@
       } catch (e) {}
     },
 
+    // Neu angelegter Code, den die Person noch nicht bestätigt (aufgeschrieben) hat
+    fresh() {
+      const code = this.code();
+      if (!code) return false;
+      try { return localStorage.getItem(SYNC_ACK_KEY) !== code; } catch (e) { return false; }
+    },
+
+    ack() {
+      try { localStorage.setItem(SYNC_ACK_KEY, this.code()); } catch (e) {}
+    },
+
     changed() {
       clearTimeout(this.timer);
       this.timer = setTimeout(() => this.run(true), 600);
@@ -490,6 +502,7 @@
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.error || 'Verbinden fehlgeschlagen.');
         this.setCode(body.code);
+        this.ack();   // Code kam vom anderen Gerät – ist also schon bekannt
         this.open = false;
         this.apply(body.marks);
         this.setState('ok');
@@ -532,7 +545,11 @@
     const status = Sync.state === 'error'
       ? `<span class="ch-sync-state error">${esc(Sync.error)}</span>`
       : `<span class="ch-sync-state">${stateText}</span>`;
-    const head = code
+    const fresh = Sync.fresh() && !Sync.open;
+    box.classList.toggle('fresh', fresh);
+    const head = fresh
+      ? `<div class="ch-sync-head">📝 <strong>Dein persönlicher Code</strong>${status}</div><div class="ch-sync-big">${esc(code)}</div>`
+      : code
       ? `<div class="ch-sync-head">🔄 <strong>Geräte-Sync</strong> Code: <span class="ch-sync-code">${esc(code)}</span>${status}</div>`
       : `<div class="ch-sync-head">🔄 <strong>Cues auf Handy &amp; Computer nutzen</strong>${status}</div>`;
     const connectForm = `<form class="ch-sync-row" novalidate>
@@ -546,9 +563,11 @@
             <div class="ch-sync-row" style="margin-top:0.45rem"><button type="button" class="ch-speed" data-sync="off">Sync auf diesem Gerät beenden</button><button type="button" class="ch-speed" data-sync="close">Abbrechen</button></div></div>`
         : `<div class="ch-sync-body"><p>Schon einen Code von einem anderen Gerät? Hier eingeben:</p>${connectForm}
             <div class="ch-sync-row" style="margin-top:0.45rem"><button type="button" class="ch-speed" data-sync="new">Neuen Code erstellen</button><button type="button" class="ch-speed" data-sync="close">Abbrechen</button></div></div>`;
+    } else if (fresh) {
+      body = `<div class="ch-sync-body"><p><strong>Bitte aufschreiben oder ein Foto machen!</strong> Mit diesem Code holst du deine Cues aufs Handy (dort ein Lied öffnen, unter „Geräte-Sync" → „Code eingeben" eintippen) – und nach einer neuen Anmeldung oder in einem anderen Browser wieder zurück.</p><div class="ch-sync-row"><button type="button" class="ch-speed active" data-sync="ack">Hab ich notiert</button></div></div>`;
     } else {
       body = code
-        ? `<div class="ch-sync-body"><p>Deine Cues und Loops werden automatisch abgeglichen. Auf dem anderen Gerät beim Chörle unter „Geräte-Sync" diesen Code eingeben.</p><div class="ch-sync-row"><button type="button" class="ch-speed" data-sync="open">Code ändern / beenden</button></div></div>`
+        ? `<div class="ch-sync-body"><p>Deine Cues und Loops werden automatisch abgeglichen. Auf dem anderen Gerät (oder nach einer neuen Anmeldung) beim Chörle unter „Geräte-Sync" diesen Code eingeben.</p><div class="ch-sync-row"><button type="button" class="ch-speed" data-sync="open">Code ändern / beenden</button></div></div>`
         : `<div class="ch-sync-body"><p>Sobald du einen Cue setzt, bekommst du hier einen Code aus drei Wörtern. Auf dem anderen Gerät eingeben – dann sind deine Cues überall gleich.</p><div class="ch-sync-row"><button type="button" class="ch-speed" data-sync="open">Code eingeben / erstellen</button></div></div>`;
     }
     // Während der Eingabe nicht neu zeichnen (sonst geht der Text verloren)
@@ -565,7 +584,8 @@
     const b = e.target.closest('[data-sync]');
     if (!b) return;
     const act = b.dataset.sync;
-    if (act === 'open') Sync.open = true;
+    if (act === 'ack') Sync.ack();
+    else if (act === 'open') Sync.open = true;
     else if (act === 'close') Sync.open = false;
     else if (act === 'new') return Sync.create();
     else if (act === 'off') {
