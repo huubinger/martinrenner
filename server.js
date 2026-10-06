@@ -351,12 +351,100 @@ app.use(express.json());
 app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '365d', immutable: true }));
 
 // --- Kreatief-Musicals: musicals.martinrenner.de (auch unter /musicals erreichbar) ---
+// Passwortgeschützt (gemeinsames Passwort, Groß-/Kleinschreibung egal). Geschützt
+// sind Seite, data.json und Vorschaubilder; Logo/Stern/CSS braucht die Login-Seite.
 const MUSICALS_PAGE = path.join(__dirname, 'public', 'musicals', 'index.html');
+const MUSICALS_COOKIE = 'musicals_auth';
+const MUSICALS_COOKIE_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
+const MUSICALS_PASSWORD = String(process.env.MUSICALS_PASSWORD || 'daskreatief').trim().toLowerCase();
+const MUSICALS_TOKEN = crypto
+  .createHash('sha256')
+  .update(`musicals-v1:${MUSICALS_PASSWORD}:${process.env.CHOERLE_SECRET || ''}`)
+  .digest('hex');
+const MUSICALS_PUBLIC = new Set(['/musicals/musicals.css', '/musicals/kreatief_logo_weiss.png', '/musicals/kreatief_stern.svg']);
+const musicalsFailedLogins = new Map();
+
+function hasMusicalsAccess(req) {
+  const value = readCookie(req, MUSICALS_COOKIE);
+  if (!value || value.length !== MUSICALS_TOKEN.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(value), Buffer.from(MUSICALS_TOKEN));
+}
+
+function sendMusicalsLogin(res, error, status = 401) {
+  res.status(status).set('Cache-Control', 'no-store').send(`<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Kreatief-Musicals</title>
+  <link rel="icon" href="/musicals/kreatief_stern.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/musicals/musicals.css">
+  <style>
+    .login { max-width: 360px; margin: 1.6rem auto 0; display: flex; flex-direction: column; gap: .7rem; }
+    .login input { font: inherit; padding: .75rem 1rem; border-radius: var(--radius); border: 1px solid var(--line); background: var(--card); color: var(--text); text-align: center; }
+    .login button { padding: .75rem 1rem; border: 0; border-radius: var(--radius); background: var(--pink); color: #fff; font-weight: 600; }
+    .login button:hover { background: var(--pink-hell); }
+    .login .err { color: var(--pink-hell); font-size: .95rem; }
+    .hero { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="spot spot-a"></div>
+    <div class="spot spot-b"></div>
+    <div class="hero-inner">
+      <img class="logo" src="/musicals/kreatief_logo_weiss.png" alt="Kreatief – Kultur im Unterland e.V." width="200" height="129">
+      <h1>Kreatief-Musicals</h1>
+      <p class="lead">Dieser Bereich ist nur für Kreatief-Mitglieder. Bitte gib das Passwort ein.</p>
+      <form class="login" method="post" action="/musicals/login">
+        <input type="password" name="password" placeholder="Passwort" aria-label="Passwort" autocomplete="current-password" autofocus required>
+        <button type="submit">Weiter</button>
+        ${error ? `<p class="err">${escapeHtml(error)}</p>` : ''}
+      </form>
+    </div>
+  </header>
+</body>
+</html>`);
+}
+
+app.post('/musicals/login', (req, res) => {
+  const ip = req.headers['cf-connecting-ip'] || req.ip;
+  const now = Date.now();
+  const attempts = (musicalsFailedLogins.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
+  if (attempts.length >= 10) return sendMusicalsLogin(res, 'Zu viele Versuche. Bitte in ein paar Minuten erneut probieren.', 429);
+  if (String((req.body || {}).password || '').trim().toLowerCase() !== MUSICALS_PASSWORD) {
+    attempts.push(now);
+    musicalsFailedLogins.set(ip, attempts);
+    return sendMusicalsLogin(res, 'Das Passwort stimmt leider nicht.');
+  }
+  musicalsFailedLogins.delete(ip);
+  res.cookie(MUSICALS_COOKIE, MUSICALS_TOKEN, {
+    maxAge: MUSICALS_COOKIE_MAX_AGE_MS,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+    path: '/',
+  });
+  res.redirect(303, /^musicals\./i.test(req.hostname || '') ? '/' : '/musicals/');
+});
+
 app.use((req, res, next) => {
-  if (!/^musicals\./i.test(req.hostname || '')) return next();
-  if (req.path === '/' || req.path === '/index.html') return res.sendFile(MUSICALS_PAGE);
-  if (req.path.startsWith('/musicals/')) return next();
-  res.redirect(301, 'https://www.martinrenner.de' + req.originalUrl);
+  const isMusicalsHost = /^musicals\./i.test(req.hostname || '');
+  const isMusicalsPath = req.path === '/musicals' || req.path.startsWith('/musicals/');
+  if (!isMusicalsHost && !isMusicalsPath) return next();
+  if (isMusicalsHost && !isMusicalsPath && req.path !== '/' && req.path !== '/index.html') {
+    return res.redirect(301, 'https://www.martinrenner.de' + req.originalUrl);
+  }
+  if (MUSICALS_PUBLIC.has(req.path)) return next();
+  if (!hasMusicalsAccess(req)) {
+    if (req.method === 'GET' && (req.path === '/' || req.path === '/index.html' || req.path === '/musicals' || req.path === '/musicals/' || req.path === '/musicals/index.html')) {
+      return sendMusicalsLogin(res);
+    }
+    return res.status(401).set('Cache-Control', 'no-store').send('Bitte zuerst das Passwort eingeben.');
+  }
+  if (isMusicalsHost && (req.path === '/' || req.path === '/index.html')) return res.sendFile(MUSICALS_PAGE);
+  next();
 });
 app.get(['/musicals', '/musicals/'], (req, res) => res.sendFile(MUSICALS_PAGE));
 
@@ -895,7 +983,7 @@ function renderDatenschutzPage(settings) {
     <p>Die Übe-Tracks und Noten sind nur für Mitsingende gedacht und durch ein gemeinsames Passwort geschützt. Nach der richtigen Eingabe wird in deinem Browser ein technisch notwendiges Cookie („choerle_auth") gespeichert, damit du das Passwort nicht bei jedem Besuch erneut eingeben musst. Es enthält keine personenbezogenen Daten, dient ausschließlich der Zugangsfreigabe und wird nach 180 Tagen automatisch gelöscht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG i. V. m. Art. 6 Abs. 1 lit. f DSGVO; eine Einwilligung ist hierfür nicht erforderlich. Setzt du im Übe-Player Sprungmarken (Cues) oder einen Loop-Abschnitt, werden diese Zeitpunkte im Speicher deines Browsers (localStorage) abgelegt, damit sie beim nächsten Besuch wieder da sind. Damit du sie auf mehreren Geräten (z. B. Handy und Computer) nutzen kannst, werden sie zusätzlich auf unserem Server gespeichert und einem zufällig erzeugten Code aus drei Wörtern (Sync-Code) zugeordnet; der Code wird beim ersten Cue automatisch erstellt und in deinem Browser gemerkt. Gespeichert werden nur die Zeitpunkte, von dir vergebene Namen für Cues (z. B. „Refrain“), die zugehörige Track-Adresse und ein Hash-Wert des Codes – kein Name, keine E-Mail-Adresse und keine IP-Adresse. Wer den Code kennt, kann die Cues auf einem weiteren Gerät abrufen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b bzw. f DSGVO (Bereitstellung der von dir genutzten Funktion). Du kannst Cues jederzeit im Player löschen und den Sync auf einem Gerät beenden; auf Wunsch löschen wir die zu deinem Code gespeicherten Daten vollständig (Kontakt siehe oben). Zum Schutz vor dem Durchprobieren von Codes wird die IP-Adresse bei falschen Codes für höchstens 15 Minuten im Arbeitsspeicher des Servers vorgehalten. Zum Schutz vor dem Durchprobieren von Passwörtern wird die IP-Adresse bei Fehleingaben für höchstens 10 Minuten im Arbeitsspeicher des Servers vorgehalten und danach verworfen.</p>
 
     <h2>10. Cookies, lokaler Speicher und Tracking</h2>
-    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahme ist das technisch notwendige Zugangs-Cookie für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9), das nur nach Eingabe des Passworts gesetzt wird.</p>
+    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahmen sind die technisch notwendigen Zugangs-Cookies für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9) und für die Musical-Übersicht unter musicals.martinrenner.de („musicals_auth“, Speicherdauer 365 Tage); sie werden nur nach Eingabe des jeweiligen Passworts gesetzt, enthalten keine personenbezogenen Daten und dienen ausschließlich der Zugangsfreigabe (§ 25 Abs. 2 Nr. 2 TDDDG).</p>
     <p>Für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (§ 25 Abs. 2 Nr. 2 TDDDG); eine Einwilligung ist hierfür nicht erforderlich.</p>
     <p>Links zu anderen Websites (z. B. Instagram oder Projektseiten) sind einfache Verweise: Erst wenn du darauf klickst, wird die fremde Seite in einem neuen Tab geöffnet, und es gelten deren Datenschutzhinweise.</p>
 
