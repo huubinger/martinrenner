@@ -3341,6 +3341,7 @@
    "id": "troja-2",
    "titel": "Troja 2",
    "jahr": 2014,
+   "cover_bild": "troja-2.jpg",
    "beschreibung": "Wiederaufnahme des ersten Kreatief-Musicals von 2010 im Herbst 2014 mit einem komplett neuen, jungen Ensemble (Schüler und Ehemalige der Musical-AG der Hermann-Greiner-Realschule) samt neuer Band.",
    "team": {
     "Regie": "Martin Renner",
@@ -3649,6 +3650,7 @@
    "id": "skandal-im-harem",
    "titel": "Skandal im Harem",
    "jahr": 2012,
+   "cover_bild": "skandal-im-harem.jpg",
    "team": {
     "Regie": "Martin Renner",
     "Idee und Text": "Rolf Renner"

@@ -181,7 +181,7 @@
     if ((m.rollen || []).length) chips.push('<span class="chip">' + countPeople(m) + ' Mitwirkende</span>');
     return '<article class="musical" id="' + esc(m.id) + '" data-year="' + m.jahr + '">' +
       '<button class="m-head" type="button" aria-expanded="false">' +
-        '<span class="m-cover">' + (cover ? '<img src="' + thumb(cover) + '" alt="" loading="lazy" width="320" height="180">' : '<span class="no-img">' + esc(m.titel.charAt(0)) + '</span>') + '</span>' +
+        '<span class="m-cover">' + (m.cover_bild ? '<img src="/musicals/covers/' + esc(m.cover_bild) + '" alt="" loading="lazy" width="320" height="180">' : cover ?'<img src="' + thumb(cover) + '" alt="" loading="lazy" width="320" height="180">' : '<span class="no-img">' + esc(m.titel.charAt(0)) + '</span>') + '</span>' +
         '<span><span class="m-year">' + m.jahr + '</span>' +
           '<span class="m-title" style="display:block">' + esc(m.titel) + '</span>' +
           (m.untertitel ? '<span class="m-sub" style="display:block">' + esc(m.untertitel) + '</span>' : '') +
