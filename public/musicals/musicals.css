@@ -176,6 +176,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 1rem 3rem; }
   padding: 0.15rem 0.6rem; border-radius: 999px;
   background: rgba(232, 228, 240, 0.1); color: var(--text);
 }
+.chip.gold { background: rgba(246, 199, 91, 0.18); color: var(--gold); }
 .chip.pink { background: rgba(230, 72, 137, 0.2); color: var(--pink-hell); }
 .m-toggle {
   width: 2.6rem; height: 2.6rem; border-radius: 50%;

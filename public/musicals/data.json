@@ -1,6 +1,29 @@
 {
  "musicals": [
   {
+   "id": "musical-revue-2026",
+   "titel": "Musical-Revue",
+   "jahr": 2026,
+   "typ": "gala",
+   "vorstellungen": [
+    {
+     "name": "Musical-Revue",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "-lIosCAPlBs",
+       "dauer": 9856,
+       "label": "Livestream"
+      }
+     ],
+     "datum": "2026-02-25",
+     "hinweis": "Livestream von Robin Gerold"
+    }
+   ],
+   "rollen": []
+  },
+  {
    "id": "festgefahren",
    "titel": "FESTgefahren",
    "jahr": 2026,
@@ -264,8 +287,73 @@
       "Max": "Benjamin Müller",
       "Emil": "Rolf Renner"
      }
+    },
+    {
+     "name": "Derniere",
+     "art": "show",
+     "nr": 999,
+     "teile": [
+      {
+       "yt": "ao_ipy19ono",
+       "dauer": 10671,
+       "label": "Livestream"
+      }
+     ],
+     "datum": "2026-07-19",
+     "besetzung": {
+      "Sonja": "Laura Makare",
+      "Barbara": "Janine Keicher",
+      "Lulu": "Julia Adam",
+      "Milli": "Marie Götzinger",
+      "Kiki": "Julia Sedelies",
+      "Lisbeth": "Keira Byrne",
+      "Leonie": "Emilia Kontidis",
+      "Jupp": "Steffen Kürschner",
+      "Bob": "Elias Srir",
+      "Justus": "Franz P. Griger",
+      "Max": "Tristan Pape",
+      "Emil": "Joachim Weber-Haußmann"
+     },
+     "hinweis": "Livestream von Robin Gerold"
     }
    ]
+  },
+  {
+   "id": "musicalgala-2025",
+   "titel": "Musicalgala",
+   "jahr": 2025,
+   "typ": "gala",
+   "vorstellungen": [
+    {
+     "name": "1. Gala",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "LCZCsIikkao",
+       "dauer": 11920,
+       "label": "Livestream"
+      }
+     ],
+     "datum": "2025-10-11",
+     "hinweis": "Livestream von Robin Gerold"
+    },
+    {
+     "name": "2. Gala",
+     "art": "show",
+     "nr": 2,
+     "teile": [
+      {
+       "yt": "XP0QHR6GOSs",
+       "dauer": 11930,
+       "label": "Livestream"
+      }
+     ],
+     "datum": "2025-10-12",
+     "hinweis": "Livestream von Robin Gerold"
+    }
+   ],
+   "rollen": []
   },
   {
    "id": "tina-zieht-an",
@@ -806,6 +894,35 @@
      }
     },
     {
+     "name": "Derniere (Livestream)",
+     "art": "show",
+     "nr": 1000,
+     "teile": [
+      {
+       "yt": "pSmruM1xIBI",
+       "dauer": 11879,
+       "label": "Livestream"
+      }
+     ],
+     "datum": "2025-08-03",
+     "besetzung": {
+      "Ben": "Steffen Kürschner",
+      "Bonnie": "Elena Schlaupitz",
+      "Clyde": "Elias Srir",
+      "Elke": "Keira Byrne",
+      "Ella": "Sofie Reichert-Wendt",
+      "Erwin": "Gunter Wöhr",
+      "Frederick": "Martin Renner",
+      "Frieda": "Marie Götzinger",
+      "Hannelore": "Janine Keicher",
+      "Heinrich": "Joachim Weber-Haußmann",
+      "Ingo": "Franz P. Griger",
+      "Sheila": "Jana Gleich",
+      "Tina": "Julia Adam"
+     },
+     "hinweis": "Livestream von Robin Gerold"
+    },
+    {
      "name": "Kurzversion (33 Minuten)",
      "art": "highlight",
      "nr": 0,
@@ -818,6 +935,50 @@
      ]
     }
    ]
+  },
+  {
+   "id": "jubilaeumsgala",
+   "titel": "Jubiläumsgala",
+   "jahr": 2025,
+   "typ": "gala",
+   "vorstellungen": [
+    {
+     "name": "Jubiläumsgala",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "XzV87YWXfcU",
+       "dauer": 4349,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "J8_5vSaDMqQ",
+       "dauer": 5607,
+       "label": "Teil 2"
+      }
+     ]
+    },
+    {
+     "name": "Jubiläumsgala (Totale)",
+     "art": "show",
+     "nr": 2,
+     "teile": [
+      {
+       "yt": "OYNhjxfsWdI",
+       "dauer": 4264,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "NAAiIESXwdc",
+       "dauer": 5610,
+       "label": "Teil 2"
+      }
+     ],
+     "hinweis": "Ungeschnittene Gesamtansicht der Bühne"
+    }
+   ],
+   "rollen": []
   },
   {
    "id": "der-durchbruch",

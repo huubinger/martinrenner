@@ -161,8 +161,8 @@
       sectionShows(m, shows, shows.length === 1 ? 'Vorstellung' : 'Vorstellungen') +
       sectionShows(m, extra, 'Highlights') +
       sectionShows(m, proben, 'Proben') +
-      (m.vorstellungen.length ? '' : '<p class="note" style="margin-top:1.1rem">Von diesem Musical gibt es keine Aufzeichnung auf YouTube.</p>') +
-      '<h3 class="sec">Besetzung</h3>' + castBlock(m);
+      (m.typ === 'gala' ? '' : '<h3 class="sec">Besetzung</h3>' + castBlock(m)) +
+      (m.vorstellungen.length ? '' : '<p class="note" style="margin-top:1.1rem">Von diesem Musical gibt es keine Aufzeichnung auf YouTube.</p>');
   }
 
   function countShows(m) {
@@ -173,6 +173,7 @@
     var n = countShows(m);
     var cover = m.cover || (m.vorstellungen[0] && m.vorstellungen[0].teile[0].yt);
     var chips = [];
+    if (m.typ === 'gala') chips.push('<span class="chip gold">Gala</span>');
     if (n) chips.push('<span class="chip pink">' + n + (n === 1 ? ' Vorstellung' : ' Vorstellungen') + '</span>');
     var ex = m.vorstellungen.filter(function (s) { return s.art === 'highlight'; }).length;
     if (ex && !n) chips.push('<span class="chip">' + (ex === 1 ? m.vorstellungen.filter(function (s) { return s.art === 'highlight'; })[0].name : ex + ' Highlights') + '</span>');
@@ -216,13 +217,13 @@
       var m = DATA.musicals.filter(function (x) { return x.jahr === y; })[0];
       return '<a href="#' + esc(m.id) + '">' + y + '</a>';
     }).join('');
-    var shows = 0, videos = 0;
+    var shows = 0;
     DATA.musicals.forEach(function (m) {
       shows += countShows(m);
-      m.vorstellungen.forEach(function (s) { videos += s.teile.length; });
     });
+    var galas = DATA.musicals.filter(function (m) { return m.typ === 'gala'; }).length;
     document.getElementById('stats').textContent =
-      DATA.musicals.length + ' Musicals · ' + shows + ' Vorstellungen · ' + videos + ' Videos';
+      (DATA.musicals.length - galas) + ' Musicals · ' + galas + ' Galas · ' + shows + ' Aufzeichnungen';
   }
 
   // --- Suche -----------------------------------------------------------------
