@@ -1,0 +1,3771 @@
+{
+ "musicals": [
+  {
+   "id": "festgefahren",
+   "titel": "FESTgefahren",
+   "jahr": 2026,
+   "beschreibung": "Eine bunt zusammengewürfelte Gruppe – Schulleiter Justus mit Tochter Leonie, Barbara und ihr chaotischer Freund Emil, Lehrerin Sonja, ein Ruhrpott-LKW-Fahrer, eine Indie-Band und zwei Tierfänger – steckt im Stau fest; aus Frust entsteht Gemeinschaft, und der Stau wird zum FEST.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Autoren": "Martin Renner, Rolf Renner",
+    "Gesang/Sound (Vocal-Coach)": "Patrick Bach",
+    "Choreografie": "Ioannis Kontidis",
+    "Arrangements": "Christiane Kärcher, Patrick Bach",
+    "Kostüme": "Joah Fröhlich"
+   },
+   "rollen": [
+    {
+     "rolle": "Sonja",
+     "darsteller": [
+      "Jana Gleich",
+      "Laura Makare"
+     ]
+    },
+    {
+     "rolle": "Barbara",
+     "darsteller": [
+      "Petra Held",
+      "Janine Keicher"
+     ]
+    },
+    {
+     "rolle": "Lulu",
+     "darsteller": [
+      "Kimberley Wöhr",
+      "Julia Adam"
+     ]
+    },
+    {
+     "rolle": "Milli",
+     "darsteller": [
+      "Hope Hamm",
+      "Marie Götzinger"
+     ]
+    },
+    {
+     "rolle": "Kiki",
+     "darsteller": [
+      "Elisabeth Karasek",
+      "Julia Sedelies"
+     ]
+    },
+    {
+     "rolle": "Lisbeth",
+     "darsteller": [
+      "Karoline Karajan",
+      "Keira Byrne"
+     ]
+    },
+    {
+     "rolle": "Leonie",
+     "darsteller": [
+      "Josephine Schädel",
+      "Emilia Kontidis"
+     ]
+    },
+    {
+     "rolle": "Jupp",
+     "darsteller": [
+      "Patrick Kärcher",
+      "Steffen Kürschner"
+     ]
+    },
+    {
+     "rolle": "Bob",
+     "darsteller": [
+      "Manuel Wöhr",
+      "Elias Srir"
+     ]
+    },
+    {
+     "rolle": "Justus",
+     "darsteller": [
+      "Martin Renner",
+      "Franz P. Griger"
+     ]
+    },
+    {
+     "rolle": "Max",
+     "darsteller": [
+      "Benjamin Müller",
+      "Tristan Pape"
+     ]
+    },
+    {
+     "rolle": "Emil",
+     "darsteller": [
+      "Rolf Renner",
+      "Joachim Weber-Haußmann"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Generalprobe",
+     "art": "probe",
+     "nr": 0,
+     "teile": [
+      {
+       "yt": "t_wRIOqekVQ",
+       "dauer": 3832,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "1nh5Ry8oZdA",
+       "dauer": 3808,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2026-06-11",
+     "besetzung": {
+      "Sonja": "Jana Gleich",
+      "Barbara": "Petra Held",
+      "Lulu": "Kimberley Wöhr",
+      "Milli": "Hope Hamm",
+      "Kiki": "Elisabeth Karasek",
+      "Lisbeth": "Karoline Karajan",
+      "Leonie": "Josephine Schädel",
+      "Jupp": "Patrick Kärcher",
+      "Bob": "Manuel Wöhr",
+      "Justus": "Martin Renner",
+      "Max": "Benjamin Müller",
+      "Emil": "Rolf Renner"
+     }
+    },
+    {
+     "name": "Premiere",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "KrT1kEvGa6k",
+       "dauer": 3864,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "OEpObqQX6Zo",
+       "dauer": 4026,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2026-06-12",
+     "besetzung": {
+      "Sonja": "Jana Gleich",
+      "Barbara": "Petra Held",
+      "Lulu": "Kimberley Wöhr",
+      "Milli": "Hope Hamm",
+      "Kiki": "Elisabeth Karasek",
+      "Lisbeth": "Karoline Karajan",
+      "Leonie": "Josephine Schädel",
+      "Jupp": "Patrick Kärcher",
+      "Bob": "Manuel Wöhr",
+      "Justus": "Martin Renner",
+      "Max": "Benjamin Müller",
+      "Emil": "Rolf Renner"
+     }
+    },
+    {
+     "name": "2. Show",
+     "art": "show",
+     "nr": 2,
+     "teile": [
+      {
+       "yt": "H6iCpGcJH3Q",
+       "dauer": 3836,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "g0uQXXAWEeI",
+       "dauer": 3987,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2026-06-13",
+     "besetzung": {
+      "Sonja": "Laura Makare",
+      "Barbara": "Janine Keicher",
+      "Lulu": "Julia Adam",
+      "Milli": "Marie Götzinger",
+      "Kiki": "Julia Sedelies",
+      "Lisbeth": "Keira Byrne",
+      "Leonie": "Emilia Kontidis",
+      "Jupp": "Steffen Kürschner",
+      "Bob": "Elias Srir",
+      "Justus": "Franz P. Griger",
+      "Max": "Tristan Pape",
+      "Emil": "Joachim Weber-Haußmann"
+     }
+    },
+    {
+     "name": "3. Show",
+     "art": "show",
+     "nr": 3,
+     "teile": [
+      {
+       "yt": "fAJStxgRpQg",
+       "dauer": 4017,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "xGwpABYK3NA",
+       "dauer": 3350,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2026-06-14",
+     "besetzung": {
+      "Sonja": "Jana Gleich",
+      "Barbara": "Petra Held",
+      "Lulu": "Julia Adam",
+      "Milli": "Hope Hamm",
+      "Kiki": "Elisabeth Karasek",
+      "Lisbeth": "Keira Byrne",
+      "Leonie": "Josephine Schädel",
+      "Jupp": "Patrick Kärcher",
+      "Bob": "Elias Srir",
+      "Justus": "Martin Renner",
+      "Max": "Benjamin Müller",
+      "Emil": "Joachim Weber-Haußmann"
+     }
+    },
+    {
+     "name": "5. Show",
+     "art": "show",
+     "nr": 5,
+     "teile": [
+      {
+       "yt": "V5wrkZhf_lk",
+       "dauer": 3833,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "VXDR94FFff8",
+       "dauer": 2879,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "uSt4BbEST1I",
+       "dauer": 1106,
+       "label": "Teil 3"
+      }
+     ],
+     "datum": "2026-06-20",
+     "besetzung": {
+      "Sonja": "Jana Gleich",
+      "Barbara": "Janine Keicher",
+      "Lulu": "Julia Adam",
+      "Milli": "Marie Götzinger",
+      "Kiki": "Julia Sedelies",
+      "Lisbeth": "Keira Byrne",
+      "Leonie": "Josephine Schädel",
+      "Jupp": "Patrick Kärcher",
+      "Bob": "Elias Srir",
+      "Justus": "Franz P. Griger",
+      "Max": "Benjamin Müller",
+      "Emil": "Rolf Renner"
+     }
+    }
+   ]
+  },
+  {
+   "id": "tina-zieht-an",
+   "titel": "Tina zieht an",
+   "jahr": 2025,
+   "beschreibung": "Die junge Modedesignerin Tina hält sich mit Second-Hand-Laden und Änderungsschneiderei über Wasser; zwei charmante Senioren verhelfen ihr zum ersten großen Auftrag – doch als das Label H & K und Chefdesignerin Sheila aufmerksam werden, werden ihre Ideen geklaut. Kreative Mode, geklaute Ideen und tanzwütige Senioren.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Autoren": "Rolf Renner, Martin Renner",
+    "Gesangscoach": "Patrick Bach"
+   },
+   "rollen": [
+    {
+     "rolle": "Tina",
+     "darsteller": [
+      "Laura Makare",
+      "Julia Adam"
+     ]
+    },
+    {
+     "rolle": "Sheila",
+     "darsteller": [
+      "Ivana Cocozza",
+      "Jana Gleich"
+     ]
+    },
+    {
+     "rolle": "Ella",
+     "darsteller": [
+      "Sofie Reichert-Wendt",
+      "Katja Löw"
+     ]
+    },
+    {
+     "rolle": "Bonnie",
+     "darsteller": [
+      "Elena Schlaupitz",
+      "Julia Sedelies"
+     ]
+    },
+    {
+     "rolle": "Clyde",
+     "darsteller": [
+      "Manuel Wöhr",
+      "Elias Srir"
+     ]
+    },
+    {
+     "rolle": "Hannelore",
+     "darsteller": [
+      "Petra Held",
+      "Janine Keicher"
+     ]
+    },
+    {
+     "rolle": "Frieda",
+     "darsteller": [
+      "Kimberley Wöhr",
+      "Marie Götzinger"
+     ]
+    },
+    {
+     "rolle": "Elke",
+     "darsteller": [
+      "Radana Geiger",
+      "Keira Byrne"
+     ]
+    },
+    {
+     "rolle": "Ben",
+     "darsteller": [
+      "Steffen Kürschner",
+      "Patrick Kärcher"
+     ]
+    },
+    {
+     "rolle": "Ingo",
+     "darsteller": [
+      "Franz P. Griger",
+      "Julian Löw"
+     ]
+    },
+    {
+     "rolle": "Frederick",
+     "darsteller": [
+      "Martin Renner",
+      "Michael Sommer"
+     ]
+    },
+    {
+     "rolle": "Erwin",
+     "darsteller": [
+      "Gunter Wöhr",
+      "Rolf Renner"
+     ]
+    },
+    {
+     "rolle": "Heinrich",
+     "darsteller": [
+      "Rolf Römmele",
+      "Joachim Weber-Haußmann"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Premiere",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "t8eiJ1bM-Ds",
+       "dauer": 4415,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "YohJpw5xfB8",
+       "dauer": 4188,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-06-27",
+     "besetzung": {
+      "Ben": "Patrick Kärcher",
+      "Bonnie": "Julia Sedelies",
+      "Clyde": "Manuel Wöhr",
+      "Elke": "Radana Geiger",
+      "Ella": "Katja Löw",
+      "Erwin": "Rolf Renner",
+      "Frederick": "Michael Sommer",
+      "Frieda": "Kimberley Wöhr",
+      "Hannelore": "Petra Held",
+      "Heinrich": "Rolf Römmele",
+      "Ingo": "Julian Löw",
+      "Sheila": "Ivana Cocozza",
+      "Tina": "Laura Makare"
+     }
+    },
+    {
+     "name": "2. Show",
+     "art": "show",
+     "nr": 2,
+     "teile": [
+      {
+       "yt": "pxZCeo2vk-s",
+       "dauer": 4449,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "mWAcbkioH2I",
+       "dauer": 3789,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-06-28",
+     "besetzung": {
+      "Ben": "Steffen Kürschner",
+      "Bonnie": "Elena Schlaupitz",
+      "Clyde": "Elias Srir",
+      "Elke": "Keira Byrne",
+      "Ella": "Sofie Reichert-Wendt",
+      "Erwin": "Gunter Wöhr",
+      "Frederick": "Martin Renner",
+      "Frieda": "Marie Götzinger",
+      "Hannelore": "Janine Keicher",
+      "Heinrich": "Joachim Weber-Haußmann",
+      "Ingo": "Franz P. Griger",
+      "Sheila": "Jana Gleich",
+      "Tina": "Julia Adam"
+     }
+    },
+    {
+     "name": "3. Show",
+     "art": "show",
+     "nr": 3,
+     "teile": [
+      {
+       "yt": "2e7My0VwSPM",
+       "dauer": 4133,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "eAeFuGCyuL4",
+       "dauer": 5138,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-06-29",
+     "besetzung": {
+      "Ben": "Patrick Kärcher",
+      "Bonnie": "Julia Sedelies",
+      "Clyde": "Manuel Wöhr",
+      "Elke": "Radana Geiger",
+      "Ella": "Sofie Reichert-Wendt",
+      "Erwin": "Gunter Wöhr",
+      "Frederick": "Martin Renner",
+      "Frieda": "Kimberley Wöhr",
+      "Hannelore": "Petra Held",
+      "Heinrich": "Rolf Römmele",
+      "Ingo": "Franz P. Griger",
+      "Sheila": "Ivana Cocozza",
+      "Tina": "Julia Adam"
+     }
+    },
+    {
+     "name": "4. Show",
+     "art": "show",
+     "nr": 4,
+     "teile": [
+      {
+       "yt": "E3KQtegzSy4",
+       "dauer": 4275,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "QoORmdU66Qo",
+       "dauer": 3951,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-07-04",
+     "besetzung": {
+      "Ben": "Steffen Kürschner",
+      "Bonnie": "Julia Sedelies",
+      "Clyde": "Elias Srir",
+      "Elke": "Radana Geiger",
+      "Ella": "Sofie Reichert-Wendt",
+      "Erwin": "Rolf Renner",
+      "Frederick": "Martin Renner",
+      "Frieda": "Marie Götzinger",
+      "Hannelore": "Janine Keicher",
+      "Heinrich": "Joachim Weber-Haußmann",
+      "Ingo": "Franz P. Griger",
+      "Sheila": "Jana Gleich",
+      "Tina": "Laura Makare"
+     }
+    },
+    {
+     "name": "5. Show",
+     "art": "show",
+     "nr": 5,
+     "teile": [
+      {
+       "yt": "VDzhL1vHIy4",
+       "dauer": 4366,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "AOpxkk5RIBA",
+       "dauer": 7052,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-07-05",
+     "besetzung": {
+      "Ben": "Patrick Kärcher",
+      "Bonnie": "Elena Schlaupitz",
+      "Clyde": "Elias Srir",
+      "Elke": "Keira Byrne",
+      "Ella": "Katja Löw",
+      "Erwin": "Gunter Wöhr",
+      "Frederick": "Michael Sommer",
+      "Frieda": "Kimberley Wöhr",
+      "Hannelore": "Petra Held",
+      "Heinrich": "Rolf Römmele",
+      "Ingo": "Julian Löw",
+      "Sheila": "Ivana Cocozza",
+      "Tina": "Julia Adam"
+     }
+    },
+    {
+     "name": "6. Show",
+     "art": "show",
+     "nr": 6,
+     "teile": [
+      {
+       "yt": "DG9t3CBKuwE",
+       "dauer": 4260,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "zS7FGdTvLK0",
+       "dauer": 3273,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "lvXeBaoK8f8",
+       "dauer": 629,
+       "label": "Teil 3"
+      }
+     ],
+     "datum": "2025-07-06",
+     "besetzung": {
+      "Ben": "Steffen Kürschner",
+      "Bonnie": "Elena Schlaupitz",
+      "Clyde": "Manuel Wöhr",
+      "Elke": "Keira Byrne",
+      "Ella": "Sofie Reichert-Wendt",
+      "Erwin": "Rolf Renner",
+      "Frederick": "Martin Renner",
+      "Frieda": "Marie Götzinger",
+      "Hannelore": "Janine Keicher",
+      "Heinrich": "Joachim Weber-Haußmann",
+      "Ingo": "Julian Löw",
+      "Sheila": "Jana Gleich",
+      "Tina": "Laura Makare"
+     }
+    },
+    {
+     "name": "7. Show",
+     "art": "show",
+     "nr": 7,
+     "teile": [
+      {
+       "yt": "HgH7wYZyqKk",
+       "dauer": 4319,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "n_JihOOJzoY",
+       "dauer": 4065,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-07-11",
+     "besetzung": {
+      "Ben": "Patrick Kärcher",
+      "Bonnie": "Julia Sedelies",
+      "Clyde": "Manuel Wöhr",
+      "Elke": "Keira Byrne",
+      "Ella": "Katja Löw",
+      "Erwin": "Gunter Wöhr",
+      "Frederick": "Michael Sommer",
+      "Frieda": "Marie Götzinger",
+      "Hannelore": "Janine Keicher",
+      "Heinrich": "Rolf Römmele",
+      "Ingo": "Franz P. Griger",
+      "Sheila": "Ivana Cocozza",
+      "Tina": "Julia Adam"
+     }
+    },
+    {
+     "name": "8. Show",
+     "art": "show",
+     "nr": 8,
+     "teile": [
+      {
+       "yt": "DQ-oedGEiGg",
+       "dauer": 4422,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "EKV8R6MGQT0",
+       "dauer": 4213,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-07-12",
+     "besetzung": {
+      "Ben": "Steffen Kürschner",
+      "Bonnie": "Julia Sedelies",
+      "Clyde": "Manuel Wöhr",
+      "Elke": "Radana Geiger",
+      "Ella": "Sofie Reichert-Wendt",
+      "Erwin": "Rolf Renner",
+      "Frederick": "Martin Renner",
+      "Frieda": "Kimberley Wöhr",
+      "Hannelore": "Petra Held",
+      "Heinrich": "Rolf Römmele",
+      "Ingo": "Franz P. Griger",
+      "Sheila": "Jana Gleich",
+      "Tina": "Laura Makare"
+     }
+    },
+    {
+     "name": "9. Show",
+     "art": "show",
+     "nr": 9,
+     "teile": [
+      {
+       "yt": "WhaedQWpvII",
+       "dauer": 2778,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "IvdsNPifoC8",
+       "dauer": 4026,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-07-13",
+     "besetzung": {
+      "Ben": "Patrick Kärcher",
+      "Bonnie": "Julia Sedelies",
+      "Clyde": "Elias Srir",
+      "Elke": "Radana Geiger",
+      "Ella": "Katja Löw",
+      "Erwin": "Gunter Wöhr",
+      "Frederick": "Michael Sommer",
+      "Frieda": "Kimberley Wöhr",
+      "Hannelore": "Janine Keicher",
+      "Heinrich": "Joachim Weber-Haußmann",
+      "Ingo": "Julian Löw",
+      "Sheila": "Ivana Cocozza",
+      "Tina": "Laura Makare"
+     }
+    },
+    {
+     "name": "10. Show",
+     "art": "show",
+     "nr": 10,
+     "teile": [
+      {
+       "yt": "ykcLfJCzqyg",
+       "dauer": 4267,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "pYLQJnyKPmY",
+       "dauer": 4135,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-07-18",
+     "besetzung": {
+      "Ben": "Steffen Kürschner",
+      "Bonnie": "Elena Schlaupitz",
+      "Clyde": "Manuel Wöhr",
+      "Elke": "Keira Byrne",
+      "Ella": "Sofie Reichert-Wendt",
+      "Erwin": "Gunter Wöhr",
+      "Frederick": "Michael Sommer",
+      "Frieda": "Kimberley Wöhr",
+      "Hannelore": "Petra Held",
+      "Heinrich": "Joachim Weber-Haußmann",
+      "Ingo": "Julian Löw",
+      "Sheila": "Ivana Cocozza",
+      "Tina": "Julia Adam"
+     }
+    },
+    {
+     "name": "11. Show",
+     "art": "show",
+     "nr": 11,
+     "teile": [
+      {
+       "yt": "wh-NtyIaoAc",
+       "dauer": 4460,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "LP7s2a8W_HM",
+       "dauer": 4127,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-07-19",
+     "besetzung": {
+      "Ben": "Patrick Kärcher",
+      "Bonnie": "Elena Schlaupitz",
+      "Clyde": "Elias Srir",
+      "Elke": "Keira Byrne",
+      "Ella": "Katja Löw",
+      "Erwin": "Rolf Renner",
+      "Frederick": "Michael Sommer",
+      "Frieda": "Marie Götzinger",
+      "Hannelore": "Janine Keicher",
+      "Heinrich": "Joachim Weber-Haußmann",
+      "Ingo": "Franz P. Griger",
+      "Sheila": "Ivana Cocozza",
+      "Tina": "Laura Makare"
+     }
+    },
+    {
+     "name": "16. Show",
+     "art": "show",
+     "nr": 16,
+     "teile": [
+      {
+       "yt": "8da7qDrGVSE",
+       "dauer": 4281,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "Ln03oMjzWFw",
+       "dauer": 3998,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-08-01",
+     "besetzung": {
+      "Ben": "Steffen Kürschner",
+      "Bonnie": "Elena Schlaupitz",
+      "Clyde": "Manuel Wöhr",
+      "Elke": "Keira Byrne",
+      "Ella": "Sofie Reichert-Wendt",
+      "Erwin": "Gunter Wöhr",
+      "Frederick": "Michael Sommer",
+      "Frieda": "Marie Götzinger",
+      "Hannelore": "Petra Held",
+      "Heinrich": "Joachim Weber-Haußmann",
+      "Ingo": "Franz P. Griger",
+      "Sheila": "Jana Gleich",
+      "Tina": "Julia Adam"
+     }
+    },
+    {
+     "name": "Derniere",
+     "art": "show",
+     "nr": 999,
+     "teile": [
+      {
+       "yt": "25pT-06_kv4",
+       "dauer": 5113,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "ZeUmSYMOHb8",
+       "dauer": 4261,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2025-08-03",
+     "besetzung": {
+      "Ben": "Steffen Kürschner",
+      "Bonnie": "Elena Schlaupitz",
+      "Clyde": "Elias Srir",
+      "Elke": "Keira Byrne",
+      "Ella": "Sofie Reichert-Wendt",
+      "Erwin": "Gunter Wöhr",
+      "Frederick": "Martin Renner",
+      "Frieda": "Marie Götzinger",
+      "Hannelore": "Janine Keicher",
+      "Heinrich": "Joachim Weber-Haußmann",
+      "Ingo": "Franz P. Griger",
+      "Sheila": "Jana Gleich",
+      "Tina": "Julia Adam"
+     }
+    },
+    {
+     "name": "Kurzversion (33 Minuten)",
+     "art": "highlight",
+     "nr": 0,
+     "teile": [
+      {
+       "yt": "RRon3ldQlng",
+       "dauer": 2031,
+       "label": "Kurzversion"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "der-durchbruch",
+   "titel": "Der Durchbruch",
+   "jahr": 2024,
+   "beschreibung": "Kleinkrimineller Ferdi landet im Hamburger Gefängnis Santa Fu bei den Gaunern Toni und Carlo von der „Phantom-Bande“; nach einer Theatertherapie gelingt beim JVA-Sommerfest der Ausbruch – Showdown auf der Reeperbahn, während Anwältin Justina ihren verschwundenen Verlobten sucht.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Autoren": "Rolf Renner, Martin Renner",
+    "Gesangscoach & Arrangements": "Patrick Bach",
+    "Choreografie": "Ioannis Kontidis, Evelyn Schell",
+    "Kostüme": "Joah Fröhlich"
+   },
+   "rollen": [
+    {
+     "rolle": "Ferdi",
+     "darsteller": [
+      "Patrick Kärcher",
+      "Steffen Kürschner"
+     ]
+    },
+    {
+     "rolle": "Carlo",
+     "darsteller": [
+      "Franz P. Griger",
+      "Martin Renner"
+     ]
+    },
+    {
+     "rolle": "Toni Johnson",
+     "darsteller": [
+      "Elias Srir",
+      "Joah Fröhlich"
+     ]
+    },
+    {
+     "rolle": "Annabelle",
+     "darsteller": [
+      "Jana Gleich",
+      "Laura Makare"
+     ]
+    },
+    {
+     "rolle": "Justina Rathmann",
+     "darsteller": [
+      "Julia Adam",
+      "Jessica Siegel"
+     ]
+    },
+    {
+     "rolle": "Björn Bogdanovic",
+     "darsteller": [
+      "Manuel Wöhr",
+      "Jannis Grimm"
+     ]
+    },
+    {
+     "rolle": "Dr. Agathe Hansen",
+     "darsteller": [
+      "Christiane Eitzenhöffer",
+      "Tina Feil"
+     ]
+    },
+    {
+     "rolle": "Steph",
+     "darsteller": [
+      "Marie Götzinger",
+      "Elena Schlaupitz"
+     ]
+    },
+    {
+     "rolle": "Dr. Josefine Rathmann",
+     "darsteller": [
+      "Petra Held",
+      "Simone Köllner"
+     ]
+    },
+    {
+     "rolle": "Roland Rathmann",
+     "darsteller": [
+      "Rolf Renner",
+      "Gunter Wöhr"
+     ]
+    },
+    {
+     "rolle": "Kerkermeister",
+     "darsteller": [
+      "Julian Löw",
+      "Michael Sommer"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Premiere",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "VI-HelBr1Do",
+       "dauer": 3211,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "3wHOYIW1C9Q",
+       "dauer": 3117,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2024-06-14",
+     "besetzung": {
+      "Annabelle": "Jana Gleich",
+      "Justina Rathmann": "Jessica Siegel",
+      "Dr. Agathe Hansen": "Christiane Eitzenhöffer",
+      "Steph": "Marie Götzinger",
+      "Dr. Josefine Rathmann": "Simone Köllner",
+      "Toni Johnson": "Elias Srir",
+      "Ferdi": "Patrick Kärcher",
+      "Björn Bogdanovic": "Manuel Wöhr",
+      "Carlo": "Franz P. Griger",
+      "Kerkermeister": "Julian Löw",
+      "Roland Rathmann": "Rolf Renner"
+     }
+    },
+    {
+     "name": "2. Show",
+     "art": "show",
+     "nr": 2,
+     "teile": [
+      {
+       "yt": "7kxUqXy_Bgg",
+       "dauer": 3264,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "zgHeDrTnqrc",
+       "dauer": 3192,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2024-06-15",
+     "besetzung": {
+      "Annabelle": "Laura Makare",
+      "Justina Rathmann": "Julia Adam",
+      "Dr. Agathe Hansen": "Christiane Eitzenhöffer",
+      "Steph": "Elena Schlaupitz",
+      "Dr. Josefine Rathmann": "Petra Held",
+      "Toni Johnson": "Joah Fröhlich",
+      "Ferdi": "Steffen Kürschner",
+      "Björn Bogdanovic": "Manuel Wöhr",
+      "Carlo": "Martin Renner",
+      "Kerkermeister": "Michael Sommer",
+      "Roland Rathmann": "Gunter Wöhr"
+     }
+    },
+    {
+     "name": "3. Show",
+     "art": "show",
+     "nr": 3,
+     "teile": [
+      {
+       "yt": "gZ0qHnswZPc",
+       "dauer": 3123,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "Ybssn7Gg50M",
+       "dauer": 2923,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2024-06-16",
+     "besetzung": {
+      "Annabelle": "Jana Gleich",
+      "Justina Rathmann": "Jessica Siegel",
+      "Dr. Agathe Hansen": "Tina Feil",
+      "Steph": "Marie Götzinger",
+      "Dr. Josefine Rathmann": "Petra Held",
+      "Toni Johnson": "Elias Srir",
+      "Ferdi": "Patrick Kärcher",
+      "Björn Bogdanovic": "Manuel Wöhr",
+      "Carlo": "Franz P. Griger",
+      "Kerkermeister": "Julian Löw",
+      "Roland Rathmann": "Gunter Wöhr"
+     }
+    },
+    {
+     "name": "5. Show",
+     "art": "show",
+     "nr": 5,
+     "teile": [
+      {
+       "yt": "dMR_TltiKmc",
+       "dauer": 3211,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "Uv_3HCE5yBM",
+       "dauer": 3116,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2024-06-22",
+     "besetzung": {
+      "Annabelle": "Laura Makare",
+      "Justina Rathmann": "Julia Adam",
+      "Dr. Agathe Hansen": "Tina Feil",
+      "Steph": "Marie Götzinger",
+      "Dr. Josefine Rathmann": "Petra Held",
+      "Toni Johnson": "Joah Fröhlich",
+      "Ferdi": "Patrick Kärcher",
+      "Björn Bogdanovic": "Manuel Wöhr",
+      "Carlo": "Franz P. Griger",
+      "Kerkermeister": "Julian Löw",
+      "Roland Rathmann": "Rolf Renner"
+     }
+    },
+    {
+     "name": "11. Show",
+     "art": "show",
+     "nr": 11,
+     "teile": [
+      {
+       "yt": "b9cLSyNhNPY",
+       "dauer": 3200,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "1dP3S6MCsA0",
+       "dauer": 3404,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2024-07-06",
+     "besetzung": {
+      "Annabelle": "Laura Makare",
+      "Justina Rathmann": "Jessica Siegel",
+      "Dr. Agathe Hansen": "Christiane Eitzenhöffer",
+      "Steph": "Elena Schlaupitz",
+      "Dr. Josefine Rathmann": "Simone Köllner",
+      "Toni Johnson": "Elias Srir",
+      "Ferdi": "Steffen Kürschner",
+      "Björn Bogdanovic": "Manuel Wöhr",
+      "Carlo": "Franz P. Griger",
+      "Kerkermeister": "Julian Löw",
+      "Roland Rathmann": "Rolf Renner"
+     }
+    },
+    {
+     "name": "12. Show",
+     "art": "show",
+     "nr": 12,
+     "teile": [
+      {
+       "yt": "22fqAzwCXDQ",
+       "dauer": 2592,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "MjMucTMjp8Y",
+       "dauer": 2860,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2024-07-07",
+     "besetzung": {
+      "Annabelle": "Laura Makare",
+      "Justina Rathmann": "Julia Adam",
+      "Dr. Agathe Hansen": "Tina Feil",
+      "Steph": "Marie Götzinger",
+      "Dr. Josefine Rathmann": "Simone Köllner",
+      "Toni Johnson": "Elias Srir",
+      "Ferdi": "Patrick Kärcher",
+      "Björn Bogdanovic": "Manuel Wöhr",
+      "Carlo": "Martin Renner",
+      "Kerkermeister": "Julian Löw",
+      "Roland Rathmann": "Gunter Wöhr"
+     }
+    },
+    {
+     "name": "14. Show",
+     "art": "show",
+     "nr": 14,
+     "teile": [
+      {
+       "yt": "e-mFQtv0Qg0",
+       "dauer": 3135,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "uTQM7tPVzo4",
+       "dauer": 3521,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2024-07-13",
+     "besetzung": {
+      "Annabelle": "Jana Gleich",
+      "Justina Rathmann": "Jessica Siegel",
+      "Dr. Agathe Hansen": "Tina Feil",
+      "Steph": "Elena Schlaupitz",
+      "Dr. Josefine Rathmann": "Simone Köllner",
+      "Toni Johnson": "Joah Fröhlich",
+      "Ferdi": "Steffen Kürschner",
+      "Björn Bogdanovic": "Manuel Wöhr",
+      "Carlo": "Martin Renner",
+      "Kerkermeister": "Michael Sommer",
+      "Roland Rathmann": "Gunter Wöhr"
+     }
+    },
+    {
+     "name": "15. Show",
+     "art": "show",
+     "nr": 15,
+     "teile": [
+      {
+       "yt": "V16n9cN00BA",
+       "dauer": 3622,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "clR4Anx7gns",
+       "dauer": 3374,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2024-07-14",
+     "besetzung": {
+      "Annabelle": "Jana Gleich",
+      "Justina Rathmann": "Julia Adam",
+      "Dr. Agathe Hansen": "Christiane Eitzenhöffer",
+      "Steph": "Marie Götzinger",
+      "Dr. Josefine Rathmann": "Simone Köllner",
+      "Toni Johnson": "Elias Srir",
+      "Ferdi": "Patrick Kärcher",
+      "Björn Bogdanovic": "Manuel Wöhr",
+      "Carlo": "Franz P. Griger",
+      "Kerkermeister": "Julian Löw",
+      "Roland Rathmann": "Rolf Renner"
+     }
+    },
+    {
+     "name": "Derniere",
+     "art": "show",
+     "nr": 999,
+     "teile": [
+      {
+       "yt": "P7p9-USQyAc",
+       "dauer": 3206,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "C_hxRh4FFu8",
+       "dauer": 4157,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2024-07-21",
+     "besetzung": {
+      "Annabelle": "Laura Makare",
+      "Justina Rathmann": "Julia Adam",
+      "Dr. Agathe Hansen": "Tina Feil",
+      "Steph": "Elena Schlaupitz",
+      "Dr. Josefine Rathmann": "Petra Held",
+      "Toni Johnson": "Joah Fröhlich",
+      "Ferdi": "Steffen Kürschner",
+      "Björn Bogdanovic": "Manuel Wöhr",
+      "Carlo": "Franz P. Griger",
+      "Kerkermeister": "Michael Sommer",
+      "Roland Rathmann": "Gunter Wöhr"
+     }
+    }
+   ]
+  },
+  {
+   "id": "darf-ich-bitten",
+   "titel": "Darf ich bitten",
+   "jahr": 2023,
+   "beschreibung": "Eine Tanzstundengeschichte: Michaela will ihren Boris nur heiraten, wenn er mit ihr einen Tanzkurs macht – dort tauchen ausgerechnet ihr Ex-Freund Klaus und seine neue Partnerin Cornelia auf, und auch das Tanzlehrer-Ehepaar Susanne und Berthold hat seine Probleme.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Autoren": "Rolf Renner, Martin Renner",
+    "Choreografie": "Ioannis Kontidis"
+   },
+   "rollen": [
+    {
+     "rolle": "Michaela",
+     "darsteller": [
+      "Jana Gleich",
+      "Laura Makare"
+     ]
+    },
+    {
+     "rolle": "Boris",
+     "darsteller": [
+      "Franz P. Griger",
+      "Patrick Kärcher"
+     ]
+    },
+    {
+     "rolle": "Gabi",
+     "darsteller": [
+      "Joah Fröhlich",
+      "Julia Adam"
+     ]
+    },
+    {
+     "rolle": "Sven",
+     "darsteller": [
+      "Steffen Kürschner",
+      "Alexander Kühner"
+     ]
+    },
+    {
+     "rolle": "Cornelia",
+     "darsteller": [
+      "Sarah Herold",
+      "Sofie Wendt"
+     ]
+    },
+    {
+     "rolle": "Klaus",
+     "darsteller": [
+      "Martin Renner",
+      "Giuseppe Celentano"
+     ]
+    },
+    {
+     "rolle": "Susanne Berger-Schuster",
+     "darsteller": [
+      "Karoline Karajan",
+      "Keira Byrne"
+     ]
+    },
+    {
+     "rolle": "Berthold",
+     "darsteller": [
+      "Manuel Wöhr",
+      "Jannis Grimm"
+     ]
+    },
+    {
+     "rolle": "Noelle",
+     "darsteller": [
+      "Elena Schlaupitz",
+      "Ramona Maas"
+     ]
+    },
+    {
+     "rolle": "Brigitte",
+     "darsteller": [
+      "Petra Held",
+      "Angela Weinreich"
+     ]
+    },
+    {
+     "rolle": "Uwe",
+     "darsteller": [
+      "Rolf Renner",
+      "Rolf Römmele"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Premiere",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "evoDsPmaplU",
+       "dauer": 2922,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "Xng0Efs_CG0",
+       "dauer": 1207,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "K3tPQCbIOwk",
+       "dauer": 2695,
+       "label": "Teil 3"
+      }
+     ],
+     "datum": "2023-06-16",
+     "besetzung": {
+      "Michaela": "Jana Gleich",
+      "Boris": "Patrick Kärcher",
+      "Gabi": "Joah Fröhlich",
+      "Sven": "Alexander Kühner",
+      "Cornelia": "Sofie Wendt",
+      "Klaus": "Giuseppe Celentano",
+      "Brigitte": "Angela Weinreich",
+      "Uwe": "Rolf Römmele",
+      "Susanne Berger-Schuster": "Keira Byrne",
+      "Berthold": "Manuel Wöhr",
+      "Noelle": "Elena Schlaupitz"
+     }
+    },
+    {
+     "name": "4. Show",
+     "art": "show",
+     "nr": 4,
+     "teile": [
+      {
+       "yt": "-OEzdOJtCak",
+       "dauer": 2791,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "rrqkImOn6XI",
+       "dauer": 1828,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2023-06-23",
+     "besetzung": {
+      "Michaela": "Laura Makare",
+      "Boris": "Patrick Kärcher",
+      "Gabi": "Julia Adam",
+      "Sven": "Steffen Kürschner",
+      "Cornelia": "Sarah Herold",
+      "Klaus": "Martin Renner",
+      "Brigitte": "Angela Weinreich",
+      "Uwe": "Rolf Renner",
+      "Susanne Berger-Schuster": "Karoline Karajan",
+      "Berthold": "Jannis Grimm",
+      "Noelle": "Ramona Maas"
+     }
+    },
+    {
+     "name": "7. Show",
+     "art": "show",
+     "nr": 7,
+     "teile": [
+      {
+       "yt": "TsfjviwFHVw",
+       "dauer": 2922,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "FKylRSdSnQI",
+       "dauer": 1481,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2023-06-30",
+     "besetzung": {
+      "Michaela": "Jana Gleich",
+      "Boris": "Patrick Kärcher",
+      "Gabi": "Julia Adam",
+      "Sven": "Alexander Kühner",
+      "Cornelia": "Sofie Wendt",
+      "Klaus": "Giuseppe Celentano",
+      "Brigitte": "Angela Weinreich",
+      "Uwe": "Rolf Römmele",
+      "Susanne Berger-Schuster": "Keira Byrne",
+      "Berthold": "Jannis Grimm",
+      "Noelle": "Ramona Maas"
+     }
+    },
+    {
+     "name": "9. Show",
+     "art": "show",
+     "nr": 9,
+     "teile": [
+      {
+       "yt": "bpj7Hg6yzmc",
+       "dauer": 2922,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "zOc_hwq6F_4",
+       "dauer": 1248,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "QVSP66iu5QI",
+       "dauer": 2397,
+       "label": "Teil 3"
+      }
+     ],
+     "datum": "2023-07-02",
+     "besetzung": {
+      "Michaela": "Laura Makare",
+      "Boris": "Patrick Kärcher",
+      "Gabi": "Joah Fröhlich",
+      "Sven": "Alexander Kühner",
+      "Cornelia": "Sofie Wendt",
+      "Klaus": "Giuseppe Celentano",
+      "Brigitte": "Petra Held",
+      "Uwe": "Rolf Römmele",
+      "Susanne Berger-Schuster": "Keira Byrne",
+      "Berthold": "Manuel Wöhr",
+      "Noelle": "Elena Schlaupitz"
+     }
+    },
+    {
+     "name": "Derniere",
+     "art": "show",
+     "nr": 999,
+     "teile": [
+      {
+       "yt": "_lTlW1R8gj0",
+       "dauer": 2922,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "5fjdp0QWE24",
+       "dauer": 1531,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "LCLj6Fe9RFE",
+       "dauer": 2922,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "1bV0e-sR-Os",
+       "dauer": 484,
+       "label": "Teil 4"
+      }
+     ],
+     "datum": "2023-07-23",
+     "besetzung": {
+      "Michaela": "Laura Makare",
+      "Boris": "Franz P. Griger",
+      "Gabi": "Julia Adam",
+      "Sven": "Steffen Kürschner",
+      "Cornelia": "Sarah Herold",
+      "Klaus": "Martin Renner",
+      "Brigitte": "Petra Held",
+      "Uwe": "Rolf Renner",
+      "Susanne Berger-Schuster": "Karoline Karajan",
+      "Berthold": "Jannis Grimm",
+      "Noelle": "Ramona Maas"
+     }
+    }
+   ]
+  },
+  {
+   "id": "tierisch-gut-drauf",
+   "titel": "Tierisch. Gut. Drauf.",
+   "jahr": 2022,
+   "beschreibung": "Tierische Castingshow: Bei Radio Bremens Song-Contest treten alle als Tiere an – drei Kühe, King Kong, das Huhn Tahia, die Bremer Stadtmusikanten und der kleine Hund Wum mit seiner ehrgeizigen Mutter – moderiert von Tristan. Elftes Kreatief-Musical von Rolf und Martin Renner, ursprünglich für 2020 geplant.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Skript": "Rolf Renner, Martin Renner",
+    "Technik": "Robin Gerold, Jan-Philipp Feil, Franz P. Griger, Jannis Grimm, Steffen Kürschner, René Schreier",
+    "Kostüme/Requisiten": "Julia Fröhlich",
+    "Kulissen": "Steffen Kürschner",
+    "Helfer:innen": "Tina Adam, Carina Brütsch",
+    "Social Media": "Julia Adam, Laura Makare",
+    "Technik-Verleih": "Media:System Öhringen, Michael Hammel"
+   },
+   "rollen": [
+    {
+     "rolle": "Tristan (Moderator)",
+     "darsteller": [
+      "Rolf Renner",
+      "Manuel Wöhr"
+     ]
+    },
+    {
+     "rolle": "Tahia (Huhn)",
+     "darsteller": [
+      "Laura Makare",
+      "Jana Gleich"
+     ]
+    },
+    {
+     "rolle": "King Kong (Affe)",
+     "darsteller": [
+      "Jannis Grimm",
+      "Jens Müller"
+     ]
+    },
+    {
+     "rolle": "Mona (Kuh & Flamingo)",
+     "darsteller": [
+      "Elena Schlaupitz",
+      "Ramona Maas"
+     ]
+    },
+    {
+     "rolle": "Luise (Kuh & Flamingo)",
+     "darsteller": [
+      "Karoline Karajan",
+      "Sarah Herold"
+     ]
+    },
+    {
+     "rolle": "Karl (Kuh & Bär & Flamingo)",
+     "darsteller": [
+      "Sören Friedel",
+      "Martin Renner"
+     ]
+    },
+    {
+     "rolle": "Snoopy (großer Hund, Bremer Stadtmusikant)",
+     "darsteller": [
+      "Steffen Kürschner",
+      "Franz Peter Griger"
+     ]
+    },
+    {
+     "rolle": "Donkey (Esel, Bremer Stadtmusikant)",
+     "darsteller": [
+      "Dominik Hetzler",
+      "Patrick Kärcher"
+     ]
+    },
+    {
+     "rolle": "Katja (Katze, Bremer Stadtmusikant)",
+     "darsteller": [
+      "Joah Fröhlich",
+      "Julia Adam"
+     ]
+    },
+    {
+     "rolle": "Wum (kleiner Hund, Winfried-Uwe Malmsheimer)",
+     "darsteller": [
+      "Djego Wabingga",
+      "Oskars Gailans"
+     ]
+    },
+    {
+     "rolle": "Cosima (Mutter der Hunde)",
+     "darsteller": [
+      "Petra Held",
+      "Samira Reich"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Generalprobe",
+     "art": "probe",
+     "nr": 0,
+     "teile": [
+      {
+       "yt": "ZXvou12osCc",
+       "dauer": 4736,
+       "label": "Teil 1"
+      }
+     ]
+    },
+    {
+     "name": "Premiere",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "YFdNk6SNbO4",
+       "dauer": 4899,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "JDRZk5Rh4Sw",
+       "dauer": 3893,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2022-06-17",
+     "besetzung": {
+      "Snoopy (großer Hund, Bremer Stadtmusikant)": "Steffen Kürschner",
+      "Donkey (Esel, Bremer Stadtmusikant)": "Dominik Hetzler",
+      "Katja (Katze, Bremer Stadtmusikant)": "Joah Fröhlich",
+      "Mona (Kuh & Flamingo)": "Elena Schlaupitz",
+      "Luise (Kuh & Flamingo)": "Sarah Herold",
+      "Karl (Kuh & Bär & Flamingo)": "Sören Friedel",
+      "Tahia (Huhn)": "Jana Gleich",
+      "King Kong (Affe)": "Jannis Grimm",
+      "Cosima (Mutter der Hunde)": "Petra Held",
+      "Wum (kleiner Hund, Winfried-Uwe Malmsheimer)": "Djego Wabingga",
+      "Tristan (Moderator)": "Rolf Renner"
+     }
+    },
+    {
+     "name": "10. Show",
+     "art": "show",
+     "nr": 10,
+     "teile": [
+      {
+       "yt": "NzFkC3voPN0",
+       "dauer": 4681,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "cy3jOQL-Rjs",
+       "dauer": 3969,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2022-07-08",
+     "besetzung": {
+      "Snoopy (großer Hund, Bremer Stadtmusikant)": "Franz Peter Griger",
+      "Donkey (Esel, Bremer Stadtmusikant)": "Patrick Kärcher",
+      "Katja (Katze, Bremer Stadtmusikant)": "Julia Adam",
+      "Mona (Kuh & Flamingo)": "Ramona Maas",
+      "Luise (Kuh & Flamingo)": "Sarah Herold",
+      "Karl (Kuh & Bär & Flamingo)": "Martin Renner",
+      "Tahia (Huhn)": "Laura Makare",
+      "King Kong (Affe)": "Jannis Grimm",
+      "Cosima (Mutter der Hunde)": "Samira Reich",
+      "Wum (kleiner Hund, Winfried-Uwe Malmsheimer)": "Oskars Gailans",
+      "Tristan (Moderator)": "Manuel Wöhr"
+     }
+    },
+    {
+     "name": "12. Show",
+     "art": "show",
+     "nr": 12,
+     "teile": [
+      {
+       "yt": "davi4JMUFR4",
+       "dauer": 4856,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "euwOvFrxGjg",
+       "dauer": 3783,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2022-07-10",
+     "besetzung": {
+      "Snoopy (großer Hund, Bremer Stadtmusikant)": "Franz Peter Griger",
+      "Donkey (Esel, Bremer Stadtmusikant)": "Patrick Kärcher",
+      "Katja (Katze, Bremer Stadtmusikant)": "Julia Adam",
+      "Mona (Kuh & Flamingo)": "Elena Schlaupitz",
+      "Luise (Kuh & Flamingo)": "Karoline Karajan",
+      "Karl (Kuh & Bär & Flamingo)": "Sören Friedel",
+      "Tahia (Huhn)": "Laura Makare",
+      "King Kong (Affe)": "Jens Müller",
+      "Cosima (Mutter der Hunde)": "Petra Held",
+      "Wum (kleiner Hund, Winfried-Uwe Malmsheimer)": "Oskars Gailans",
+      "Tristan (Moderator)": "Rolf Renner"
+     }
+    },
+    {
+     "name": "Derniere",
+     "art": "show",
+     "nr": 999,
+     "teile": [
+      {
+       "yt": "gjgVisT1bZs",
+       "dauer": 5108,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "1oin1JeZE7Q",
+       "dauer": 5003,
+       "label": "Teil 2"
+      }
+     ],
+     "datum": "2022-07-24",
+     "besetzung": {
+      "Snoopy (großer Hund, Bremer Stadtmusikant)": "Franz Peter Griger",
+      "Donkey (Esel, Bremer Stadtmusikant)": "Patrick Kärcher",
+      "Katja (Katze, Bremer Stadtmusikant)": "Julia Adam",
+      "Mona (Kuh & Flamingo)": "Ramona Maas",
+      "Luise (Kuh & Flamingo)": "Karoline Karajan",
+      "Karl (Kuh & Bär & Flamingo)": "Martin Renner",
+      "Tahia (Huhn)": "Laura Makare",
+      "King Kong (Affe)": "Jens Müller",
+      "Cosima (Mutter der Hunde)": "Samira Reich",
+      "Wum (kleiner Hund, Winfried-Uwe Malmsheimer)": "Djego Wabingga",
+      "Tristan (Moderator)": "Manuel Wöhr"
+     }
+    }
+   ]
+  },
+  {
+   "id": "es-war-ein-mahl",
+   "titel": "Es war ein Mahl in Neckarsulm",
+   "jahr": 2021,
+   "beschreibung": "Musical zum Stadtjubiläum '1250 Jahre Neckarsulm': Löwenwirt Leo Merckle führt einen Kleinkrieg gegen das vegane Lokal 'Die Möhre' der Schwestern Paula und Emma – dumm nur, dass sein Bruder Andreas heimlich mit Emma zusammen ist; Döner-Wirt Yusuf kommentiert alles mit türkischen Sprichwörtern.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Idee und Skript": "Rolf Renner, Martin Renner",
+    "Musikalische Leitung": "Martin Renner (Einstudierung)",
+    "Technik": "Jan-Philipp Feil (Namenskleber; weitere Technik nicht belegt)"
+   },
+   "rollen": [
+    {
+     "rolle": "Leo Merckle (Löwenwirt)",
+     "darsteller": [
+      "Steffen Kürschner",
+      "Patrick Kärcher"
+     ]
+    },
+    {
+     "rolle": "Uschi Merckle (Löwenwirtin) / Frau Merckle (Theater)",
+     "darsteller": [
+      "Larissa Geml",
+      "Samira Reich"
+     ]
+    },
+    {
+     "rolle": "Andreas Merckle (Audianer) / Dönerkunde",
+     "darsteller": [
+      "Franz Peter Griger",
+      "Jens Müller"
+     ]
+    },
+    {
+     "rolle": "Emma Spohn (vegane 'Möhre')",
+     "darsteller": [
+      "Tina Feil",
+      "Jana Gleich"
+     ]
+    },
+    {
+     "rolle": "Paula Spohn (vegane 'Möhre')",
+     "darsteller": [
+      "Joah Fröhlich",
+      "Julia Adam"
+     ]
+    },
+    {
+     "rolle": "Bedienung im Löwen: Zeitungsbotin / Jenny / Betty / Karoline (Theater) / Leonie (FFF) / Blumenverkäuferin",
+     "darsteller": [
+      "Conny Wonner",
+      "Miriam Fischer"
+     ]
+    },
+    {
+     "rolle": "Herr Twig (Oberbürgermeister) / Polizist / FFF 4",
+     "darsteller": [
+      "Jannis Grimm",
+      "Manuel Wöhr"
+     ]
+    },
+    {
+     "rolle": "Yusuf (Döner 'Nachtschicht') / Maurer / FFF 5 / Wendelin",
+     "darsteller": [
+      "Giuseppe Celentano",
+      "Martin Renner"
+     ]
+    },
+    {
+     "rolle": "Erika / Frühstücksfrau 2 / Chorsängerin 1",
+     "darsteller": [
+      "Petra Held",
+      "Magarete Link"
+     ]
+    },
+    {
+     "rolle": "Frühstücksfrau 1 / FFF 1 / Sandy / Mutter / Chorsängerin 3",
+     "darsteller": [
+      "Michaela Seyfarth",
+      "Ramona Maas"
+     ]
+    },
+    {
+     "rolle": "Yogadame / FFF 2 / Mandy / Fahrradbotin / Tänzerin / Chorsängerin 2",
+     "darsteller": [
+      "Elisabeth Naumann",
+      "Karoline Karajan"
+     ]
+    },
+    {
+     "rolle": "Werner 'Schorle' (Rentner) / Rist (Theater) / Postbote",
+     "darsteller": [
+      "Rolf Römmele",
+      "Rolf Renner"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Premiere",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "c0fMyKb670I",
+       "dauer": 1721,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "_2lpmde6wcQ",
+       "dauer": 1718,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "aHW2phI66lI",
+       "dauer": 1791,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "itEoBJmrNU0",
+       "dauer": 1791,
+       "label": "Teil 4"
+      }
+     ],
+     "datum": "2021-07-09",
+     "besetzung": {
+      "Leo Merckle (Löwenwirt)": "Patrick Kärcher",
+      "Uschi Merckle (Löwenwirtin) / Frau Merckle (Theater)": "Larissa Geml",
+      "Andreas Merckle (Audianer) / Dönerkunde": "Jens Müller",
+      "Emma Spohn (vegane 'Möhre')": "Tina Feil",
+      "Paula Spohn (vegane 'Möhre')": "Julia Adam",
+      "Bedienung im Löwen: Zeitungsbotin / Jenny / Betty / Karoline (Theater) / Leonie (FFF) / Blumenverkäuferin": "Miriam Fischer",
+      "Herr Twig (Oberbürgermeister) / Polizist / FFF 4": "Jannis Grimm",
+      "Yusuf (Döner 'Nachtschicht') / Maurer / FFF 5 / Wendelin": "Martin Renner",
+      "Erika / Frühstücksfrau 2 / Chorsängerin 1": "Petra Held",
+      "Frühstücksfrau 1 / FFF 1 / Sandy / Mutter / Chorsängerin 3": "Michaela Seyfarth",
+      "Yogadame / FFF 2 / Mandy / Fahrradbotin / Tänzerin / Chorsängerin 2": "Karoline Karajan",
+      "Werner 'Schorle' (Rentner) / Rist (Theater) / Postbote": "Rolf Renner"
+     }
+    },
+    {
+     "name": "2. Show",
+     "art": "show",
+     "nr": 2,
+     "teile": [
+      {
+       "yt": "XPYQuxzapoM",
+       "dauer": 1545,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "2IrC-TmDp64",
+       "dauer": 1791,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "kgklArINKHQ",
+       "dauer": 1791,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "ykdD6PUPKs4",
+       "dauer": 1372,
+       "label": "Teil 4"
+      }
+     ],
+     "datum": "2021-07-10",
+     "besetzung": {
+      "Leo Merckle (Löwenwirt)": "Patrick Kärcher",
+      "Uschi Merckle (Löwenwirtin) / Frau Merckle (Theater)": "Larissa Geml",
+      "Andreas Merckle (Audianer) / Dönerkunde": "Jens Müller",
+      "Emma Spohn (vegane 'Möhre')": "Jana Gleich",
+      "Paula Spohn (vegane 'Möhre')": "Julia Adam",
+      "Bedienung im Löwen: Zeitungsbotin / Jenny / Betty / Karoline (Theater) / Leonie (FFF) / Blumenverkäuferin": "Conny Wonner",
+      "Herr Twig (Oberbürgermeister) / Polizist / FFF 4": "Jannis Grimm",
+      "Yusuf (Döner 'Nachtschicht') / Maurer / FFF 5 / Wendelin": "Martin Renner",
+      "Erika / Frühstücksfrau 2 / Chorsängerin 1": "Petra Held",
+      "Frühstücksfrau 1 / FFF 1 / Sandy / Mutter / Chorsängerin 3": "Michaela Seyfarth",
+      "Yogadame / FFF 2 / Mandy / Fahrradbotin / Tänzerin / Chorsängerin 2": "Elisabeth Naumann",
+      "Werner 'Schorle' (Rentner) / Rist (Theater) / Postbote": "Rolf Römmele"
+     }
+    },
+    {
+     "name": "3. Show",
+     "art": "show",
+     "nr": 3,
+     "teile": [
+      {
+       "yt": "QcfwR0tiO4U",
+       "dauer": 766,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "cq8aImjxhks",
+       "dauer": 1604,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "YZ7A6FuiNao",
+       "dauer": 1296,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "lCNDAEX3dvo",
+       "dauer": 1782,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "swoIp0WmBM8",
+       "dauer": 1697,
+       "label": "Teil 5"
+      }
+     ],
+     "datum": "2021-07-11",
+     "besetzung": {
+      "Leo Merckle (Löwenwirt)": "Steffen Kürschner",
+      "Uschi Merckle (Löwenwirtin) / Frau Merckle (Theater)": "Larissa Geml",
+      "Andreas Merckle (Audianer) / Dönerkunde": "Jens Müller",
+      "Emma Spohn (vegane 'Möhre')": "Tina Feil",
+      "Paula Spohn (vegane 'Möhre')": "Joah Fröhlich",
+      "Bedienung im Löwen: Zeitungsbotin / Jenny / Betty / Karoline (Theater) / Leonie (FFF) / Blumenverkäuferin": "Miriam Fischer",
+      "Herr Twig (Oberbürgermeister) / Polizist / FFF 4": "Manuel Wöhr",
+      "Yusuf (Döner 'Nachtschicht') / Maurer / FFF 5 / Wendelin": "Giuseppe Celentano",
+      "Erika / Frühstücksfrau 2 / Chorsängerin 1": "Magarete Link",
+      "Frühstücksfrau 1 / FFF 1 / Sandy / Mutter / Chorsängerin 3": "Michaela Seyfarth",
+      "Yogadame / FFF 2 / Mandy / Fahrradbotin / Tänzerin / Chorsängerin 2": "Karoline Karajan",
+      "Werner 'Schorle' (Rentner) / Rist (Theater) / Postbote": "Rolf Renner"
+     }
+    },
+    {
+     "name": "4. Show",
+     "art": "show",
+     "nr": 4,
+     "teile": [
+      {
+       "yt": "JfKOxyyD2I8",
+       "dauer": 1531,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "lc_Tsa7zsag",
+       "dauer": 1568,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "qPfeZgUYymw",
+       "dauer": 414,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "HyxtXG03ap0",
+       "dauer": 1514,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "Je-ANnpg7p0",
+       "dauer": 1422,
+       "label": "Teil 5"
+      },
+      {
+       "yt": "AZUpHlC6rAc",
+       "dauer": 737,
+       "label": "Teil 6"
+      }
+     ],
+     "datum": "2021-07-16",
+     "besetzung": {
+      "Leo Merckle (Löwenwirt)": "Steffen Kürschner",
+      "Uschi Merckle (Löwenwirtin) / Frau Merckle (Theater)": "Larissa Geml",
+      "Andreas Merckle (Audianer) / Dönerkunde": "Franz Peter Griger",
+      "Emma Spohn (vegane 'Möhre')": "Tina Feil",
+      "Paula Spohn (vegane 'Möhre')": "Joah Fröhlich",
+      "Bedienung im Löwen: Zeitungsbotin / Jenny / Betty / Karoline (Theater) / Leonie (FFF) / Blumenverkäuferin": "Conny Wonner",
+      "Herr Twig (Oberbürgermeister) / Polizist / FFF 4": "Jannis Grimm",
+      "Yusuf (Döner 'Nachtschicht') / Maurer / FFF 5 / Wendelin": "Giuseppe Celentano",
+      "Erika / Frühstücksfrau 2 / Chorsängerin 1": "Magarete Link",
+      "Frühstücksfrau 1 / FFF 1 / Sandy / Mutter / Chorsängerin 3": "Ramona Maas",
+      "Yogadame / FFF 2 / Mandy / Fahrradbotin / Tänzerin / Chorsängerin 2": "Elisabeth Naumann",
+      "Werner 'Schorle' (Rentner) / Rist (Theater) / Postbote": "Rolf Römmele"
+     }
+    },
+    {
+     "name": "5. Show",
+     "art": "show",
+     "nr": 5,
+     "teile": [
+      {
+       "yt": "FMRAczTtM08",
+       "dauer": 1614,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "w1zJurVIxlA",
+       "dauer": 1563,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "cgWdm_UJN0M",
+       "dauer": 676,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "P8nOz3SZh9g",
+       "dauer": 1791,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "GwNuxP7Hk1c",
+       "dauer": 1791,
+       "label": "Teil 5"
+      }
+     ],
+     "datum": "2021-07-17",
+     "besetzung": {
+      "Leo Merckle (Löwenwirt)": "Steffen Kürschner",
+      "Uschi Merckle (Löwenwirtin) / Frau Merckle (Theater)": "Larissa Geml",
+      "Andreas Merckle (Audianer) / Dönerkunde": "Franz Peter Griger",
+      "Emma Spohn (vegane 'Möhre')": "Jana Gleich",
+      "Paula Spohn (vegane 'Möhre')": "Julia Adam",
+      "Bedienung im Löwen: Zeitungsbotin / Jenny / Betty / Karoline (Theater) / Leonie (FFF) / Blumenverkäuferin": "Miriam Fischer",
+      "Herr Twig (Oberbürgermeister) / Polizist / FFF 4": "Manuel Wöhr",
+      "Yusuf (Döner 'Nachtschicht') / Maurer / FFF 5 / Wendelin": "Martin Renner",
+      "Erika / Frühstücksfrau 2 / Chorsängerin 1": "Magarete Link",
+      "Frühstücksfrau 1 / FFF 1 / Sandy / Mutter / Chorsängerin 3": "Ramona Maas",
+      "Yogadame / FFF 2 / Mandy / Fahrradbotin / Tänzerin / Chorsängerin 2": "Karoline Karajan",
+      "Werner 'Schorle' (Rentner) / Rist (Theater) / Postbote": "Rolf Römmele"
+     }
+    },
+    {
+     "name": "6. Show",
+     "art": "show",
+     "nr": 6,
+     "teile": [
+      {
+       "yt": "yJ2Yel_t7Rs",
+       "dauer": 1335,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "Kn317mI0t5M",
+       "dauer": 1326,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "trq0pHmiVlY",
+       "dauer": 1310,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "LxfETp-iNwU",
+       "dauer": 1332,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "Vx-UWciAwso",
+       "dauer": 1310,
+       "label": "Teil 5"
+      },
+      {
+       "yt": "5PhFtO5x4qg",
+       "dauer": 1326,
+       "label": "Teil 6"
+      }
+     ],
+     "datum": "2021-07-18",
+     "besetzung": {
+      "Leo Merckle (Löwenwirt)": "Steffen Kürschner",
+      "Uschi Merckle (Löwenwirtin) / Frau Merckle (Theater)": "Larissa Geml",
+      "Andreas Merckle (Audianer) / Dönerkunde": "Franz Peter Griger",
+      "Emma Spohn (vegane 'Möhre')": "Jana Gleich",
+      "Paula Spohn (vegane 'Möhre')": "Joah Fröhlich",
+      "Bedienung im Löwen: Zeitungsbotin / Jenny / Betty / Karoline (Theater) / Leonie (FFF) / Blumenverkäuferin": "Conny Wonner",
+      "Herr Twig (Oberbürgermeister) / Polizist / FFF 4": "Jannis Grimm",
+      "Yusuf (Döner 'Nachtschicht') / Maurer / FFF 5 / Wendelin": "Giuseppe Celentano",
+      "Erika / Frühstücksfrau 2 / Chorsängerin 1": "Petra Held",
+      "Frühstücksfrau 1 / FFF 1 / Sandy / Mutter / Chorsängerin 3": "Michaela Seyfarth",
+      "Yogadame / FFF 2 / Mandy / Fahrradbotin / Tänzerin / Chorsängerin 2": "Karoline Karajan",
+      "Werner 'Schorle' (Rentner) / Rist (Theater) / Postbote": "Rolf Renner"
+     }
+    },
+    {
+     "name": "9. Show",
+     "art": "show",
+     "nr": 9,
+     "teile": [
+      {
+       "yt": "wtJuiGTvA-g",
+       "dauer": 7160,
+       "label": "Teil 1"
+      }
+     ],
+     "datum": "2021-07-25",
+     "besetzung": {
+      "Leo Merckle (Löwenwirt)": "Patrick Kärcher",
+      "Uschi Merckle (Löwenwirtin) / Frau Merckle (Theater)": "Larissa Geml",
+      "Andreas Merckle (Audianer) / Dönerkunde": "Jens Müller",
+      "Emma Spohn (vegane 'Möhre')": "Jana Gleich",
+      "Paula Spohn (vegane 'Möhre')": "Julia Adam",
+      "Bedienung im Löwen: Zeitungsbotin / Jenny / Betty / Karoline (Theater) / Leonie (FFF) / Blumenverkäuferin": "Conny Wonner",
+      "Herr Twig (Oberbürgermeister) / Polizist / FFF 4": "Manuel Wöhr",
+      "Yusuf (Döner 'Nachtschicht') / Maurer / FFF 5 / Wendelin": "Giuseppe Celentano",
+      "Erika / Frühstücksfrau 2 / Chorsängerin 1": "Magarete Link",
+      "Frühstücksfrau 1 / FFF 1 / Sandy / Mutter / Chorsängerin 3": "Ramona Maas",
+      "Yogadame / FFF 2 / Mandy / Fahrradbotin / Tänzerin / Chorsängerin 2": "Karoline Karajan",
+      "Werner 'Schorle' (Rentner) / Rist (Theater) / Postbote": "Rolf Römmele"
+     }
+    },
+    {
+     "name": "Derniere",
+     "art": "show",
+     "nr": 999,
+     "teile": [
+      {
+       "yt": "ZtZVIyIs75o",
+       "dauer": 9582,
+       "label": "Teil 1"
+      }
+     ],
+     "datum": "2021-08-26",
+     "besetzung": {
+      "Leo Merckle (Löwenwirt)": "Steffen Kürschner",
+      "Uschi Merckle (Löwenwirtin) / Frau Merckle (Theater)": "Samira Reich",
+      "Andreas Merckle (Audianer) / Dönerkunde": "Franz Peter Griger",
+      "Emma Spohn (vegane 'Möhre')": "Jana Gleich",
+      "Paula Spohn (vegane 'Möhre')": "Joah Fröhlich",
+      "Bedienung im Löwen: Zeitungsbotin / Jenny / Betty / Karoline (Theater) / Leonie (FFF) / Blumenverkäuferin": "Conny Wonner",
+      "Herr Twig (Oberbürgermeister) / Polizist / FFF 4": "Manuel Wöhr",
+      "Yusuf (Döner 'Nachtschicht') / Maurer / FFF 5 / Wendelin": "Giuseppe Celentano",
+      "Erika / Frühstücksfrau 2 / Chorsängerin 1": "Magarete Link",
+      "Frühstücksfrau 1 / FFF 1 / Sandy / Mutter / Chorsängerin 3": "Ramona Maas",
+      "Yogadame / FFF 2 / Mandy / Fahrradbotin / Tänzerin / Chorsängerin 2": "Elisabeth Naumann",
+      "Werner 'Schorle' (Rentner) / Rist (Theater) / Postbote": "Rolf Römmele"
+     }
+    }
+   ]
+  },
+  {
+   "id": "romeo-im-fundbuero",
+   "titel": "Romeo im Fundbüro",
+   "jahr": 2019,
+   "beschreibung": "Temporeiche Musical-Komödie über einen Alltag am Großstadt-Bahnhof: Der verprügelte Zugbegleiter Frank landet im Fundbüro, verliebt sich in die Schauspielerin Xenia, während seine Verlobte Vera ihren Junggesellenabschied feiert und ein vertauschter Mafia-Geldkoffer für Chaos sorgt. Neunte Kreatief-Eigenproduktion.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Idee": "Rolf Renner",
+    "Buch": "Rolf Renner, Martin Renner",
+    "Musikalische Leitung": "Martin Renner",
+    "Choreografie": "Martin Renner",
+    "Bühne": "Martin Renner",
+    "Kostüme": "Martin Renner"
+   },
+   "rollen": [
+    {
+     "rolle": "Frank",
+     "darsteller": [
+      "Steffen Kürschner",
+      "Franz Peter Griger"
+     ]
+    },
+    {
+     "rolle": "Xenia",
+     "darsteller": [
+      "Sofie Wendt",
+      "Laura Makare"
+     ]
+    },
+    {
+     "rolle": "Sabine",
+     "darsteller": [
+      "Hannah Pflüger",
+      "Julia Römer"
+     ]
+    },
+    {
+     "rolle": "Nora",
+     "darsteller": [
+      "Miriam Fischer",
+      "Ramona Maas"
+     ]
+    },
+    {
+     "rolle": "Hans",
+     "darsteller": [
+      "Rolf Renner",
+      "Manuel Wöhr"
+     ]
+    },
+    {
+     "rolle": "Herta",
+     "darsteller": [
+      "Petra Held",
+      "Tina Feil"
+     ]
+    },
+    {
+     "rolle": "Matze",
+     "darsteller": [
+      "Jannis Grimm",
+      "Aaron Fischer"
+     ]
+    },
+    {
+     "rolle": "Paula",
+     "darsteller": [
+      "Jessica Siegle",
+      "Jessica Siebel"
+     ]
+    },
+    {
+     "rolle": "Bodo & Igor",
+     "darsteller": [
+      "Kevin Keppler",
+      "Giuseppe Celentano"
+     ]
+    },
+    {
+     "rolle": "Vera",
+     "darsteller": [
+      "Karoline Karajan",
+      "Larissa Geml"
+     ]
+    },
+    {
+     "rolle": "Dieter (Dombrowski)",
+     "darsteller": [
+      "Patrick Kärcher",
+      "Dominik Hetzler"
+     ]
+    },
+    {
+     "rolle": "Nadine",
+     "darsteller": [
+      "Joah Fröhlich",
+      "Julia Adam"
+     ]
+    },
+    {
+     "rolle": "Cornelius",
+     "darsteller": [
+      "Marcel Herrmann",
+      "Martin Renner"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Generalprobe",
+     "art": "probe",
+     "nr": 0,
+     "teile": [
+      {
+       "yt": "Geck-IP0L-8",
+       "dauer": 1702,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "jahabpP_RMo",
+       "dauer": 1178,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "WTy6Nz3UruI",
+       "dauer": 1715,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "QPbGILfFDtg",
+       "dauer": 1447,
+       "label": "Teil 5"
+      }
+     ]
+    },
+    {
+     "name": "7. Show",
+     "art": "show",
+     "nr": 7,
+     "teile": [
+      {
+       "yt": "A0AgkmQrjyw",
+       "dauer": 227,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "sFxkMYvKess",
+       "dauer": 1519,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "dD0ukr2cAsc",
+       "dauer": 1128,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "CVbLHmauwrw",
+       "dauer": 1295,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "nyAB7Y9iL7E",
+       "dauer": 528,
+       "label": "Teil 5"
+      },
+      {
+       "yt": "rLOjK92WmXw",
+       "dauer": 1582,
+       "label": "Teil 6"
+      },
+      {
+       "yt": "V5uRxKPM0Xc",
+       "dauer": 1679,
+       "label": "Teil 7"
+      }
+     ],
+     "datum": "2019-05-17"
+    },
+    {
+     "name": "8. Show",
+     "art": "show",
+     "nr": 8,
+     "teile": [
+      {
+       "yt": "-tldPPZhfFQ",
+       "dauer": 1580,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "Be9sDGM8I2U",
+       "dauer": 747,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "CQ77eFpq6C8",
+       "dauer": 1249,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "58LIF2IMDjk",
+       "dauer": 1061,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "oPNsfC-gkTY",
+       "dauer": 1498,
+       "label": "Teil 5"
+      },
+      {
+       "yt": "nulrrwmR_LE",
+       "dauer": 1245,
+       "label": "Teil 6"
+      },
+      {
+       "yt": "WbJ_mCzz1JQ",
+       "dauer": 378,
+       "label": "Teil 7"
+      }
+     ],
+     "datum": "2019-05-18"
+    },
+    {
+     "name": "13. Show",
+     "art": "show",
+     "nr": 13,
+     "teile": [
+      {
+       "yt": "8l4GR2HZNis",
+       "dauer": 1562,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "fAuO020vp4M",
+       "dauer": 1577,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "JXcD4dKxAvA",
+       "dauer": 1537,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "8bhXFkLqfYE",
+       "dauer": 1561,
+       "label": "Teil 4"
+      }
+     ],
+     "datum": "2019-05-31"
+    },
+    {
+     "name": "15. Show",
+     "art": "show",
+     "nr": 15,
+     "teile": [
+      {
+       "yt": "-PlxaHc-XnY",
+       "dauer": 1613,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "alqfchO7LdI",
+       "dauer": 1597,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "50Mi_eXJ0_Q",
+       "dauer": 1418,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "58wXc1Ugurk",
+       "dauer": 1535,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "Kjye4v2lfGQ",
+       "dauer": 1036,
+       "label": "Teil 5"
+      },
+      {
+       "yt": "Eg8gj5_a8EU",
+       "dauer": 727,
+       "label": "Teil 6"
+      },
+      {
+       "yt": "VoDmDcVsJmY",
+       "dauer": 55,
+       "label": "Teil 7"
+      }
+     ],
+     "datum": "2019-06-02"
+    },
+    {
+     "name": "17. Show",
+     "art": "show",
+     "nr": 17,
+     "teile": [
+      {
+       "yt": "QWgswBvT7F4",
+       "dauer": 1570,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "Vu-p1z2e4y4",
+       "dauer": 1648,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "jPzxn3rLfz8",
+       "dauer": 1584,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "A5_i8p_RkwA",
+       "dauer": 1716,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "UyK9h96fR-M",
+       "dauer": 1525,
+       "label": "Teil 5"
+      },
+      {
+       "yt": "YiZK04L3wuI",
+       "dauer": 177,
+       "label": "Teil 6"
+      }
+     ],
+     "datum": "2019-06-08"
+    },
+    {
+     "name": "Derniere",
+     "art": "show",
+     "nr": 999,
+     "teile": [
+      {
+       "yt": "YJqGZPieYh4",
+       "dauer": 1260,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "mZfJCgWLcTI",
+       "dauer": 1563,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "-FAwGDl_Dow",
+       "dauer": 1585,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "gMgjw50qUks",
+       "dauer": 396,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "wO0xpxecCQY",
+       "dauer": 1339,
+       "label": "Teil 5"
+      },
+      {
+       "yt": "KZQQUF-fLgA",
+       "dauer": 1140,
+       "label": "Teil 6"
+      },
+      {
+       "yt": "j1uG5o4Rroo",
+       "dauer": 151,
+       "label": "Teil 7"
+      },
+      {
+       "yt": "d7ui__mxP_A",
+       "dauer": 1354,
+       "label": "Teil 8"
+      }
+     ],
+     "datum": "2019-06-09"
+    }
+   ]
+  },
+  {
+   "id": "nichts-ist-wilder-als-der-westen",
+   "titel": "Nichts ist wilder als der Westen",
+   "jahr": 2018,
+   "beschreibung": "Musical-Komödie im Wilden Westen: Der Dieb Johnny Miller soll am Marterpfahl sterben, dazu ein veganer Indianer in Frauenkleidern, Squaws im Tupperparty-Fieber, ein schmieriger Sheriff, Saloonchefin Lola, die Bartänzerinnen Peggy und Sue und ein ungeklärter Banküberfall. Achte Kreatief-Eigenproduktion, Buch von Rolf und Martin Renner.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Buch": "Rolf Renner, Martin Renner",
+    "Musikalische Leitung": "Martin Renner (laut Presse 'Chorleiter und Coach')",
+    "Bühnenbild": "Jan-Philipp Feil",
+    "Licht-/Tontechnik": "Jan-Philipp Feil, Nico Gerlinger, Robin Gerold, Michael Stadler",
+    "Band (Begleitung als Playback eingespielt)": "Arnd Fuchs, Simon Protzer, Benjamin Wormser, Christian Polonio"
+   },
+   "rollen": [
+    {
+     "rolle": "Johnny Miller",
+     "darsteller": [
+      "Franz Peter Griger",
+      "Maurice Arpogaus"
+     ]
+    },
+    {
+     "rolle": "Demidekata",
+     "darsteller": [
+      "Marcel Herrmann",
+      "Martin Renner"
+     ]
+    },
+    {
+     "rolle": "Sanfte Wolke",
+     "darsteller": [
+      "Elisabeth Naumann",
+      "Jessica Siebel"
+     ]
+    },
+    {
+     "rolle": "Lola",
+     "darsteller": [
+      "Julia Römer",
+      "Petra Held"
+     ]
+    },
+    {
+     "rolle": "Peggy",
+     "darsteller": [
+      "Annalena Krämer",
+      "Joah Fröhlich"
+     ]
+    },
+    {
+     "rolle": "Sue",
+     "darsteller": [
+      "Sofie Wendt",
+      "Hannah Pflüger"
+     ]
+    },
+    {
+     "rolle": "Sheriff Morris",
+     "darsteller": [
+      "Matthias Haas",
+      "Philipp Mörsberger"
+     ]
+    },
+    {
+     "rolle": "Dirty Diana",
+     "darsteller": [
+      "Karoline Karajan",
+      "Laura Makare"
+     ]
+    },
+    {
+     "rolle": "Averell",
+     "darsteller": [
+      "Aaron Fischer",
+      "Tim Gottschling"
+     ]
+    },
+    {
+     "rolle": "Häuptling (Stampfender Hirsch) / Farmer Giuseppe",
+     "darsteller": [
+      "Giuseppe Celentano",
+      "Rolf Renner"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Generalprobe",
+     "art": "probe",
+     "nr": 0,
+     "teile": [
+      {
+       "yt": "Fy0eOMp-puI",
+       "dauer": 1800,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "X-rQYFveuF0",
+       "dauer": 1800,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "YFl8FQfxyLY",
+       "dauer": 700,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "MpBv5MDQBNI",
+       "dauer": 1633,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "qrsK7VTFkwA",
+       "dauer": 1800,
+       "label": "Teil 5"
+      }
+     ]
+    },
+    {
+     "name": "Premiere",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "RvNmq-rvUrQ",
+       "dauer": 1389,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "wFPqD5gRSyM",
+       "dauer": 1505,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "L3gbMKyD_SA",
+       "dauer": 1053,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "vLozB_0gcvs",
+       "dauer": 1685,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "KOZvjBQdPWA",
+       "dauer": 1316,
+       "label": "Teil 5"
+      }
+     ],
+     "datum": "2018-04-13",
+     "besetzung": {
+      "Johnny Miller": "Franz Peter Griger",
+      "Demidekata": "Marcel Herrmann",
+      "Sanfte Wolke": "Elisabeth Naumann",
+      "Lola": "Julia Römer",
+      "Peggy": "Annalena Krämer",
+      "Sue": "Sofie Wendt",
+      "Sheriff Morris": "Matthias Haas",
+      "Dirty Diana": "Karoline Karajan",
+      "Averell": "Aaron Fischer",
+      "Häuptling (Stampfender Hirsch) / Farmer Giuseppe": "Giuseppe Celentano"
+     }
+    },
+    {
+     "name": "2. Show",
+     "art": "show",
+     "nr": 2,
+     "teile": [
+      {
+       "yt": "Nlw-opP5H_I",
+       "dauer": 1262,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "rkBRt0ZIxZQ",
+       "dauer": 1630,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "aj1JoIikLSo",
+       "dauer": 1061,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "7WXSZg-EOrE",
+       "dauer": 1704,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "rsj1JC9sBZk",
+       "dauer": 1316,
+       "label": "Teil 5"
+      }
+     ],
+     "datum": "2018-04-14"
+    }
+   ]
+  },
+  {
+   "id": "irgendwas-mit-schiff-und-meer",
+   "titel": "Irgendwas mit Schiff und Meer",
+   "jahr": 2016,
+   "beschreibung": "Bankierssohn Flo von Kronenburg will lieber Gaukler/Künstler werden als die Bank seiner Eltern zu übernehmen; als „der Neue“ im Showteam der MS Kreatiefa verliebt er sich in Leonie – Traumschiff-Parodie mit Liedern von Lindenberg bis Wise Guys.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Idee und Text": "Rolf Renner",
+    "Band": "Schlagzeug Oliver de Vries / Simon Protzer, Gitarre Ben (Benjamin) Wormser / Guido Renner, Keys Giuseppe Celentano / Christian Polonio, Bass Arnd Fuchs / Moritz Maack (Einteilung je Show siehe besetzung_je_vorstellung)",
+    "Technik": "Jan-Philipp Feil, Jörg Maack, Michael Stadler, Kevin Keppler, Martin Renner"
+   },
+   "rollen": [
+    {
+     "rolle": "Gottfried von Kronenburg (Bankier, Vater von Flo)",
+     "darsteller": [
+      "Rolf Renner",
+      "Karlheinz Hülsebusch"
+     ]
+    },
+    {
+     "rolle": "Flo (Kind) / Tommy (Sohn von Anastasia)",
+     "darsteller": [
+      "Janne Mörsberger",
+      "Jannik Arpogaus"
+     ]
+    },
+    {
+     "rolle": "Peter (Vertreter, Skatspieler) / Sören (Klugscheißer-Kind)",
+     "darsteller": [
+      "Matze Haas",
+      "Valentin Böttcher"
+     ]
+    },
+    {
+     "rolle": "Hans (Kapitän einer Fähre, Skatspieler) / Suleimann",
+     "darsteller": [
+      "Tim Gottschling",
+      "Manuel Wöhr"
+     ]
+    },
+    {
+     "rolle": "Bettina (Chefhostess der MS Kreatiefa)",
+     "darsteller": [
+      "Sofie Wendt",
+      "Hannah Pflüger"
+     ]
+    },
+    {
+     "rolle": "Konstanze von Kronenburg (Frau von Gottfried, Bankeigentümerin)",
+     "darsteller": [
+      "Petra Held",
+      "Simone Köllner"
+     ]
+    },
+    {
+     "rolle": "Hugo Eichental (Künstler à la Udo Lindenberg)",
+     "darsteller": [
+      "Maurice Arpogaus",
+      "Patrick Haberbosch"
+     ]
+    },
+    {
+     "rolle": "Anastasia (Diva der Bordunterhaltung)",
+     "darsteller": [
+      "Karoline Karajan",
+      "Tina Feil"
+     ]
+    },
+    {
+     "rolle": "Leonie (Showteam, verliebt sich in Flo)",
+     "darsteller": [
+      "Annalena Krämer",
+      "Joah Fröhlich"
+     ]
+    },
+    {
+     "rolle": "Nicole (Tänzerin) / Andrea (Kind)",
+     "darsteller": [
+      "Elisabeth Naumann",
+      "Jessica Siebel"
+     ]
+    },
+    {
+     "rolle": "Flo von Kronenburg (erwachsen; will Künstler statt Bankier werden)",
+     "darsteller": [
+      "Martin Renner",
+      "Marcel Herrmann"
+     ]
+    },
+    {
+     "rolle": "Kapitän Roloff",
+     "darsteller": [
+      "Philipp Mörsberger",
+      "Aaron Fischer"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "4. Show",
+     "art": "show",
+     "nr": 4,
+     "teile": [
+      {
+       "yt": "Mx3xbGR1JLw",
+       "dauer": 1574,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "qq4bg5hXyBM",
+       "dauer": 1770,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "oHUajYqn97s",
+       "dauer": 527,
+       "label": "Teil 3"
+      }
+     ],
+     "datum": "2016-04-15",
+     "besetzung": {
+      "Gottfried von Kronenburg": "Karlheinz Hülsebusch",
+      "Flo (Kind) / Tommy": "Janne Mörsberger",
+      "Peter / Sören": "Valentin Böttcher",
+      "Hans / Suleimann": "Manuel Wöhr",
+      "Bettina": "Sofie Wendt",
+      "Konstanze von Kronenburg": "Simone Köllner",
+      "Hugo Eichental": "Patrick Haberbosch",
+      "Anastasia": "Tina Feil",
+      "Leonie": "Annalena Krämer",
+      "Nicole / Andrea": "Jessica Siebel",
+      "Flo von Kronenburg (erwachsen)": "Marcel Herrmann",
+      "Kapitän Roloff": "Philipp Mörsberger",
+      "Band": "Schlagzeug: Oliver de Vries, Gitarre: Guido Renner, Keys: Giuseppe Celentano, Bass: Moritz Maack"
+     }
+    },
+    {
+     "name": "5. Show",
+     "art": "show",
+     "nr": 5,
+     "teile": [
+      {
+       "yt": "mQOu9wW7Cak",
+       "dauer": 1800,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "oPwiVUv-ZnE",
+       "dauer": 872,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "6Xq6n95zYlI",
+       "dauer": 1800,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "TPmoJCpssmk",
+       "dauer": 1417,
+       "label": "Teil 4"
+      }
+     ],
+     "datum": "2016-04-16",
+     "besetzung": {
+      "Gottfried von Kronenburg": "Karlheinz Hülsebusch",
+      "Flo (Kind) / Tommy": "Jannik Arpogaus",
+      "Peter / Sören": "Valentin Böttcher",
+      "Hans / Suleimann": "Manuel Wöhr",
+      "Bettina": "Hannah Pflüger",
+      "Konstanze von Kronenburg": "Simone Köllner",
+      "Hugo Eichental": "Maurice Arpogaus",
+      "Anastasia": "Tina Feil",
+      "Leonie": "Joah Fröhlich",
+      "Nicole / Andrea": "Jessica Siebel",
+      "Flo von Kronenburg (erwachsen)": "Marcel Herrmann",
+      "Kapitän Roloff": "Aaron Fischer",
+      "Band": "Schlagzeug: Oliver de Vries, Gitarre: Guido Renner, Keys: Giuseppe Celentano, Bass: Moritz Maack"
+     }
+    },
+    {
+     "name": "6. Show",
+     "art": "show",
+     "nr": 6,
+     "teile": [
+      {
+       "yt": "miS5nBVYzGI",
+       "dauer": 1798,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "ubLAH2yPEvI",
+       "dauer": 1652,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "bnJUsYTK5e0",
+       "dauer": 344,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "V_brQ-OZkE8",
+       "dauer": 1800,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "Sa5GbQSteBk",
+       "dauer": 1230,
+       "label": "Teil 5"
+      }
+     ],
+     "datum": "2016-04-17",
+     "besetzung": {
+      "Gottfried von Kronenburg": "Karlheinz Hülsebusch",
+      "Flo (Kind) / Tommy": "Jannik Arpogaus",
+      "Peter / Sören": "Valentin Böttcher",
+      "Hans / Suleimann": "Manuel Wöhr",
+      "Bettina": "Hannah Pflüger",
+      "Konstanze von Kronenburg": "Simone Köllner",
+      "Hugo Eichental": "Maurice Arpogaus",
+      "Anastasia": "Tina Feil",
+      "Leonie": "Joah Fröhlich",
+      "Nicole / Andrea": "Jessica Siebel",
+      "Flo von Kronenburg (erwachsen)": "Marcel Herrmann",
+      "Kapitän Roloff": "Aaron Fischer",
+      "Band": "Schlagzeug: Simon Protzer, Gitarre: Guido Renner, Keys: Giuseppe Celentano, Bass: Moritz Maack"
+     }
+    },
+    {
+     "name": "8. Show",
+     "art": "show",
+     "nr": 8,
+     "teile": [
+      {
+       "yt": "S8YEgxzJ3LQ",
+       "dauer": 1800,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "isC5sojnkfg",
+       "dauer": 340,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "4dRtBeWqtRI",
+       "dauer": 1744,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "LBYmUSDGiR4",
+       "dauer": 1698,
+       "label": "Teil 5"
+      }
+     ],
+     "datum": "2016-04-23",
+     "besetzung": {
+      "Gottfried von Kronenburg": "Rolf Renner",
+      "Flo (Kind) / Tommy": "Jannik Arpogaus",
+      "Peter / Sören": "Matze Haas",
+      "Hans / Suleimann": "Tim Gottschling",
+      "Bettina": "Sofie Wendt",
+      "Konstanze von Kronenburg": "Petra Held",
+      "Hugo Eichental": "Patrick Haberbosch",
+      "Anastasia": "Karoline Karajan",
+      "Leonie": "Annalena Krämer",
+      "Nicole / Andrea": "Elisabeth Naumann",
+      "Flo von Kronenburg (erwachsen)": "Martin Renner",
+      "Kapitän Roloff": "Aaron Fischer",
+      "Band": "Schlagzeug: Oliver de Vries, Gitarre: Ben Wormser, Keys: Giuseppe Celentano, Bass: Arnd Fuchs"
+     }
+    },
+    {
+     "name": "13. Show",
+     "art": "show",
+     "nr": 13,
+     "teile": [
+      {
+       "yt": "Qk2ceXbSHjA",
+       "dauer": 1602,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "tc8UfcUATic",
+       "dauer": 1401,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "K0K0iTBEmeY",
+       "dauer": 977,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "bmu9dY6lS8A",
+       "dauer": 1751,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "-h7pFUzYwm4",
+       "dauer": 617,
+       "label": "Teil 5"
+      },
+      {
+       "yt": "Pu6GT4q1qvc",
+       "dauer": 1002,
+       "label": "Teil 6"
+      }
+     ],
+     "datum": "2016-05-06",
+     "besetzung": {
+      "Gottfried von Kronenburg": "Rolf Renner",
+      "Flo (Kind) / Tommy": "Jannik Arpogaus",
+      "Peter / Sören": "Matze Haas",
+      "Hans / Suleimann": "Tim Gottschling",
+      "Bettina": "Sofie Wendt",
+      "Konstanze von Kronenburg": "Simone Köllner",
+      "Hugo Eichental": "Maurice Arpogaus",
+      "Anastasia": "Tina Feil",
+      "Leonie": "Annalena Krämer",
+      "Nicole / Andrea": "Jessica Siebel",
+      "Flo von Kronenburg (erwachsen)": "Martin Renner",
+      "Kapitän Roloff": "Aaron Fischer",
+      "Band": "Schlagzeug: Oliver de Vries, Gitarre: Ben Wormser, Keys: Christian Polonio, Bass: Moritz Maack"
+     }
+    },
+    {
+     "name": "18. Show",
+     "art": "show",
+     "nr": 18,
+     "teile": [
+      {
+       "yt": "YHa_SVv2EUI",
+       "dauer": 1581,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "cXRcM5sGQ3Q",
+       "dauer": 1323,
+       "label": "Teil 2"
+      },
+      {
+       "yt": "jvQC0RtPEdM",
+       "dauer": 979,
+       "label": "Teil 3"
+      },
+      {
+       "yt": "d4cSZLKoMS0",
+       "dauer": 1263,
+       "label": "Teil 4"
+      },
+      {
+       "yt": "koetgilnxvk",
+       "dauer": 1333,
+       "label": "Teil 5"
+      },
+      {
+       "yt": "iT56dqviOEM",
+       "dauer": 957,
+       "label": "Teil 6"
+      }
+     ],
+     "datum": "2016-05-15",
+     "besetzung": {
+      "Gottfried von Kronenburg": "Karlheinz Hülsebusch",
+      "Flo (Kind) / Tommy": "Janne Mörsberger",
+      "Peter / Sören": "Valentin Böttcher",
+      "Hans / Suleimann": "Manuel Wöhr",
+      "Bettina": "Hannah Pflüger",
+      "Konstanze von Kronenburg": "Simone Köllner",
+      "Hugo Eichental": "Patrick Haberbosch",
+      "Anastasia": "Tina Feil",
+      "Leonie": "Joah Fröhlich",
+      "Nicole / Andrea": "Jessica Siebel",
+      "Flo von Kronenburg (erwachsen)": "Marcel Herrmann",
+      "Kapitän Roloff": "Philipp Mörsberger",
+      "Band": "Schlagzeug: Simon Protzer, Gitarre: Guido Renner, Keys: Christian Polonio, Bass: Arnd Fuchs"
+     },
+     "hinweis": "Derniere"
+    }
+   ]
+  },
+  {
+   "id": "robert-k",
+   "titel": "Robert K.",
+   "jahr": 2015,
+   "beschreibung": "Krimi-Mini-Musical: Drei Frauen beobachten auf dem Heimweg von der Kirchenchorprobe, wie ein Mann niedergeschlagen wird – Kommissar Merk ermittelt, was mit Robert K. geschah.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Idee und Text": "Rolf Renner",
+    "Band (A/B laut Planung)": "Gitarre Mathieu Meyer / Guido Renner, Bass Arnd Fuchs / Matthias Haas, Keys Giuseppe Celentano / Christian Polonio, Schlagzeug Simon Protzer / Kevin Keppler",
+    "Technik": "Michael Stadler, Jan-Philipp Feil, Paul Stellwag, Jörg Maack, Martin Renner"
+   },
+   "rollen": [
+    {
+     "rolle": "Kommissar Merk",
+     "darsteller": [
+      "Patrick Haberbosch",
+      "Maurice Arpogaus"
+     ]
+    },
+    {
+     "rolle": "Witwe 1",
+     "darsteller": [
+      "Rolf Renner",
+      "Karlheinz Hülsebusch"
+     ]
+    },
+    {
+     "rolle": "Hanni",
+     "darsteller": [
+      "Sofie Wendt",
+      "Hannah Pflüger"
+     ]
+    },
+    {
+     "rolle": "Elisabeth",
+     "darsteller": [
+      "Annalena Krämer",
+      "Tina Feil"
+     ]
+    },
+    {
+     "rolle": "Witwe 2 / Karin",
+     "darsteller": [
+      "Petra Held",
+      "Jessica Siebel"
+     ]
+    },
+    {
+     "rolle": "Robert K.",
+     "darsteller": [
+      "Martin Renner",
+      "Tim Gottschling"
+     ]
+    },
+    {
+     "rolle": "Kurt",
+     "darsteller": [
+      "Manuel Wöhr",
+      "Marcel Herrmann"
+     ]
+    },
+    {
+     "rolle": "Witwe 3",
+     "darsteller": [
+      "Elisabeth Naumann",
+      "Sara Kampa"
+     ]
+    }
+   ],
+   "ensemble": [
+    "Aaron Fischer",
+    "Valentin Böttcher",
+    "Jella Vogt",
+    "Aylin Wettlaufer"
+   ],
+   "vorstellungen": [
+    {
+     "name": "Highlights der Derniere",
+     "art": "highlight",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "DEBPMyESB7U",
+       "dauer": 379,
+       "label": "Teil 1"
+      }
+     ],
+     "datum": "2015-05-17"
+    }
+   ]
+  },
+  {
+   "id": "troja-2",
+   "titel": "Troja 2",
+   "jahr": 2014,
+   "beschreibung": "Wiederaufnahme des ersten Kreatief-Musicals von 2010 im Herbst 2014 mit einem komplett neuen, jungen Ensemble (Schüler und Ehemalige der Musical-AG der Hermann-Greiner-Realschule) samt neuer Band.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Regie-Assistenz/Chorleitung": "Sofie Wendt",
+    "Idee und Text": "Rolf Renner",
+    "Band": "Guido Renner (Gitarre), Christian Polonio (Keyboard), Matthias Haas (Bass/laut Artikel Schlagzeug), Kevin Keppler (Schlagzeug)"
+   },
+   "rollen": [
+    {
+     "rolle": "Homer",
+     "darsteller": [
+      "Marcel Herrmann"
+     ]
+    },
+    {
+     "rolle": "Odysseus",
+     "darsteller": [
+      "Marcel Herrmann"
+     ]
+    },
+    {
+     "rolle": "Helena",
+     "darsteller": [
+      "Fabienne Feil"
+     ]
+    },
+    {
+     "rolle": "Prinz Paris",
+     "darsteller": [
+      "Tim Gottschling"
+     ]
+    },
+    {
+     "rolle": "Menelaos",
+     "darsteller": [
+      "Aaron Fischer"
+     ]
+    },
+    {
+     "rolle": "Agamemnon",
+     "darsteller": [
+      "Maurice Arpogaus"
+     ]
+    },
+    {
+     "rolle": "Aphrodite",
+     "darsteller": [
+      "Jella Vogt"
+     ]
+    },
+    {
+     "rolle": "Athene",
+     "darsteller": [
+      "Jessica Siebel"
+     ]
+    },
+    {
+     "rolle": "Hera",
+     "darsteller": [
+      "Hannah Drautz oder Isi (Julia Isabelle) Hiller"
+     ]
+    },
+    {
+     "rolle": "Zofie (Zofe der Helena)",
+     "darsteller": [
+      "Hannah Drautz oder Isi (Julia Isabelle) Hiller"
+     ]
+    }
+   ],
+   "vorstellungen": []
+  },
+  {
+   "id": "aschenputtel",
+   "titel": "Aschenputtel und das doppelte Ottchen",
+   "jahr": 2014,
+   "beschreibung": "Schlagerstar Otto Jürgens hat einen Doppelgänger, Jürgen Otto. Cindy, von ihrer Stiefmutter in der Besenwirtschaft ausgenutzt, verliebt sich in Jürgen, hält aber den echten Otto für ihn – mit Hilfe von Gertrud wird sie schließlich württembergische Weinkönigin.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Idee und Text": "Rolf Renner",
+    "Band": "Mathieu Meyer (Gitarre), Giuseppe Celentano (Keyboard), Arnd Fuchs (Bass), Simon Protzer (Schlagzeug)"
+   },
+   "rollen": [
+    {
+     "rolle": "Otto Jürgens (Schlagersänger)",
+     "darsteller": [
+      "Martin Renner"
+     ]
+    },
+    {
+     "rolle": "Jürgen Otto (Doppelgänger)",
+     "darsteller": [
+      "Franz Peter Griger"
+     ]
+    },
+    {
+     "rolle": "Cindy Maier (Aschenputtel)",
+     "darsteller": [
+      "Annalena Krämer"
+     ]
+    },
+    {
+     "rolle": "Alexandra von Rabenau (Vorsitzende des Fan-Clubs)",
+     "darsteller": [
+      "Sofie Wendt"
+     ]
+    },
+    {
+     "rolle": "Helene Maier-Hofer (Stiefmutter)",
+     "darsteller": [
+      "Karoline Karajan"
+     ]
+    },
+    {
+     "rolle": "Celine Hofer (Stiefschwester)",
+     "darsteller": [
+      "Elisabeth Naumann"
+     ]
+    },
+    {
+     "rolle": "Natalie Hofer (Stiefschwester)",
+     "darsteller": [
+      "Sara Kampa"
+     ]
+    },
+    {
+     "rolle": "Karle Huttenlocher (Rentner)",
+     "darsteller": [
+      "Karlheinz Hülsebusch"
+     ]
+    },
+    {
+     "rolle": "Eugen Müller (Rentner)",
+     "darsteller": [
+      "Rolf Renner"
+     ]
+    },
+    {
+     "rolle": "Gertrud Schmelzle / Elfriede Hutzenlaub (Putz- und Küchenhilfe / Jury-Mitglied)",
+     "darsteller": [
+      "Petra Held"
+     ]
+    },
+    {
+     "rolle": "August Schmelzle (Besenbesucher)",
+     "darsteller": [
+      "Thomas Haffner"
+     ]
+    },
+    {
+     "rolle": "Jack Braun (Manager von Otto Jürgens)",
+     "darsteller": [
+      "Meik Hass"
+     ]
+    },
+    {
+     "rolle": "Dieter Thomas Heck (Fernseh-Moderator)",
+     "darsteller": [
+      "Manuel Wöhr"
+     ]
+    },
+    {
+     "rolle": "Charly (Rapper)",
+     "darsteller": [
+      "Giuseppe Celentano"
+     ]
+    },
+    {
+     "rolle": "Matze (Rapper)",
+     "darsteller": [
+      "Mathieu Meyer"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Aufzeichnung",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "MDMo-z-MG3k",
+       "dauer": 8864,
+       "label": "Teil 1"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "heisse-naechte-in-palermo",
+   "titel": "Heiße Nächte in Palermo",
+   "jahr": 2013,
+   "beschreibung": "Das schwäbische Ehepaar Gertrud und August Schmelzle aus Amorbach macht mit Opa und den Zwillingen Urlaub in Italien; die Pizzeria von Toni und Tochter Marina gerät ins Visier der tollpatschigen Mafiosi Aglio und Olio – am Ende eröffnet die Pizzeria neu in Amorbach.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Idee und Text": "Rolf Renner",
+    "Band": "Mathieu Meyer (Gitarre), Giuseppe Celentano (Keyboard), Arnd Fuchs (Bass), Simon Protzer (Schlagzeug)"
+   },
+   "rollen": [
+    {
+     "rolle": "Pfarrer / Ansager",
+     "darsteller": [
+      "Manuel Wöhr"
+     ]
+    },
+    {
+     "rolle": "Gertrud Schmelzle",
+     "darsteller": [
+      "Petra Held"
+     ]
+    },
+    {
+     "rolle": "August Schmelzle",
+     "darsteller": [
+      "Thomas Haffner"
+     ]
+    },
+    {
+     "rolle": "Opa (Gustav)",
+     "darsteller": [
+      "Karlheinz Hülsebusch"
+     ]
+    },
+    {
+     "rolle": "Sara (Zwilling)",
+     "darsteller": [
+      "Sara Kampa"
+     ]
+    },
+    {
+     "rolle": "Lisa (Zwilling)",
+     "darsteller": [
+      "Elisabeth Naumann"
+     ]
+    },
+    {
+     "rolle": "Marina (Tonis Tochter)",
+     "darsteller": [
+      "Karoline Karajan"
+     ]
+    },
+    {
+     "rolle": "Toni (Pizzeria-Wirt)",
+     "darsteller": [
+      "Rolf Renner"
+     ]
+    },
+    {
+     "rolle": "Aglio (Mafioso)",
+     "darsteller": [
+      "Meik Hass"
+     ]
+    },
+    {
+     "rolle": "Olio (Mafioso)",
+     "darsteller": [
+      "Martin Renner"
+     ]
+    },
+    {
+     "rolle": "Engelchen / Sofie (britische Touristin)",
+     "darsteller": [
+      "Sofie Wendt"
+     ]
+    },
+    {
+     "rolle": "Teufelchen / Anna (britische Touristin)",
+     "darsteller": [
+      "Annalena Krämer"
+     ]
+    },
+    {
+     "rolle": "Mario",
+     "darsteller": [
+      "Mathieu Meyer"
+     ]
+    },
+    {
+     "rolle": "Luigi",
+     "darsteller": [
+      "Giuseppe Celentano"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Aufzeichnung",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "Ie3iZi4HnJo",
+       "dauer": 3418,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "trT1idG5lro",
+       "dauer": 3384,
+       "label": "Teil 2"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "skandal-im-harem",
+   "titel": "Skandal im Harem",
+   "jahr": 2012,
+   "team": {
+    "Regie": "Martin Renner",
+    "Idee und Text": "Rolf Renner"
+   },
+   "rollen": [
+    {
+     "rolle": "Sultan",
+     "darsteller": [
+      "Michael Stadler"
+     ]
+    },
+    {
+     "rolle": "Forscher",
+     "darsteller": [
+      "Martin Renner"
+     ]
+    },
+    {
+     "rolle": "1. Eunuche",
+     "darsteller": [
+      "Manuel Wöhr"
+     ]
+    },
+    {
+     "rolle": "2. Eunuche",
+     "darsteller": [
+      "Matze Haas"
+     ]
+    },
+    {
+     "rolle": "3. Eunuche",
+     "darsteller": [
+      "Rolf Renner"
+     ]
+    },
+    {
+     "rolle": "Lieblingsfrau",
+     "darsteller": [
+      "Annalena Krämer"
+     ]
+    },
+    {
+     "rolle": "Tänzerin",
+     "darsteller": [
+      "Karoline Karajan"
+     ]
+    },
+    {
+     "rolle": "Hadschi Halef",
+     "darsteller": [
+      "Meik Hass"
+     ]
+    },
+    {
+     "rolle": "Schwabe",
+     "darsteller": [
+      "Thomas Haffner"
+     ]
+    },
+    {
+     "rolle": "Schwäbin",
+     "darsteller": [
+      "Petra Held"
+     ]
+    },
+    {
+     "rolle": "Kamel",
+     "darsteller": [
+      "Karl-Heinz Hülsebusch"
+     ]
+    },
+    {
+     "rolle": "Haremsfrau",
+     "darsteller": [
+      "Sofie Wendt"
+     ]
+    },
+    {
+     "rolle": "Haremsfrau",
+     "darsteller": [
+      "Sara Kampa"
+     ]
+    },
+    {
+     "rolle": "Haremsfrau",
+     "darsteller": [
+      "Elisabeth Naumann"
+     ]
+    }
+   ],
+   "vorstellungen": []
+  },
+  {
+   "id": "schneewittchen",
+   "titel": "Schneewittchen",
+   "jahr": 2011,
+   "beschreibung": "Die „wahre Geschichte“ von Schneewittchen: Sarah König, wegen ihres schrillen Aussehens „Schneewittchen“ genannt, gerät an eine eitle Stiefmutter und schräge Zwerge – Märchenparodie mit Schlagern und Pop-Hits.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Idee und Text": "Rolf Renner",
+    "Band": "Markus Herhoffer (Piano), Marvin Ott (Gitarre & Bass), Guido Renner (Gitarre & Bass), David Holder (Schlagzeug)",
+    "Kulisse": "Marvin Ott",
+    "Technik": "Peter Hülsebusch, Robin Heinrich, Felix Kuhbach"
+   },
+   "rollen": [
+    {
+     "rolle": "Schneewittchen (Sarah König)",
+     "darsteller": [
+      "Karoline Karajan"
+     ]
+    },
+    {
+     "rolle": "Erzähler / Jäger",
+     "darsteller": [
+      "Marc Chardon"
+     ]
+    },
+    {
+     "rolle": "Tänzerin",
+     "darsteller": [
+      "Elisabeth Naumann"
+     ]
+    },
+    {
+     "rolle": "Tänzerin",
+     "darsteller": [
+      "Sara Kampa"
+     ]
+    },
+    {
+     "rolle": "Stiefmutter / Zwerg Achim",
+     "darsteller": [
+      "Friederike Wimmer"
+     ]
+    },
+    {
+     "rolle": "König (Vater) / Zwerg Hannes",
+     "darsteller": [
+      "Thomas Haffner"
+     ]
+    },
+    {
+     "rolle": "Zwerg Kurt (Rapper-Zwerg) / Hase",
+     "darsteller": [
+      "Meik Hass"
+     ]
+    },
+    {
+     "rolle": "Zwerg Nathan (Schlapphutzwerg)",
+     "darsteller": [
+      "Petra Held"
+     ]
+    },
+    {
+     "rolle": "Zwerg Sepp (Besserwisserzwerg)",
+     "darsteller": [
+      "Rolf Renner"
+     ]
+    },
+    {
+     "rolle": "Hintern / Märchenprinz",
+     "darsteller": [
+      "Manuel Wöhr"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Aufzeichnung",
+     "art": "show",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "IH6J_Kk-LJU",
+       "dauer": 3069,
+       "label": "Teil 1"
+      },
+      {
+       "yt": "8JYUmlGEyng",
+       "dauer": 2345,
+       "label": "Teil 2"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "troja",
+   "titel": "Troja – Alles wegen Helena",
+   "jahr": 2010,
+   "beschreibung": "Erstes Kreatief-Mini-Musical: Die Sage vom Trojanischen Krieg mit bekannten deutschen Schlagern (u. a. „Ein Schiff wird kommen“, „Griechischer Wein“), erzählt von Homer – der schwäbelnde Menelaos will seine Helena von Prinz Paris zurück.",
+   "team": {
+    "Regie": "Martin Renner",
+    "Idee und Text": "Rolf Renner",
+    "Band": "David Holder (Schlagzeug), Alexander Nied (Keyboard), Guido Renner (E-Gitarre)",
+    "Licht- und Tontechnik": "Peter Hülsebusch"
+   },
+   "rollen": [
+    {
+     "rolle": "Helena",
+     "darsteller": [
+      "Friederike Wimmer"
+     ]
+    },
+    {
+     "rolle": "Menelaos",
+     "darsteller": [
+      "Thomas Haffner"
+     ]
+    },
+    {
+     "rolle": "Prinz Paris",
+     "darsteller": [
+      "Sandro Falzone"
+     ]
+    },
+    {
+     "rolle": "Homer / Odysseus",
+     "darsteller": [
+      "Marc Chardon"
+     ]
+    },
+    {
+     "rolle": "Hera",
+     "darsteller": [
+      "Petra Held"
+     ]
+    },
+    {
+     "rolle": "Aphrodite",
+     "darsteller": [
+      "Sara Loeprecht"
+     ]
+    },
+    {
+     "rolle": "Athene",
+     "darsteller": [
+      "Karoline Karajan"
+     ]
+    },
+    {
+     "rolle": "Götterbote",
+     "darsteller": [
+      "Kevin Müßig"
+     ]
+    },
+    {
+     "rolle": "Agamemnon",
+     "darsteller": [
+      "Rolf Renner"
+     ]
+    }
+   ],
+   "vorstellungen": [
+    {
+     "name": "Trailer",
+     "art": "highlight",
+     "nr": 1,
+     "teile": [
+      {
+       "yt": "EDG5jYQkaa0",
+       "dauer": 92,
+       "label": "Teil 1"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "aliase": {
+  "Karoline Hass": "Karoline Karajan",
+  "Tina Kühner": "Tina Feil",
+  "Hannah Drautz": "Hannah Pflüger",
+  "Julia Fröhlich": "Joah Fröhlich",
+  "Petra Falzone": "Petra Held",
+  "Elena Winkens": "Elena Schlaupitz",
+  "Ramona Eitzenhöffer": "Ramona Maas",
+  "Julia Grasmik": "Julia Sedelies",
+  "Lisa Naumann": "Elisabeth Naumann"
+ }
+}

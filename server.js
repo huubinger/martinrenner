@@ -350,6 +350,16 @@ app.use(express.json());
 // daher dürfen Browser die Bilder lange zwischenspeichern.
 app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '365d', immutable: true }));
 
+// --- Kreatief-Musicals: musicals.martinrenner.de (auch unter /musicals erreichbar) ---
+const MUSICALS_PAGE = path.join(__dirname, 'public', 'musicals', 'index.html');
+app.use((req, res, next) => {
+  if (!/^musicals\./i.test(req.hostname || '')) return next();
+  if (req.path === '/' || req.path === '/index.html') return res.sendFile(MUSICALS_PAGE);
+  if (req.path.startsWith('/musicals/')) return next();
+  res.redirect(301, 'https://www.martinrenner.de' + req.originalUrl);
+});
+app.get(['/musicals', '/musicals/'], (req, res) => res.sendFile(MUSICALS_PAGE));
+
 // --- Rechtliche Seiten & Kontaktformular (dynamisch, siehe unten) ---
 // Diese Routen müssen VOR der Static-Middleware registriert werden, damit sie
 // die alten statischen public/impressum.html & public/datenschutz.html überschreiben.
