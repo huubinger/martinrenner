@@ -136,7 +136,7 @@ module.exports = function setupVoctailsIntern(app, deps) {
   const COOKIE_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
   const norm = (pw) => String(pw || '').trim().toLowerCase().normalize('NFC')
     .replace(/ö/g, 'oe').replace(/ä/g, 'ae').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
-  const PASSWORD = norm(process.env.VOCTAILS_PASSWORD || 'voctails');
+  const PASSWORD = norm(process.env.VOCTAILS_PASSWORD || 'stimmgemisch');
   const TOKEN = crypto.createHash('sha256').update(`voctails-v1:${PASSWORD}:${process.env.CHOERLE_SECRET || ''}`).digest('hex');
 
   function hasAccess(req) {
