@@ -476,6 +476,7 @@ const VOCTAILS_OLD_PATHS = {
   '/kontakt': '/#kontakt',
   '/about': 'https://www.martinrenner.de/impressum.html',
   '/sitemap': '/',
+  '/intern': '/voctails/intern/',
 };
 
 function isVoctailsHost(req) {
@@ -496,6 +497,25 @@ app.use((req, res, next) => {
   return res.redirect(301, 'https://www.martinrenner.de' + req.originalUrl);
 });
 app.get(['/voctails', '/voctails/'], (req, res) => res.sendFile(VOCTAILS_PAGE));
+app.get('/voctails/intern', (req, res, next) => {
+  if (req.path.endsWith('/')) return next();
+  res.redirect(301, '/voctails/intern/');
+});
+
+// Voctails „Intern“: Übe-Player-App für die Mitsingenden (siehe voctails-intern.js)
+const voctailsIntern = require('./voctails-intern')(app, {
+  getDropboxAccessToken,
+  asciiSafeJson,
+  slugify,
+  readCookie,
+  escapeHtml,
+  requireAdminAuth,
+  DATA_DIR,
+  WORDS: require('./words'),
+  cleanMarks: cleanChoerleMarks,
+  mp3Peaks,
+  wavPeaks,
+});
 
 // --- Rechtliche Seiten & Kontaktformular (dynamisch, siehe unten) ---
 // Diese Routen müssen VOR der Static-Middleware registriert werden, damit sie
@@ -1031,8 +1051,10 @@ function renderDatenschutzPage(settings) {
     <p>Im Bereich „/choerle" werden Dateien (z. B. Noten) angezeigt, die serverseitig über die API des Cloud-Speicherdienstes Dropbox (Dropbox Inc., USA bzw. Dropbox International Unlimited Company, Irland) abgerufen werden. Dabei werden ausschließlich Dateiinformationen aus einem dediziert für diese Website angelegten Dropbox-Ordner abgerufen – es werden keine personenbezogenen Daten von Besuchern der Website an Dropbox übermittelt. Der Abruf erfolgt serverseitig über einen Zugriffstoken; Besucher der Seite treten mit Dropbox nicht in direkten Kontakt.</p>
     <p>Die Übe-Tracks und Noten sind nur für Mitsingende gedacht und durch ein gemeinsames Passwort geschützt. Nach der richtigen Eingabe wird in deinem Browser ein technisch notwendiges Cookie („choerle_auth") gespeichert, damit du das Passwort nicht bei jedem Besuch erneut eingeben musst. Es enthält keine personenbezogenen Daten, dient ausschließlich der Zugangsfreigabe und wird nach 180 Tagen automatisch gelöscht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG i. V. m. Art. 6 Abs. 1 lit. f DSGVO; eine Einwilligung ist hierfür nicht erforderlich. Setzt du im Übe-Player Sprungmarken (Cues) oder einen Loop-Abschnitt, werden diese Zeitpunkte im Speicher deines Browsers (localStorage) abgelegt, damit sie beim nächsten Besuch wieder da sind. Damit du sie auf mehreren Geräten (z. B. Handy und Computer) nutzen kannst, werden sie zusätzlich auf unserem Server gespeichert und einem zufällig erzeugten Code aus drei Wörtern (Sync-Code) zugeordnet; der Code wird beim ersten Cue automatisch erstellt und in deinem Browser gemerkt. Gespeichert werden nur die Zeitpunkte, von dir vergebene Namen für Cues (z. B. „Refrain“), die zugehörige Track-Adresse und ein Hash-Wert des Codes – kein Name, keine E-Mail-Adresse und keine IP-Adresse. Wer den Code kennt, kann die Cues auf einem weiteren Gerät abrufen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b bzw. f DSGVO (Bereitstellung der von dir genutzten Funktion). Du kannst Cues jederzeit im Player löschen und den Sync auf einem Gerät beenden; auf Wunsch löschen wir die zu deinem Code gespeicherten Daten vollständig (Kontakt siehe oben). Zum Schutz vor dem Durchprobieren von Codes wird die IP-Adresse bei falschen Codes für höchstens 15 Minuten im Arbeitsspeicher des Servers vorgehalten. Zum Schutz vor dem Durchprobieren von Passwörtern wird die IP-Adresse bei Fehleingaben für höchstens 10 Minuten im Arbeitsspeicher des Servers vorgehalten und danach verworfen.</p>
 
+    <p><strong>Voctails „Intern“ (www.martinrenner.de/voctails/intern):</strong> Für die Sängerinnen und Sänger der Voctails gibt es einen passwortgeschützten Übe-Player. Die Übe-Tracks und Noten werden serverseitig über die Dropbox-API aus einem freigegebenen Ordner abgerufen; Besucher treten dabei nicht direkt mit Dropbox in Kontakt. Nach Eingabe des gemeinsamen Passworts wird das technisch notwendige Cookie „voctails_auth“ gesetzt (Speicherdauer 365 Tage, keine personenbezogenen Daten). Im Player wählst du deinen Namen aus einer Liste der Mitglieder mit ihrer Stimmlage (Register), damit dir die passenden Tracks angezeigt werden; die Liste ist nur nach Eingabe des Passworts sichtbar und stammt aus der Vereinsverwaltung (Konzertmeister). Deine Auswahl, Tempo-Einstellung, Cues und Schleifen werden im Speicher deines Browsers abgelegt; offline gespeicherte Tracks liegen im Browser-Speicher deines Geräts. Für die Nutzung auf mehreren Geräten gilt der oben beschriebene Sync-Code entsprechend (eigener Code-Speicher, ohne Namen). Rechtsgrundlage ist Art. 6 Abs. 1 lit. b bzw. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TDDDG.</p>
+
     <h2>10. Cookies, lokaler Speicher und Tracking</h2>
-    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahmen sind die technisch notwendigen Zugangs-Cookies für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9) und für die Musical-Übersicht unter www.martinrenner.de/musicals („musicals_auth“, Speicherdauer 365 Tage); sie werden nur nach Eingabe des jeweiligen Passworts gesetzt, enthalten keine personenbezogenen Daten und dienen ausschließlich der Zugangsfreigabe (§ 25 Abs. 2 Nr. 2 TDDDG).</p>
+    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahmen sind die technisch notwendigen Zugangs-Cookies für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9) und für die Musical-Übersicht unter www.martinrenner.de/musicals („musicals_auth“, Speicherdauer 365 Tage) sowie für den Voctails-Übe-Player („voctails_auth“, Speicherdauer 365 Tage); sie werden nur nach Eingabe des jeweiligen Passworts gesetzt, enthalten keine personenbezogenen Daten und dienen ausschließlich der Zugangsfreigabe (§ 25 Abs. 2 Nr. 2 TDDDG).</p>
     <p>Für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (§ 25 Abs. 2 Nr. 2 TDDDG); eine Einwilligung ist hierfür nicht erforderlich.</p>
     <p>Links zu anderen Websites (z. B. Instagram oder Projektseiten) sind einfache Verweise: Erst wenn du darauf klickst, wird die fremde Seite in einem neuen Tab geöffnet, und es gelten deren Datenschutzhinweise.</p>
 
@@ -1312,6 +1334,8 @@ function renderAdminPage(projects, settings, news, events, message) {
         </div>
       </form>
     </div>
+
+    ${voctailsIntern.renderAdminSection()}
 
     <div class="new-project" id="events">
       <h2>📅 Eventticker</h2>

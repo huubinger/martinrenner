@@ -62,6 +62,13 @@ a { color: var(--yellow); }
   opacity: 0.85;
 }
 .nav-links a:hover { opacity: 1; color: var(--yellow); }
+.nav-links a.nav-intern {
+  padding: 0.15rem 0.7rem;
+  border: 1px solid rgba(255, 210, 0, 0.6);
+  border-radius: 999px;
+  color: var(--yellow);
+  opacity: 1;
+}
 
 /* Hero */
 .hero {

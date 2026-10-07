@@ -1,0 +1,17 @@
+{
+  "name": "Voctails Intern – Übe-Player",
+  "short_name": "Voctails",
+  "description": "Übe-Tracks und Noten der Voctails – deine Stimme, Tempo, Cues und Schleifen, auch offline",
+  "lang": "de",
+  "id": "/voctails/intern/",
+  "start_url": "/voctails/intern/",
+  "scope": "/voctails/intern/",
+  "display": "standalone",
+  "background_color": "#1c0e21",
+  "theme_color": "#1c0e21",
+  "icons": [
+    { "src": "/voctails/intern/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/voctails/intern/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/voctails/intern/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

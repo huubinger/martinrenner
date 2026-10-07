@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Voctails Intern</title>
+  <meta name="description" content="Übe-Tracks und Noten der Voctails">
+  <meta name="theme-color" content="#1c0e21">
+  <link rel="manifest" href="/voctails/intern/manifest.webmanifest">
+  <link rel="icon" href="/voctails/intern/icon-192.png">
+  <link rel="apple-touch-icon" href="/voctails/intern/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Voctails">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="/voctails/intern/app.css">
+</head>
+<body>
+  <header class="top">
+    <button class="icon-btn" id="back" aria-label="Zurück" hidden>
+      <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <a class="brand" href="#/" aria-label="Alle Lieder"><img src="/voctails/img/logo-weiss.png" alt="" width="34" height="32"><span>Intern</span></a>
+    <div class="top-title" id="top-title"></div>
+    <button class="me-chip" id="me-chip" hidden></button>
+  </header>
+
+  <main id="view" class="view"><p class="msg">Wird geladen …</p></main>
+
+  <button id="mini" class="mini" hidden>
+    <span class="mini-progress"><span id="m-bar"></span></span>
+    <span class="mini-text">
+      <span class="mini-title" id="m-title"></span>
+      <span class="mini-sub" id="m-sub"></span>
+    </span>
+    <span class="mini-speed" id="m-speed" hidden></span>
+    <span class="mini-play" id="m-play" role="button" aria-label="Abspielen/Pause">
+      <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5l12 7-12 7z" class="fill"/></svg>
+      <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" class="fill"/></svg>
+    </span>
+  </button>
+
+  <aside id="player" class="player" aria-label="Player" aria-hidden="true">
+    <div class="p-inner">
+      <div class="p-head">
+        <button class="icon-btn" id="p-close" aria-label="Player einklappen"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="p-meta">
+          <div class="p-song" id="p-song"></div>
+          <h2 id="p-track"></h2>
+        </div>
+        <a class="btn small ghost" id="p-pdf" target="_blank" rel="noopener" hidden>
+          <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg> Noten
+        </a>
+      </div>
+
+      <div class="voices" id="p-voices" role="group" aria-label="Stimme wechseln"></div>
+
+      <div class="wave" id="p-wave" role="slider" tabindex="0" aria-label="Position im Track" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <canvas id="p-canvas"></canvas>
+      </div>
+      <div class="times"><span id="p-cur">0:00</span><span id="p-loopinfo" class="loopinfo"></span><span id="p-dur">0:00</span></div>
+
+      <div class="controls">
+        <button class="icon-btn" id="p-prev" aria-label="Vorheriger Track"><svg viewBox="0 0 24 24"><path d="M6 5v14"/><path d="M19 5l-10 7 10 7z" class="fill"/></svg></button>
+        <button class="icon-btn txt" id="p-back" aria-label="5 Sekunden zurück">−5</button>
+        <button class="play-btn" id="p-play" aria-label="Abspielen">
+          <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5l12 7-12 7z" class="fill"/></svg>
+          <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" class="fill"/></svg>
+        </button>
+        <button class="icon-btn txt" id="p-fwd" aria-label="5 Sekunden vor">+5</button>
+        <button class="icon-btn" id="p-next" aria-label="Nächster Track"><svg viewBox="0 0 24 24"><path d="M18 5v14"/><path d="M5 5l10 7-10 7z" class="fill"/></svg></button>
+      </div>
+
+      <section class="sec">
+        <div class="label">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          Meine Cues
+          <span class="label-btns">
+            <button class="btn small" id="p-cue-add">+ Cue</button>
+            <button class="btn small" id="p-loop-add" title="Erst am Anfang, dann am Ende der Schleife tippen">+ Schleife</button>
+          </span>
+        </div>
+        <div class="cues" id="p-cues"></div>
+        <p class="hint" id="p-cue-hint">„+ Cue“ merkt sich die Stelle zum schnellen Hinspringen. „+ Schleife“: einmal am Anfang, einmal am Ende tippen – der Abschnitt läuft dann immer wieder. Am Computer: Leertaste, ←/→, C für Cue, L für Schleife.</p>
+      </section>
+
+      <section class="sec">
+        <div class="label">
+          <svg viewBox="0 0 24 24"><path d="M4 15c0-4 3.5-7 8-7s8 3 8 7H4zM20 13h2M6 15l-1 3M18 15l1 3"/></svg>
+          Tempo <span class="value" id="p-speed-value">Originaltempo</span>
+        </div>
+        <input type="range" id="p-speed" min="50" max="110" step="5" value="100" aria-label="Tempo in Prozent">
+        <div class="speed-marks"><span>50 %</span><button type="button" id="p-speed-reset">100 %</button><span>110 %</span></div>
+        <p class="hint">Die Tonhöhe bleibt gleich.</p>
+      </section>
+    </div>
+  </aside>
+
+  <dialog id="dlg" class="dlg"><div id="dlg-body"></div></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/voctails/intern/app.js"></script>
+</body>
+</html>
