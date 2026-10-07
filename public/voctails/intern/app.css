@@ -324,3 +324,56 @@ body.player-open .toast { bottom: calc(1.2rem + env(safe-area-inset-bottom)); }
 @media (prefers-reduced-motion: reduce) {
   .player, .toast { transition: none; }
 }
+
+/* Chorleiter */
+.leiter-badge { margin-left: 0.2rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: var(--yellow); color: #1c0e21; font-size: 0.7rem; font-weight: 800; }
+.leiter-link { margin-top: 1.4rem; font-size: 0.86rem; color: var(--muted); }
+.linklike { border: none; background: none; padding: 0; color: var(--yellow); text-decoration: underline; font-size: inherit; }
+
+/* Noten */
+body.noten-open .wrap { max-width: none; }
+.noten-host { height: calc(100vh - var(--top) - var(--mini) - env(safe-area-inset-bottom)); height: calc(100dvh - var(--top) - var(--mini) - env(safe-area-inset-bottom)); }
+.nt { display: flex; flex-direction: column; height: 100%; }
+.nt-bar { flex: none; padding: 0.45rem max(0.6rem, env(safe-area-inset-left)); border-bottom: 1px solid var(--line); background: var(--bg-2); }
+.nt-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.nt-tools { margin-top: 0.45rem; }
+.nt-group { display: inline-flex; gap: 0.25rem; padding: 0.15rem; border-radius: 999px; background: rgba(0, 0, 0, 0.25); }
+.nt-btn {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 38px; padding: 0 0.75rem;
+  border-radius: 999px; border: 1px solid var(--line); background: var(--card-2); font-weight: 700; font-size: 0.88rem;
+  color: var(--text); text-decoration: none;
+}
+.nt-btn.ghost { background: transparent; }
+.nt-btn:disabled { opacity: 0.35; }
+.nt-group .nt-btn { border: none; background: transparent; }
+.nt-edit { background: var(--yellow); color: #1c0e21; border-color: var(--yellow); }
+.nt-edit.on { background: #34d399; border-color: #34d399; }
+.nt-tool, .nt-size, .nt-color { width: 40px; height: 38px; border-radius: 999px; border: 2px solid transparent; background: transparent; font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; }
+.nt-tool.on, .nt-size.on { background: var(--yellow); color: #1c0e21; }
+.nt-color { width: 34px; height: 34px; }
+.nt-color::after { content: ''; width: 22px; height: 22px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3); }
+.nt-color.on { border-color: var(--yellow); }
+.nt-size span { display: block; width: var(--s); height: var(--s); border-radius: 50%; background: currentColor; }
+.nt-status { margin-left: auto; font-size: 0.8rem; color: var(--muted); }
+.nt-status.ok { color: #34d399; }
+.nt-status.err { color: #fca5a5; }
+.nt-warn { margin-top: 0.4rem; font-size: 0.82rem; color: var(--yellow); }
+.nt-toggle { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.86rem; font-weight: 600; cursor: pointer; }
+.nt-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.switch { position: relative; width: 38px; height: 22px; border-radius: 999px; background: rgba(255, 255, 255, 0.2); transition: background 0.15s; flex: none; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 0.15s; }
+.nt-toggle input:checked + .switch { background: var(--yellow); }
+.nt-toggle input:checked + .switch::after { transform: translateX(16px); }
+.nt-scroll { flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch; padding: 0.6rem; background: #120916; }
+.nt-pages { display: grid; gap: 0.6rem; margin: 0 auto; max-width: 1100px; }
+.nt-page { position: relative; background: #fff; border-radius: 4px; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.45); overflow: hidden; }
+.nt-page .nt-pdf { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.nt-page .nt-ov { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+.nt-page-no { position: absolute; z-index: 2; right: 6px; bottom: 4px; font-size: 0.65rem; color: #94a3b8; pointer-events: none; }
+/* Beim Schreiben: keine Textauswahl/Lupe; „Nur Pencil“: Finger blättern weiter */
+.nt.editing .nt-ov { cursor: crosshair; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.nt.draw-all .nt-ov { touch-action: none; }
+.nt.pen-only .nt-ov { touch-action: pan-x pan-y pinch-zoom; }
+@media (max-width: 600px) {
+  .nt-status { width: 100%; margin-left: 0; }
+}

@@ -9,6 +9,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { Readable } = require('stream');
+const express = require('express');
 
 const REGISTERS = ['Sopran', 'Mezzo', 'Alt', 'Tenor', 'Bass', 'Beatbox'];
 
@@ -324,11 +325,139 @@ module.exports = function setupVoctailsIntern(app, deps) {
     return fileIndex.get(id) || null;
   }
 
+  // ---------- Chorleiter: Anmeldung (Passwort wie /admin, änderbar über VOCTAILS_LEITER_PASSWORD) ----------
+  const LEITER_COOKIE = 'voctails_leiter';
+  const leiterPassword = () => process.env.VOCTAILS_LEITER_PASSWORD || process.env.ADMIN_PASSWORD || '';
+  const leiterToken = () => crypto.createHash('sha256').update(`voctails-leiter-v1:${leiterPassword()}:${process.env.CHOERLE_SECRET || ''}`).digest('hex');
+
+  function isLeiter(req) {
+    if (!leiterPassword()) return false;
+    const value = readCookie(req, LEITER_COOKIE);
+    const token = leiterToken();
+    if (!value || value.length !== token.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(value), Buffer.from(token));
+  }
+
+  app.post('/api/voctails/leiter-login', requireAccess, (req, res) => {
+    const ip = 'leiter:' + (req.headers['cf-connecting-ip'] || req.ip);
+    const now = Date.now();
+    const attempts = (failedLogins.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
+    if (attempts.length >= 10) return res.status(429).json({ ok: false, error: 'Zu viele Versuche. Bitte in ein paar Minuten erneut probieren.' });
+    const given = Buffer.from(String((req.body || {}).password || ''));
+    const expected = Buffer.from(leiterPassword());
+    if (!expected.length || given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) {
+      attempts.push(now);
+      failedLogins.set(ip, attempts);
+      return res.status(401).json({ ok: false, error: 'Das Passwort stimmt leider nicht.' });
+    }
+    failedLogins.delete(ip);
+    res.cookie(LEITER_COOKIE, leiterToken(), {
+      maxAge: COOKIE_MAX_AGE_MS,
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+      path: '/',
+    });
+    res.json({ ok: true });
+  });
+
+  app.post('/api/voctails/leiter-logout', (req, res) => {
+    res.clearCookie(LEITER_COOKIE, { path: '/' });
+    res.json({ ok: true });
+  });
+
+  // ---------- Chorleiter-Version der Noten: Stift-Einträge je Lied und Seite ----------
+  // Gespeichert als Vektordaten (Striche) in DATA_DIR/voctails-notes/<lied>.json – die Original-PDFs bleiben unverändert.
+  const NOTES_DIR = path.join(DATA_DIR, 'voctails-notes');
+  const notesIndex = {};
+  try {
+    for (const f of fs.readdirSync(NOTES_DIR)) {
+      if (!f.endsWith('.json')) continue;
+      try {
+        const n = JSON.parse(fs.readFileSync(path.join(NOTES_DIR, f), 'utf8'));
+        if (n.updatedAt && Object.values(n.pages || {}).some((p) => p.length)) notesIndex[f.slice(0, -5)] = n.updatedAt;
+      } catch (e) {}
+    }
+  } catch (e) {}
+
+  const validSlug = (slug) => /^[a-z0-9-]{1,120}$/.test(slug);
+  const COLOR_RE = /^#[0-9a-f]{6}$/i;
+
+  function cleanStroke(st) {
+    if (!st || !Array.isArray(st.p) || st.p.length < 3) return null;
+    const pts = [];
+    for (let i = 0; i + 2 < st.p.length && pts.length < 30000; i += 3) {
+      const x = Number(st.p[i]);
+      const y = Number(st.p[i + 1]);
+      const pr = Number(st.p[i + 2]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      pts.push(Math.round(x * 10000) / 10000, Math.round(y * 10000) / 10000, Number.isFinite(pr) ? Math.round(Math.max(0, Math.min(1, pr)) * 100) / 100 : 0.5);
+    }
+    if (!pts.length) return null;
+    return {
+      t: st.t === 'hl' ? 'hl' : 'pen',
+      c: COLOR_RE.test(st.c) ? st.c : '#d62828',
+      w: Math.max(0.0005, Math.min(0.05, Number(st.w) || 0.003)),
+      p: pts,
+    };
+  }
+
+  app.get('/voctails/intern/notes/:slug', requireAccess, (req, res) => {
+    if (!validSlug(req.params.slug)) return res.status(404).json({ ok: false });
+    res.set('Cache-Control', 'no-store');
+    fs.readFile(path.join(NOTES_DIR, req.params.slug + '.json'), 'utf8', (err, txt) => {
+      if (err) return res.json({ ok: true, pages: {}, updatedAt: 0 });
+      try {
+        res.json({ ok: true, ...JSON.parse(txt) });
+      } catch (e) {
+        res.json({ ok: true, pages: {}, updatedAt: 0 });
+      }
+    });
+  });
+
+  // Als text/plain geschickt, damit große Notizen nicht am 100-kB-Limit des globalen JSON-Parsers scheitern
+  app.put('/voctails/intern/notes/:slug', requireAccess, express.text({ type: '*/*', limit: '15mb' }), async (req, res) => {
+    if (!isLeiter(req)) return res.status(403).json({ ok: false, error: 'Nur für den Chorleiter.' });
+    if (!validSlug(req.params.slug)) return res.status(404).json({ ok: false });
+    let body;
+    try {
+      body = JSON.parse(req.body || '{}');
+    } catch (e) {
+      return res.status(400).json({ ok: false, error: 'Ungültige Daten.' });
+    }
+    const pages = {};
+    let count = 0;
+    for (const [page, strokes] of Object.entries(body.pages || {})) {
+      const n = parseInt(page, 10);
+      if (!(n >= 1 && n <= 500) || !Array.isArray(strokes)) continue;
+      const clean = strokes.map(cleanStroke).filter(Boolean).slice(0, 5000);
+      if (clean.length) pages[n] = clean;
+      count += clean.length;
+    }
+    const updatedAt = Date.now();
+    const data = { pages, pdf: String(body.pdf || '').slice(0, 300), updatedAt };
+    const file = path.join(NOTES_DIR, req.params.slug + '.json');
+    try {
+      await fs.promises.mkdir(NOTES_DIR, { recursive: true });
+      // Vorherige Fassung als Sicherung behalten (falls versehentlich alles gelöscht wurde)
+      await fs.promises.copyFile(file, file + '.bak').catch(() => {});
+      await fs.promises.writeFile(file + '.tmp', JSON.stringify(data));
+      await fs.promises.rename(file + '.tmp', file);
+    } catch (err) {
+      console.error('Voctails-Notizen speichern fehlgeschlagen:', err);
+      return res.status(500).json({ ok: false, error: 'Speichern fehlgeschlagen.' });
+    }
+    if (count) notesIndex[req.params.slug] = updatedAt;
+    else delete notesIndex[req.params.slug];
+    res.json({ ok: true, updatedAt });
+  });
+
   app.get('/api/voctails/library', requireAccess, async (req, res) => {
     try {
       const songs = await getLibrary(req.query.refresh === '1');
       res.set('Cache-Control', 'no-store');
-      res.json({ ok: true, members: loadMembers(), songs, updatedAt: libraryAt });
+      const withNotes = songs.map((song) => (notesIndex[song.slug] ? { ...song, notesAt: notesIndex[song.slug] } : song));
+      res.json({ ok: true, members: loadMembers(), songs: withNotes, updatedAt: libraryAt, leiter: isLeiter(req) });
     } catch (err) {
       console.error('Voctails-Bibliothek:', err);
       res.status(502).json({ ok: false, error: 'Die Lieder konnten gerade nicht geladen werden. Bitte später erneut versuchen.' });

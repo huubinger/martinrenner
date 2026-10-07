@@ -95,6 +95,7 @@
       const body = await r.json();
       if (!body.ok) throw new Error(body.error);
       state.library = { members: body.members, songs: body.songs };
+      state.leiter = !!body.leiter;
       lsSet(LS.lib, JSON.stringify(state.library));
       state.offline = false;
       state.fresh = true;
@@ -245,6 +246,8 @@
   let route = { name: 'home' };
 
   function parseRoute() {
+    const n = location.hash.match(/^#\/noten\/([^/?]+)/);
+    if (n) return { name: 'noten', slug: decodeURIComponent(n[1]) };
     const m = location.hash.match(/^#\/lied\/([^/?]+)/);
     if (m) return { name: 'song', slug: decodeURIComponent(m[1]) };
     if (location.hash === '#/name') return { name: 'name' };
@@ -257,17 +260,27 @@
     const m = me();
     const chip = $('#me-chip');
     chip.hidden = !m || route.name === 'name' || route.name === 'login';
-    if (m) chip.innerHTML = `<span class="me-dot reg-${esc((m.register || 'alle').toLowerCase())}"></span><span class="me-name">${esc(m.name.split(' ')[0])}</span>`;
+    if (m) chip.innerHTML = `<span class="me-dot reg-${esc((m.register || 'alle').toLowerCase())}"></span><span class="me-name">${esc(m.name.split(' ')[0])}</span>${state.leiter ? '<span class="leiter-badge">Chorleiter</span>' : ''}`;
   }
 
-  function render() {
+  let noten = null; // offene Noten-Ansicht
+  function render(force) {
     if (!state.library) return;
+    // Offene Noten nicht neu aufbauen (z. B. nach dem Offline-Speichern), sonst geht das Schreiben verloren
+    const next = parseRoute();
+    if (!force && noten && next.name === 'noten' && next.slug === noten.slug) return;
+    if (noten) { noten.destroy(); noten = null; }
+    document.body.classList.remove('noten-open');
     route = parseRoute();
     if (!me() && route.name !== 'name') route = { name: 'name' };
     if (route.name === 'name') return renderNamePicker();
     if (route.name === 'song') {
       const song = findSong(route.slug);
       if (song) return renderSong(song);
+    }
+    if (route.name === 'noten') {
+      const song = findSong(route.slug);
+      if (song && song.pdf) return renderNoten(song);
     }
     renderHome();
   }
@@ -415,7 +428,7 @@
         const avail = !state.offline || (isSaved(s) && !missingFiles(s).length);
         return `<li${q && !s.title.toLowerCase().includes(q) ? ' hidden' : ''}><a class="song${avail ? '' : ' unavailable'}" href="#/lied/${encodeURIComponent(s.slug)}">
           <span class="song-title">${esc(s.title)}</span>
-          <span class="song-meta">${voiceChips(s)}${s.pdf ? '<span class="chip ghost">Noten</span>' : ''}</span>
+          <span class="song-meta">${voiceChips(s)}${s.pdf ? `<span class="chip ghost">${s.notesAt ? 'Noten ✎' : 'Noten'}</span>` : ''}</span>
           ${saveBtnHtml(s)}
           <svg class="arrow" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
         </a></li>`;
@@ -423,6 +436,9 @@
       ${storageHtml()}
       ${installHtml()}
       ${syncHtml()}
+      <p class="leiter-link">${state.leiter
+        ? 'Du bist als <b>Chorleiter</b> angemeldet: In den Noten kannst du mit „✎ Schreiben“ Einträge für alle machen. <button class="linklike" id="leiter-logout">Abmelden</button>'
+        : '<button class="linklike" id="leiter-login">Chorleiter-Anmeldung</button>'}</p>
       <p class="note">Noten und Übe-Tracks sind nur zum persönlichen Üben für die Sängerinnen und Sänger der Voctails bestimmt. Weitergabe oder Veröffentlichung ist nicht gestattet.</p>
     </div>`;
     $('#song-search').addEventListener('input', (e) => {
@@ -440,6 +456,55 @@
     if (ib) ib.addEventListener('click', async () => { installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; render(); });
     const so = $('#sync-open');
     if (so) so.addEventListener('click', openSyncDialog);
+    const ll = $('#leiter-login');
+    if (ll) ll.addEventListener('click', openLeiterDialog);
+    const lo = $('#leiter-logout');
+    if (lo) lo.addEventListener('click', async () => {
+      await fetch('/api/voctails/leiter-logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+      state.leiter = false;
+      render(true);
+    });
+  }
+
+  function openLeiterDialog() {
+    openDialog(`<h2>Chorleiter-Anmeldung</h2>
+      <p>Damit kannst du in den Noten Einträge machen, die alle Sängerinnen und Sänger sehen.</p>
+      <form class="code-form" id="leiter-form"><input type="password" id="leiter-pw" placeholder="Passwort" autocomplete="current-password"><button class="btn primary" type="submit">Anmelden</button></form>
+      <p class="login-msg" id="leiter-msg"></p>
+      <div class="dlg-actions"><button class="btn" data-close>Abbrechen</button></div>`);
+    $('#leiter-pw').focus();
+    $('#leiter-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const r = await fetch('/api/voctails/leiter-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ password: $('#leiter-pw').value }),
+        });
+        const body = await r.json();
+        if (!body.ok) { $('#leiter-msg').textContent = body.error || 'Das hat nicht geklappt.'; return; }
+        state.leiter = true;
+        closeDialog();
+        toast('Als Chorleiter angemeldet.');
+        render(true);
+      } catch (err) {
+        $('#leiter-msg').textContent = 'Keine Verbindung zum Server.';
+      }
+    });
+  }
+
+  function renderNoten(song) {
+    setTop(song.title, true);
+    document.body.classList.add('noten-open');
+    view.innerHTML = '<div class="noten-host"></div>';
+    noten = window.VtNoten.render(view.querySelector('.noten-host'), {
+      pdfUrl: song.pdf.url,
+      pdfName: song.pdf.name,
+      notesUrl: BASE + 'notes/' + encodeURIComponent(song.slug),
+      leiter: state.leiter,
+    });
+    noten.slug = song.slug;
   }
 
   function trackRow(t, song, opts) {
@@ -465,7 +530,7 @@
     view.innerHTML = `<div class="wrap">
       <h1 class="song-h">${esc(song.title)}</h1>
       <div class="song-actions">
-        ${song.pdf ? `<a class="btn" href="${esc(song.pdf.url)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg> Noten</a>` : ''}
+        ${song.pdf ? `<a class="btn${song.notesAt ? ' primary' : ''}" href="#/noten/${encodeURIComponent(song.slug)}"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg> Noten${song.notesAt ? ' mit Chorleiter-Notizen' : ''}</a>` : ''}
         ${pct !== undefined ? `<button class="btn" disabled data-save="${esc(song.slug)}">Wird gespeichert … ${pct} %</button>`
           : saved ? '<button class="btn ghost" id="song-unsave"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg> Offline gespeichert</button>'
           : state.offline ? '' : '<button class="btn" id="song-save"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Offline speichern</button>'}
@@ -510,7 +575,7 @@
     else location.hash = '#/';
   });
   $('#me-chip').addEventListener('click', () => { location.hash = '#/name'; });
-  window.addEventListener('hashchange', () => { view.onclick = null; render(); window.scrollTo(0, 0); });
+  window.addEventListener('hashchange', () => { view.onclick = null; render(true); window.scrollTo(0, 0); });
 
   // ---------- Player ----------
   const audio = new Audio();
@@ -598,7 +663,7 @@
     $('#m-sub').textContent = t.voiceLabel ? t.voiceLabel + ' · ' + t.label : t.label;
     const pdf = $('#p-pdf');
     pdf.hidden = !player.song.pdf;
-    if (player.song.pdf) pdf.href = player.song.pdf.url;
+    if (player.song.pdf) pdf.href = '#/noten/' + encodeURIComponent(player.song.slug);
     // Schnell zwischen eigener Stimme und Gesamt wechseln – an derselben Stelle
     // Gleiche Stimme mehrfach (z. B. „M2“ und „Mezzo2“ aus dem Vocals-Ordner): dann den Dateinamen zeigen
     const counts = {};
@@ -698,6 +763,8 @@
   $('#m-play').addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
   $('#mini').addEventListener('click', openPlayer);
   $('#p-close').addEventListener('click', closePlayer);
+  // Noten aus dem Player: am Handy Player einklappen, am großen Bildschirm stehen beide nebeneinander
+  $('#p-pdf').addEventListener('click', () => { if (window.innerWidth < 1000) closePlayer(); });
   $('#p-back').addEventListener('click', () => step(-5));
   $('#p-fwd').addEventListener('click', () => step(5));
   $('#p-prev').addEventListener('click', () => nextTrack(-1));

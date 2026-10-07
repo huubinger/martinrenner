@@ -2,10 +2,10 @@
 // Voctails Intern – Service Worker
 // App-Shell: network-first (Updates kommen sofort an), Fallback auf Cache.
 // Übe-Tracks, Noten und Wellenformen: aus dem Offline-Speicher (inkl. Range-Requests zum Spulen), sonst Netzwerk.
-const SHELL = 'vt-shell-v1';
+const SHELL = 'vt-shell-v2';
 const MEDIA = 'vt-media-v1';
 const BASE = '/voctails/intern/';
-const ASSETS = [BASE, BASE + 'app.js', BASE + 'app.css', BASE + 'manifest.webmanifest', BASE + 'icon-192.png', BASE + 'apple-touch-icon.png', '/voctails/img/logo-weiss.png'];
+const ASSETS = [BASE, BASE + 'app.js', BASE + 'noten.js', BASE + 'app.css', BASE + 'manifest.webmanifest', BASE + 'icon-192.png', BASE + 'apple-touch-icon.png', '/voctails/img/logo-weiss.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -69,5 +69,6 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (url.pathname.startsWith('/api/')) return; // Bibliothek speichert die App selbst
-  if (url.pathname.startsWith(BASE) || url.pathname === '/voctails/img/logo-weiss.png') e.respondWith(networkFirst(req));
+  // App, Chorleiter-Notizen (zuletzt geladener Stand bleibt offline verfügbar) und PDF.js für die Noten
+  if (url.pathname.startsWith(BASE) || url.pathname.startsWith('/vendor/pdfjs/') || url.pathname === '/voctails/img/logo-weiss.png') e.respondWith(networkFirst(req));
 });

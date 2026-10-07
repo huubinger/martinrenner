@@ -492,7 +492,7 @@ app.use((req, res, next) => {
   const old = VOCTAILS_OLD_PATHS[req.path.replace(/\/+$/, '')];
   if (old) return res.redirect(301, old);
   // Bilder/Skripte der Seite, Formular-APIs und Rechtstexte laufen über denselben Server.
-  if (req.path.startsWith('/voctails/') || req.path.startsWith('/api/') ||
+  if (req.path.startsWith('/voctails/') || req.path.startsWith('/api/') || req.path.startsWith('/vendor/pdfjs/') ||
       req.path === '/impressum.html' || req.path === '/datenschutz.html') return next();
   return res.redirect(301, 'https://www.martinrenner.de' + req.originalUrl);
 });
