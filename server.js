@@ -369,7 +369,7 @@ app.use(express.json());
 // daher dürfen Browser die Bilder lange zwischenspeichern.
 app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '365d', immutable: true }));
 
-// --- Kreatief-Musicals: musicals.martinrenner.de (auch unter /musicals erreichbar) ---
+// --- Kreatief-Musicals: www.martinrenner.de/musicals (früher musicals.martinrenner.de) ---
 // Passwortgeschützt (gemeinsames Passwort, Groß-/Kleinschreibung egal). Geschützt
 // sind Seite, data.json und Vorschaubilder; Logo/Stern/CSS braucht die Login-Seite.
 const MUSICALS_PAGE = path.join(__dirname, 'public', 'musicals', 'index.html');
@@ -445,24 +445,24 @@ app.post('/musicals/login', (req, res) => {
     secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
     path: '/',
   });
-  res.redirect(303, /^musicals\./i.test(req.hostname || '') ? '/' : '/musicals/');
+  res.redirect(303, '/musicals/');
 });
 
 app.use((req, res, next) => {
-  const isMusicalsHost = /^musicals\./i.test(req.hostname || '');
-  const isMusicalsPath = req.path === '/musicals' || req.path.startsWith('/musicals/');
-  if (!isMusicalsHost && !isMusicalsPath) return next();
-  if (isMusicalsHost && !isMusicalsPath && req.path !== '/' && req.path !== '/index.html') {
-    return res.redirect(301, 'https://www.martinrenner.de' + req.originalUrl);
+  // Alte Subdomain auf die Unterseite umleiten (falls sie noch hier ankommt).
+  if (/^musicals\./i.test(req.hostname || '')) {
+    const rest = req.path.startsWith('/musicals') ? req.originalUrl : '/musicals' + req.originalUrl;
+    return res.redirect(301, 'https://www.martinrenner.de' + rest);
   }
+  const isMusicalsPath = req.path === '/musicals' || req.path.startsWith('/musicals/');
+  if (!isMusicalsPath) return next();
   if (MUSICALS_PUBLIC.has(req.path)) return next();
   if (!hasMusicalsAccess(req)) {
-    if (req.method === 'GET' && (req.path === '/' || req.path === '/index.html' || req.path === '/musicals' || req.path === '/musicals/' || req.path === '/musicals/index.html')) {
+    if (req.method === 'GET' && (req.path === '/musicals' || req.path === '/musicals/' || req.path === '/musicals/index.html')) {
       return sendMusicalsLogin(res);
     }
     return res.status(401).set('Cache-Control', 'no-store').send('Bitte zuerst das Passwort eingeben.');
   }
-  if (isMusicalsHost && (req.path === '/' || req.path === '/index.html')) return res.sendFile(MUSICALS_PAGE);
   next();
 });
 app.get(['/musicals', '/musicals/'], (req, res) => res.sendFile(MUSICALS_PAGE));
@@ -1032,7 +1032,7 @@ function renderDatenschutzPage(settings) {
     <p>Die Übe-Tracks und Noten sind nur für Mitsingende gedacht und durch ein gemeinsames Passwort geschützt. Nach der richtigen Eingabe wird in deinem Browser ein technisch notwendiges Cookie („choerle_auth") gespeichert, damit du das Passwort nicht bei jedem Besuch erneut eingeben musst. Es enthält keine personenbezogenen Daten, dient ausschließlich der Zugangsfreigabe und wird nach 180 Tagen automatisch gelöscht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG i. V. m. Art. 6 Abs. 1 lit. f DSGVO; eine Einwilligung ist hierfür nicht erforderlich. Setzt du im Übe-Player Sprungmarken (Cues) oder einen Loop-Abschnitt, werden diese Zeitpunkte im Speicher deines Browsers (localStorage) abgelegt, damit sie beim nächsten Besuch wieder da sind. Damit du sie auf mehreren Geräten (z. B. Handy und Computer) nutzen kannst, werden sie zusätzlich auf unserem Server gespeichert und einem zufällig erzeugten Code aus drei Wörtern (Sync-Code) zugeordnet; der Code wird beim ersten Cue automatisch erstellt und in deinem Browser gemerkt. Gespeichert werden nur die Zeitpunkte, von dir vergebene Namen für Cues (z. B. „Refrain“), die zugehörige Track-Adresse und ein Hash-Wert des Codes – kein Name, keine E-Mail-Adresse und keine IP-Adresse. Wer den Code kennt, kann die Cues auf einem weiteren Gerät abrufen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b bzw. f DSGVO (Bereitstellung der von dir genutzten Funktion). Du kannst Cues jederzeit im Player löschen und den Sync auf einem Gerät beenden; auf Wunsch löschen wir die zu deinem Code gespeicherten Daten vollständig (Kontakt siehe oben). Zum Schutz vor dem Durchprobieren von Codes wird die IP-Adresse bei falschen Codes für höchstens 15 Minuten im Arbeitsspeicher des Servers vorgehalten. Zum Schutz vor dem Durchprobieren von Passwörtern wird die IP-Adresse bei Fehleingaben für höchstens 10 Minuten im Arbeitsspeicher des Servers vorgehalten und danach verworfen.</p>
 
     <h2>10. Cookies, lokaler Speicher und Tracking</h2>
-    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahmen sind die technisch notwendigen Zugangs-Cookies für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9) und für die Musical-Übersicht unter musicals.martinrenner.de („musicals_auth“, Speicherdauer 365 Tage); sie werden nur nach Eingabe des jeweiligen Passworts gesetzt, enthalten keine personenbezogenen Daten und dienen ausschließlich der Zugangsfreigabe (§ 25 Abs. 2 Nr. 2 TDDDG).</p>
+    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahmen sind die technisch notwendigen Zugangs-Cookies für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9) und für die Musical-Übersicht unter www.martinrenner.de/musicals („musicals_auth“, Speicherdauer 365 Tage); sie werden nur nach Eingabe des jeweiligen Passworts gesetzt, enthalten keine personenbezogenen Daten und dienen ausschließlich der Zugangsfreigabe (§ 25 Abs. 2 Nr. 2 TDDDG).</p>
     <p>Für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (§ 25 Abs. 2 Nr. 2 TDDDG); eine Einwilligung ist hierfür nicht erforderlich.</p>
     <p>Links zu anderen Websites (z. B. Instagram oder Projektseiten) sind einfache Verweise: Erst wenn du darauf klickst, wird die fremde Seite in einem neuen Tab geöffnet, und es gelten deren Datenschutzhinweise.</p>
 
