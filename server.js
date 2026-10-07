@@ -68,6 +68,25 @@ function saveSettings(settings) {
   saveSettings(settings);
 })();
 
+// Einmalige Übernahme (Okt. 2026): Projektkarte "Voctails" verlinkt auf die neue Voctails-Seite.
+(function migrateVoctailsLink() {
+  const settings = loadSettings();
+  if (settings.voctailsLinkInitialized) return;
+  try {
+    const projects = JSON.parse(fs.readFileSync(PROJECTS_FILE, 'utf8'));
+    const p = projects.find((x) => x.id === 'voctails');
+    if (p && (!p.link || p.link === '#')) p.link = '/voctails';
+    if (p && /^Platzhaltertext/.test(p.info || '')) {
+      p.info = 'A cappella in the Mix: Pop und Rock ganz ohne Instrumente, aber mit Beatbox – gemischter Chor aus Gochsen und Kochersteinsfeld, Gewinner des Grand Prix der Popchöre 2018.';
+    }
+    fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2));
+  } catch {
+    // Noch keine projects.json – dann greifen die DEFAULT_PROJECTS unten.
+  }
+  settings.voctailsLinkInitialized = true;
+  saveSettings(settings);
+})();
+
 const DEFAULT_PROJECTS = [
   {
     id: 'martin-renner',
@@ -100,8 +119,8 @@ const DEFAULT_PROJECTS = [
     icon: '🎤',
     eyebrow: 'Projekt',
     title: 'Voctails',
-    info: 'Platzhaltertext: kurze Beschreibung des Projekts Voctails.',
-    link: '#',
+    info: 'A cappella in the Mix: Pop und Rock ganz ohne Instrumente, aber mit Beatbox – gemischter Chor aus Gochsen und Kochersteinsfeld, Gewinner des Grand Prix der Popchöre 2018.',
+    link: '/voctails',
     image: null,
     socials: [
       { label: 'Instagram', href: '#' },
@@ -447,6 +466,36 @@ app.use((req, res, next) => {
   next();
 });
 app.get(['/musicals', '/musicals/'], (req, res) => res.sendFile(MUSICALS_PAGE));
+
+// --- Voctails: www.martinrenner.de/voctails, auch über voctails.martinrenner.de und (www.)voctails.de ---
+const VOCTAILS_PAGE = path.join(__dirname, 'public', 'voctails', 'index.html');
+// Alte Jimdo-Adressen, damit bestehende Links auf voctails.de weiter funktionieren.
+const VOCTAILS_OLD_PATHS = {
+  '/konzerte': '/#konzerte',
+  '/videos': '/#videos',
+  '/kontakt': '/#kontakt',
+  '/about': 'https://www.martinrenner.de/impressum.html',
+  '/sitemap': '/',
+};
+
+function isVoctailsHost(req) {
+  const host = req.hostname || '';
+  return /^voctails\./i.test(host) || /^(www\.)?voctails\.de$/i.test(host);
+}
+
+app.use((req, res, next) => {
+  if (!isVoctailsHost(req)) return next();
+  if (req.path === '/' || req.path === '/index.html' || req.path === '/voctails' || req.path === '/voctails/') {
+    return res.sendFile(VOCTAILS_PAGE);
+  }
+  const old = VOCTAILS_OLD_PATHS[req.path.replace(/\/+$/, '')];
+  if (old) return res.redirect(301, old);
+  // Bilder/Skripte der Seite, Formular-APIs und Rechtstexte laufen über denselben Server.
+  if (req.path.startsWith('/voctails/') || req.path.startsWith('/api/') ||
+      req.path === '/impressum.html' || req.path === '/datenschutz.html') return next();
+  return res.redirect(301, 'https://www.martinrenner.de' + req.originalUrl);
+});
+app.get(['/voctails', '/voctails/'], (req, res) => res.sendFile(VOCTAILS_PAGE));
 
 // --- Rechtliche Seiten & Kontaktformular (dynamisch, siehe unten) ---
 // Diese Routen müssen VOR der Static-Middleware registriert werden, damit sie
@@ -2192,7 +2241,7 @@ app.post('/api/vt-anfrage', async (req, res) => {
 });
 
 app.post('/api/kontakt', async (req, res) => {
-  const { name, email, message, captchaAnswer, captchaToken, website } = req.body || {};
+  const { name, email, message, captchaAnswer, captchaToken, website, source } = req.body || {};
 
   // Honeypot: Ein verstecktes Feld, das nur Bots ausfüllen. Wird es befüllt,
   // tun wir so, als hätte alles geklappt, ohne wirklich etwas zu versenden.
@@ -2222,7 +2271,7 @@ app.post('/api/kontakt', async (req, res) => {
       from: process.env.MAIL_FROM || process.env.SMTP_USER,
       to: process.env.CONTACT_TO || settings.email,
       replyTo: email,
-      subject: `Kontaktanfrage von ${name} über martinrenner.de`,
+      subject: `Kontaktanfrage von ${name} über ${source === 'voctails' ? 'die Voctails-Seite' : 'martinrenner.de'}`,
       text: `Name: ${name}\nE-Mail: ${email}\n\nNachricht:\n${message}`,
     });
     res.json({ ok: true });
@@ -2239,7 +2288,7 @@ const KREATIEF_ORGANIZER_ID = 1; // nur Kreatief-eigene Termine, keine Fremdvera
 const KONZERTMEISTER_URL = process.env.KONZERTMEISTER_URL ||
   'https://rest.konzertmeister.app/api/v3/org/OALS_61f21604-97b8-4e79-bd31-f16cc0332b78/upcomingappointments?types=2&showDescription=false&onlyPublicsite=false&limit=30&display=light&lang=de&hash=454c4cfbeb43c2de3d4263cf0d5bbf14f0e6b5cf8879aae8ca970088140fa104';
 // Konzertmeister verlinkt je Termin nur eine iCal-Datei – Klick führt daher zur Konzertseite der Voctails.
-const VOCTAILS_EVENTS_URL = 'https://www.voctails.de/konzerte/';
+const VOCTAILS_EVENTS_URL = 'https://www.martinrenner.de/voctails/#konzerte';
 const TICKER_CACHE_TTL_MS = 30 * 60 * 1000;
 // Alle kommenden Termine für die aufklappbare Übersicht; der Ticker selbst zeigt nur die ersten 10.
 const TICKER_MAX_ITEMS = 100;
@@ -2389,6 +2438,18 @@ async function getTickerEvents() {
   const hidden = new Set(loadHiddenEvents());
   return (await getAllTickerEvents()).filter((e) => !hidden.has(eventKey(e)));
 }
+
+// Nur die Voctails-Termine für die Konzertliste auf der Voctails-Seite.
+app.get('/api/voctails-events', async (req, res) => {
+  try {
+    const items = (await getTickerEvents()).filter((e) => e.source === 'voctails');
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json({ items });
+  } catch (err) {
+    console.error('Voctails-Termine:', err);
+    res.json({ items: [] });
+  }
+});
 
 app.get('/api/events-ticker', async (req, res) => {
   try {
