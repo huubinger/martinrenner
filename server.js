@@ -363,6 +363,43 @@ const upload = multer({
   },
 });
 
+// --- Kamera-Tool: www.martinrenner.de/kameras (früher kameras.martinrenner.de) ---
+// Eigener Railway-Dienst (Repo kamera-tool); hier nur durchgereicht. Steht vor
+// den Body-Parsern, damit die Anfrage unverändert weitergeht.
+const KAMERA_TOOL_URL = (process.env.KAMERA_TOOL_URL || '').replace(/\/+$/, '');
+app.use('/kameras', async (req, res) => {
+  // Ohne Schrägstrich am Ende stimmen die relativen Pfade der Seite nicht.
+  if (/^\/kameras(\?|$)/.test(req.originalUrl)) return res.redirect(301, req.originalUrl.replace('/kameras', '/kameras/'));
+  if (!KAMERA_TOOL_URL) return res.status(503).send('Kamera-Tool ist nicht eingerichtet.');
+  try {
+    const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await new Promise((resolve, reject) => {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => resolve(Buffer.concat(chunks)));
+      req.on('error', reject);
+    });
+    const headers = {};
+    for (const name of ['content-type', 'cookie', 'user-agent', 'accept']) {
+      if (req.headers[name]) headers[name] = req.headers[name];
+    }
+    // „Alle aus/an“ kann bei offline-Kameras einige Minuten dauern.
+    const upstream = await fetch(KAMERA_TOOL_URL + req.url, {
+      method: req.method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(10 * 60 * 1000),
+    });
+    res.status(upstream.status);
+    for (const name of ['content-type', 'cache-control', 'location']) {
+      const value = upstream.headers.get(name);
+      if (value) res.set(name, value);
+    }
+    const cookies = upstream.headers.getSetCookie().map((c) => c.replace(/;\s*Path=\/(?=;|$)/i, '; Path=/kameras'));
+    if (cookies.length) res.set('set-cookie', cookies);
+    res.send(Buffer.from(await upstream.arrayBuffer()));
+  } catch (error) {
+    console.error('[kameras]', error.message);
+    res.status(502).json({ error: 'Kamera-Tool nicht erreichbar.' });
+  }
+});
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // Dateinamen sind eindeutige UUIDs – ein neues Foto bekommt immer einen neuen Namen,
@@ -1054,7 +1091,7 @@ function renderDatenschutzPage(settings) {
     <p><strong>Voctails „Intern“ (www.martinrenner.de/voctails/intern):</strong> Für die Sängerinnen und Sänger der Voctails gibt es einen passwortgeschützten Übe-Player. Die Übe-Tracks und Noten werden serverseitig über die Dropbox-API aus einem freigegebenen Ordner abgerufen; Besucher treten dabei nicht direkt mit Dropbox in Kontakt. Nach Eingabe des gemeinsamen Passworts wird das technisch notwendige Cookie „voctails_auth“ gesetzt (Speicherdauer 365 Tage, keine personenbezogenen Daten). Im Player wählst du deinen Namen aus einer Liste der Mitglieder mit ihrer Stimmlage (Register), damit dir die passenden Tracks angezeigt werden; die Liste ist nur nach Eingabe des Passworts sichtbar und stammt aus der Vereinsverwaltung (Konzertmeister). Deine Auswahl, Tempo-Einstellung, Cues und Schleifen werden im Speicher deines Browsers abgelegt; offline gespeicherte Tracks liegen im Browser-Speicher deines Geräts. Für die Nutzung auf mehreren Geräten gilt der oben beschriebene Sync-Code entsprechend (eigener Code-Speicher, ohne Namen). Rechtsgrundlage ist Art. 6 Abs. 1 lit. b bzw. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TDDDG.</p>
 
     <h2>10. Cookies, lokaler Speicher und Tracking</h2>
-    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahmen sind die technisch notwendigen Zugangs-Cookies für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9) und für die Musical-Übersicht unter www.martinrenner.de/musicals („musicals_auth“, Speicherdauer 365 Tage) sowie für den Voctails-Übe-Player („voctails_auth“, Speicherdauer 365 Tage); sie werden nur nach Eingabe des jeweiligen Passworts gesetzt, enthalten keine personenbezogenen Daten und dienen ausschließlich der Zugangsfreigabe (§ 25 Abs. 2 Nr. 2 TDDDG).</p>
+    <p>Diese Website setzt keine Cookies zu Marketing- oder Analysezwecken und keine Analyse- oder Trackingdienste (z. B. Google Analytics) ein. Es werden keine externen Schriftarten, Skripte oder Inhalte von Drittanbietern (z. B. Google Fonts, YouTube, Instagram) eingebunden. Es findet kein Tracking des Nutzerverhaltens statt. Einzige Ausnahmen sind die technisch notwendigen Zugangs-Cookies für den passwortgeschützten Chörle-Bereich (siehe Abschnitt 9) und für die Musical-Übersicht unter www.martinrenner.de/musicals („musicals_auth“, Speicherdauer 365 Tage) sowie für den Voctails-Übe-Player („voctails_auth“, Speicherdauer 365 Tage) und für das interne Kamera-Tool unter www.martinrenner.de/kameras („kt_auth“, Speicherdauer 365 Tage); sie werden nur nach Eingabe des jeweiligen Passworts gesetzt, enthalten keine personenbezogenen Daten und dienen ausschließlich der Zugangsfreigabe (§ 25 Abs. 2 Nr. 2 TDDDG).</p>
     <p>Für den Hinweisbanner zu diesem Abschnitt wird eine kleine technische Information im lokalen Speicher deines Browsers (Local Storage, kein Cookie) abgelegt, damit dir der Hinweis nach dem Bestätigen nicht erneut angezeigt wird. Diese Information wird nicht an mich oder Dritte übertragen, enthält keine personenbezogenen Daten und ist rein technisch notwendig (§ 25 Abs. 2 Nr. 2 TDDDG); eine Einwilligung ist hierfür nicht erforderlich.</p>
     <p>Links zu anderen Websites (z. B. Instagram oder Projektseiten) sind einfache Verweise: Erst wenn du darauf klickst, wird die fremde Seite in einem neuen Tab geöffnet, und es gelten deren Datenschutzhinweise.</p>
 
