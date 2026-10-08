@@ -400,6 +400,40 @@ app.use('/kameras', async (req, res) => {
   }
 });
 
+// --- LOKAL-Tool (Fördermittel LOK.26.0468): www.martinrenner.de/lokal ---
+// Eigener Railway-Dienst (Repo lokal-tool); hier nur durchgereicht, vor den Body-Parsern.
+const LOKAL_TOOL_URL = (process.env.LOKAL_TOOL_URL || '').replace(/\/+$/, '');
+app.use('/lokal', async (req, res) => {
+  if (/^\/lokal(\?|$)/.test(req.originalUrl)) return res.redirect(301, req.originalUrl.replace('/lokal', '/lokal/'));
+  if (!LOKAL_TOOL_URL) return res.status(503).send('LOKAL-Tool ist nicht eingerichtet.');
+  try {
+    const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await new Promise((resolve, reject) => {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => resolve(Buffer.concat(chunks)));
+      req.on('error', reject);
+    });
+    const headers = {};
+    for (const name of ['content-type', 'cookie', 'user-agent', 'accept']) {
+      if (req.headers[name]) headers[name] = req.headers[name];
+    }
+    const upstream = await fetch(LOKAL_TOOL_URL + req.url, {
+      method: req.method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(2 * 60 * 1000),
+    });
+    res.status(upstream.status);
+    for (const name of ['content-type', 'content-disposition', 'cache-control', 'location']) {
+      const value = upstream.headers.get(name);
+      if (value) res.set(name, value);
+    }
+    const cookies = upstream.headers.getSetCookie().map((c) => c.replace(/;\s*Path=\/(?=;|$)/i, '; Path=/lokal'));
+    if (cookies.length) res.set('set-cookie', cookies);
+    res.send(Buffer.from(await upstream.arrayBuffer()));
+  } catch (error) {
+    console.error('[lokal]', error.message);
+    res.status(502).json({ error: 'LOKAL-Tool nicht erreichbar.' });
+  }
+});
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // Dateinamen sind eindeutige UUIDs – ein neues Foto bekommt immer einen neuen Namen,
