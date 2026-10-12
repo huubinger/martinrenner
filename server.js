@@ -621,6 +621,9 @@ const voctailsIntern = require('./voctails-intern')(app, {
   wavPeaks,
 });
 
+// Balkonkraftwerk: Live-Werte des Wechselrichters zu Hause (siehe balkonkraftwerk.js)
+require('./balkonkraftwerk')(app, { DATA_DIR, readCookie });
+
 // --- Rechtliche Seiten & Kontaktformular (dynamisch, siehe unten) ---
 // Diese Routen müssen VOR der Static-Middleware registriert werden, damit sie
 // die alten statischen public/impressum.html & public/datenschutz.html überschreiben.
