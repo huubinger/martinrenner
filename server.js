@@ -434,6 +434,40 @@ app.use('/lokal', async (req, res) => {
   }
 });
 
+// --- Heizkurve (Wärmepumpe Berliner Straße 26): www.martinrenner.de/heizung ---
+// Eigener Railway-Dienst (Repo heizkurve, Login mit APP_PASSWORD); hier nur durchgereicht, vor den Body-Parsern.
+const HEIZKURVE_URL = (process.env.HEIZKURVE_URL || '').replace(/\/+$/, '');
+app.use('/heizung', async (req, res) => {
+  if (/^\/heizung(\?|$)/.test(req.originalUrl)) return res.redirect(301, req.originalUrl.replace('/heizung', '/heizung/'));
+  if (!HEIZKURVE_URL) return res.status(503).send('Heizkurve ist nicht eingerichtet.');
+  try {
+    const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await new Promise((resolve, reject) => {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => resolve(Buffer.concat(chunks)));
+      req.on('error', reject);
+    });
+    const headers = {};
+    for (const name of ['content-type', 'cookie', 'user-agent', 'accept']) {
+      if (req.headers[name]) headers[name] = req.headers[name];
+    }
+    const upstream = await fetch(HEIZKURVE_URL + req.url, {
+      method: req.method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(60 * 1000),
+    });
+    res.status(upstream.status);
+    for (const name of ['content-type', 'content-disposition', 'cache-control', 'location', 'service-worker-allowed']) {
+      const value = upstream.headers.get(name);
+      if (value) res.set(name, value);
+    }
+    const cookies = upstream.headers.getSetCookie().map((c) => c.replace(/;\s*Path=\/(?=;|$)/i, '; Path=/heizung'));
+    if (cookies.length) res.set('set-cookie', cookies);
+    res.send(Buffer.from(await upstream.arrayBuffer()));
+  } catch (error) {
+    console.error('[heizung]', error.message);
+    res.status(502).json({ error: 'Heizkurve nicht erreichbar.' });
+  }
+});
+
 // --- Skript-Tool (Musical-Skripte schreiben): www.martinrenner.de/skript ---
 // Eigener Railway-Dienst (Repo skript-tool); hier gestreamt durchgereicht (MP3-Uploads,
 // Spulen im Player über Range-Anfragen), vor den Body-Parsern.
