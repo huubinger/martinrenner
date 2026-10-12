@@ -47,11 +47,43 @@ module.exports = function setupBalkonkraftwerk(app, { DATA_DIR, readCookie }) {
     return !!v && v.length === AUTH.length && crypto.timingSafeEqual(Buffer.from(v), Buffer.from(AUTH));
   }
 
-  app.post('/balkonkraftwerk/api/ingest', (req, res) => {
+  function tokenOk(req) {
     const tok = String(req.get('x-token') || '');
-    if (!INGEST_TOKEN || tok.length !== INGEST_TOKEN.length || !crypto.timingSafeEqual(Buffer.from(tok), Buffer.from(INGEST_TOKEN))) {
-      return res.status(403).json({ error: 'forbidden' });
+    return !!INGEST_TOKEN && tok.length === INGEST_TOKEN.length && crypto.timingSafeEqual(Buffer.from(tok), Buffer.from(INGEST_TOKEN));
+  }
+
+  // Aktualisieren beim Seitenaufruf: Der MacBook-Poller hält eine Anfrage offen (Long-Poll, kostet kaum Energie)
+  // und liest den Wechselrichter erst dann aus, wenn jemand die Seite öffnet.
+  let waiters = [];
+  let lastSeen = 0;
+  let lastRefresh = 0;
+  app.get('/balkonkraftwerk/api/wait', (req, res) => {
+    if (!tokenOk(req)) return res.status(403).json({ error: 'forbidden' });
+    lastSeen = Date.now();
+    const w = { res, timer: setTimeout(() => done(false), 80e3) };
+    function done(refresh) {
+      clearTimeout(w.timer);
+      waiters = waiters.filter((x) => x !== w);
+      if (!res.headersSent) res.set('Cache-Control', 'no-store').json({ refresh });
     }
+    w.done = done;
+    waiters.push(w);
+    req.on('close', () => { clearTimeout(w.timer); waiters = waiters.filter((x) => x !== w); });
+  });
+
+  app.post('/balkonkraftwerk/api/refresh', (req, res) => {
+    if (!hasAccess(req)) return res.status(401).json({ error: 'login' });
+    const online = waiters.length > 0 || Date.now() - lastSeen < 90e3;
+    if (waiters.length && Date.now() - lastRefresh > 30e3) {
+      lastRefresh = Date.now();
+      waiters.slice().forEach((w) => w.done(true));
+      return res.json({ online, requested: true });
+    }
+    res.json({ online, requested: false });
+  });
+
+  app.post('/balkonkraftwerk/api/ingest', (req, res) => {
+    if (!tokenOk(req)) return res.status(403).json({ error: 'forbidden' });
     const b = req.body || {};
     const t = num(b.t) && Math.abs(num(b.t) - Date.now()) < 3600e3 ? num(b.t) : Date.now();
     const s = {
@@ -141,7 +173,7 @@ const PAGE = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta n
 <div class="card" style="margin-bottom:16px"><h2>Leistung – letzte 48 Stunden</h2><div id="curve"></div></div>
 <div class="card" style="margin-bottom:16px"><h2>Tageserträge</h2><div id="days"></div></div>
 <div class="card"><h2>Details</h2><div class="small" id="det"></div></div>
-<p class="note">Die Werte kommen, solange ein Gerät zu Hause im WLAN ist (MacBook bzw. iPhone). Lücken in der Kurve = niemand zu Hause; die Tageserträge werden aus dem Gesamtzähler trotzdem vollständig nachgetragen.</p>
+<p class="note">Die Werte kommen, solange ein Gerät zu Hause im WLAN ist (MacBook bzw. iPhone). Beim Öffnen der Seite wird automatisch neu ausgelesen, wenn das MacBook zu Hause wach ist. Lücken in der Kurve = niemand zu Hause; die Tageserträge werden aus dem Gesamtzähler trotzdem vollständig nachgetragen.</p>
 </main><script>
 const f1 = (x, d = 1) => x === null || x === undefined ? '–' : x.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d });
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -186,5 +218,19 @@ async function load() {
   det.push(['Netzspannung', f1(s.grid_v) + ' V'], ['Netzfrequenz', f1(s.freq, 2) + ' Hz'], ['Temperatur', f1(s.temp) + ' °C'], ['Quelle', s.src || '–']);
   document.getElementById('det').innerHTML = det.map(([k, v]) => '<div><div class="k">' + k + '</div><b>' + v + '</b></div>').join('');
 }
-load(); setInterval(load, 60000);
+async function refresh() {
+  let r; try { r = await (await fetch('/balkonkraftwerk/api/refresh', { method: 'POST' })).json(); } catch (e) { return; }
+  if (!r.requested) return;
+  const el = document.getElementById('stand'), before = el.innerHTML, t0 = Date.now();
+  el.innerHTML = before + ' · <span class="stale">aktualisiere …</span>';
+  for (let i = 0; i < 10; i++) {
+    await new Promise((ok) => setTimeout(ok, 3000));
+    const d = await (await fetch('/balkonkraftwerk/api/data', { cache: 'no-store' })).json();
+    if (d.latest && d.latest.t > t0 - 5000) return load();
+  }
+  await load();
+  el.innerHTML += ' · Wechselrichter nicht erreichbar (nachts aus oder MacBook nicht zu Hause)';
+}
+load().then(refresh); setInterval(load, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) load().then(refresh); });
 </script></body></html>`;
