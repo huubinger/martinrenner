@@ -501,6 +501,39 @@ app.use('/skript', (req, res) => {
   req.pipe(upstream);
 });
 
+// --- Bühnen-Tool (Bühnenbild-Planung): www.martinrenner.de/buehne ---
+// Eigener Railway-Dienst (Repo buehnen-tool); gestreamt durchgereicht (Bild-Uploads, JSON-Sicherungen),
+// vor den Body-Parsern.
+const BUEHNEN_TOOL_URL = (process.env.BUEHNEN_TOOL_URL || '').replace(/\/+$/, '');
+app.use('/buehne', (req, res) => {
+  if (/^\/buehne(\?|$)/.test(req.originalUrl)) return res.redirect(301, req.originalUrl.replace('/buehne', '/buehne/'));
+  if (!BUEHNEN_TOOL_URL) return res.status(503).send('Bühnen-Tool ist nicht eingerichtet.');
+  const target = new URL(BUEHNEN_TOOL_URL + req.url);
+  const headers = {};
+  for (const name of ['content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
+    if (req.headers[name]) headers[name] = req.headers[name];
+  }
+  headers['x-forwarded-proto'] = 'https';
+  if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
+  const client = target.protocol === 'https:' ? require('https') : require('http');
+  const upstream = client.request(target, { method: req.method, headers, timeout: 5 * 60 * 1000 }, (up) => {
+    const out = {};
+    for (const name of ['content-type', 'content-length', 'content-disposition', 'cache-control', 'location', 'etag', 'last-modified', 'accept-ranges', 'content-range']) {
+      if (up.headers[name]) out[name] = up.headers[name];
+    }
+    if (up.headers['set-cookie']) out['set-cookie'] = up.headers['set-cookie'].map((c) => c.replace(/;\s*Path=\/(?=;|$)/i, '; Path=/buehne'));
+    res.writeHead(up.statusCode, out);
+    up.pipe(res);
+  });
+  upstream.on('timeout', () => upstream.destroy(new Error('Zeitüberschreitung')));
+  upstream.on('error', (error) => {
+    console.error('[buehne]', error.message);
+    if (!res.headersSent) res.status(502).json({ error: 'Bühnen-Tool nicht erreichbar.' });
+    else res.end();
+  });
+  req.pipe(upstream);
+});
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // Dateinamen sind eindeutige UUIDs – ein neues Foto bekommt immer einen neuen Namen,
