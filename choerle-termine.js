@@ -124,27 +124,30 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
     return Array.isArray(v) ? v.join(', ') : String(v);
   }
 
-  function summary(t) {
-    const yes = t.responses.filter((r) => r.kommt);
-    const perRegister = REGISTERS.map((reg) => [reg, yes.filter((r) => r.register === reg).length]);
-    const perQuestion = t.questions.filter((q) => q.type !== 'text').map((q) => {
-      const pool = q.onlyIfYes ? yes : t.responses;
-      const counts = q.options.map((o) => [o, pool.filter((r) => {
-        const v = r.answers[q.id];
-        return Array.isArray(v) ? v.includes(o) : v === o;
-      }).length]);
-      const open = pool.filter((r) => { const v = r.answers[q.id]; return Array.isArray(v) ? !v.length : !v; }).length;
-      return { q, counts, open };
-    });
-    return { yes: yes.length, no: t.responses.length - yes.length, perRegister, perQuestion };
+  // Auswertung als Tabelle: eine Zeile je Register (Sopran, Alt, Tenor, Bass) plus Gesamt
+  function summaryTable(t) {
+    const choice = t.questions.filter((q) => q.type !== 'text' && q.options.length);
+    const picked = (r, q, o) => { const v = r.answers[q.id]; return Array.isArray(v) ? v.includes(o) : v === o; };
+    const row = (label, list, cls) => {
+      const yes = list.filter((r) => r.kommt);
+      const cells = choice.map((q) => q.options.map((o) => (q.onlyIfYes ? yes : list).filter((r) => picked(r, q, o)).length)
+        .map((n, i) => `<td class="num${i === 0 ? ' qstart' : ''}">${n || '–'}</td>`).join('')).join('');
+      return `<tr class="${cls || ''}"><th scope="row">${escapeHtml(label)}</th><td class="num yes">${yes.length}</td><td class="num">${list.length - yes.length}</td>${cells}</tr>`;
+    };
+    return `<div class="table-wrap"><table class="summary">
+      <thead>
+        <tr><th rowspan="${choice.length ? 2 : 1}">Register</th><th rowspan="${choice.length ? 2 : 1}" class="num">Zusagen</th><th rowspan="${choice.length ? 2 : 1}" class="num">Absagen</th>${choice.map((q) => `<th colspan="${q.options.length}" class="qstart qhead">${escapeHtml(q.text)}</th>`).join('')}</tr>
+        ${choice.length ? `<tr>${choice.map((q) => q.options.map((o, i) => `<th class="num opt${i === 0 ? ' qstart' : ''}">${escapeHtml(o)}</th>`).join('')).join('')}</tr>` : ''}
+      </thead>
+      <tbody>${REGISTERS.map((reg) => row(reg, t.responses.filter((r) => r.register === reg))).join('')}</tbody>
+      <tfoot>${row('Gesamt', t.responses, 'total')}</tfoot>
+    </table></div>`;
   }
 
-  function sortedResponses(t, by) {
+  // Sortierung: Sopran, Alt, Tenor, Bass – innerhalb des Registers erst Zusagen, dann alphabetisch
+  function sortedResponses(t) {
     const regIdx = (r) => REGISTERS.indexOf(r.register);
-    return [...t.responses].sort((a, b) => {
-      if (by === 'name') return a.name.localeCompare(b.name, 'de');
-      return (b.kommt - a.kommt) || (regIdx(a) - regIdx(b)) || a.name.localeCompare(b.name, 'de');
-    });
+    return [...t.responses].sort((a, b) => (regIdx(a) - regIdx(b)) || (b.kommt - a.kommt) || a.name.localeCompare(b.name, 'de'));
   }
 
   function terminForm(t) {
@@ -168,13 +171,18 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
     </form>`;
   }
 
-  function terminCard(t, by) {
-    const s = summary(t);
-    const rows = sortedResponses(t, by).map((r) => `<tr class="${r.kommt ? 'yes' : 'no'}">
+  function terminCard(t) {
+    const cols = 3 + t.questions.length;
+    const rows = REGISTERS.map((reg) => {
+      const list = sortedResponses(t).filter((r) => r.register === reg);
+      if (!list.length) return '';
+      const yes = list.filter((r) => r.kommt).length;
+      return `<tr class="group"><th colspan="${cols}">${reg} <span>${yes} dabei${list.length - yes ? ` · ${list.length - yes} abgesagt` : ''}</span></th><th class="noprint"></th></tr>` + list.map((r) => `<tr class="${r.kommt ? 'yes' : 'no'}">
         <td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.register)}</td><td>${r.kommt ? '✔ Ja' : '✘ Nein'}</td>
         ${t.questions.map((q) => `<td>${escapeHtml(answerText(q, r.answers[q.id]))}</td>`).join('')}
         <td class="noprint"><form method="POST" action="/admin/choerle/${t.id}/antwort/${r.id}/delete" onsubmit="return confirm(${escapeHtml(JSON.stringify('Eintrag von ' + r.name + ' löschen?'))});"><button class="link-del" title="Eintrag löschen">✕</button></form></td>
       </tr>`).join('');
+    }).join('');
     const past = t.date < today();
     return `<section class="termin${past ? ' past' : ''}" id="t-${t.id}">
       <div class="termin-head">
@@ -187,13 +195,11 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
           <button type="button" class="btn ghost" onclick="printTermin('${t.id}')">Drucken</button>
         </div>
       </div>
-      <div class="sums">
-        <div class="sum"><b>${s.yes}</b> Zusagen · <b>${s.no}</b> Absagen</div>
-        <div class="sum">${s.perRegister.map(([reg, n]) => `${reg} <b>${n}</b>`).join(' · ')}</div>
-        ${s.perQuestion.map(({ q, counts, open }) => `<div class="sum"><span class="q">${escapeHtml(q.text)}:</span> ${counts.map(([o, n]) => `${escapeHtml(o)} <b>${n}</b>`).join(' · ')}${open ? ` · ohne Antwort <b>${open}</b>` : ''}</div>`).join('')}
-      </div>
-      ${t.responses.length ? `<div class="table-wrap"><table>
-        <thead><tr><th><a href="?sort=name#t-${t.id}">Name</a></th><th><a href="?sort=register#t-${t.id}">Register</a></th><th>Kommt</th>${t.questions.map((q) => `<th>${escapeHtml(q.text)}</th>`).join('')}<th class="noprint"></th></tr></thead>
+      <h3>Übersicht</h3>
+      ${summaryTable(t)}
+      <h3>Einzelne Antworten</h3>
+      ${t.responses.length ? `<div class="table-wrap"><table class="names">
+        <thead><tr><th>Name</th><th>Register</th><th>Kommt</th>${t.questions.map((q) => `<th>${escapeHtml(q.text)}</th>`).join('')}<th class="noprint"></th></tr></thead>
         <tbody>${rows}</tbody></table></div>` : '<p class="empty">Noch keine Antworten.</p>'}
       <details class="noprint"><summary>Termin bearbeiten</summary>${terminForm(t)}
         <form method="POST" action="/admin/choerle/${t.id}/delete" onsubmit="return confirm('Termin samt allen Antworten löschen?');"><button class="danger">Termin löschen</button></form>
@@ -201,7 +207,7 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
     </section>`;
   }
 
-  function renderPage(by) {
+  function renderPage() {
     const t0 = today();
     const list = sorted(db.termine);
     const upcoming = list.filter((t) => t.date >= t0);
@@ -221,12 +227,20 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
   .meta { color: #94a3b8; margin: 0.3rem 0 0; font-size: 0.9rem; }
   .badge { font-size: 0.7rem; background: #475569; padding: 0.15rem 0.5rem; border-radius: 999px; vertical-align: middle; }
   .head-actions { display: flex; gap: 0.5rem; align-items: flex-start; }
-  .sums { margin: 0.9rem 0; display: grid; gap: 0.3rem; font-size: 0.92rem; }
-  .sum b { color: #f8fafc; } .sum .q { color: #94a3b8; }
+  .termin h3 { margin: 1.1rem 0 0.5rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
+  .num { text-align: center; }
+  .qstart { border-left: 1px solid #475569; }
+  table.summary th.qhead { text-align: center; color: #e2e8f0; }
+  table.summary th.opt { font-weight: 500; white-space: normal; min-width: 90px; max-width: 160px; font-size: 0.8rem; }
+  table.summary tbody th { color: #e2e8f0; }
+  table.summary td.yes { color: #86efac; font-weight: 700; }
+  table.summary tfoot tr th, table.summary tfoot tr td { font-weight: 700; color: #f8fafc; border-top: 2px solid #64748b; border-bottom: none; }
+  table.names tr.group th { background: #0f172a; color: #f8fafc; font-size: 0.85rem; padding-top: 0.6rem; }
+  table.names tr.group th span { font-weight: 400; color: #94a3b8; margin-left: 0.4rem; }
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
   th, td { text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid #334155; vertical-align: top; }
-  th { color: #94a3b8; font-weight: 600; white-space: nowrap; } th a { color: inherit; }
+  th { color: #94a3b8; font-weight: 600; white-space: nowrap; }
   tr.no td { color: #94a3b8; }
   .empty { color: #94a3b8; }
   details { margin-top: 1rem; } summary { cursor: pointer; color: #38bdf8; }
@@ -250,15 +264,15 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
   @media print {
     body { background: #fff; color: #000; } .noprint, .new, h1, .subtitle, .back, .past-head { display: none !important; }
     .termin { border: none; background: none; padding: 0; } .termin:not(.printing) { display: none; }
-    th, td { border-color: #ccc; color: #000 !important; } .meta, .sum .q { color: #333; } .sum b { color: #000; }
+    th, td { border-color: #ccc !important; color: #000 !important; background: none !important; } .meta, .termin h3 { color: #333; }
   }
 </style></head><body><div class="container">
   <a class="back" href="/admin">← Admin</a>
   <h1>🎤 Chörle-Termine</h1>
   <p class="subtitle">Die Mitsingenden sehen anstehende Termine oben im Chörle-Bereich (martinrenner.de/choerle) und tragen sich dort ein. Die Namen sieht nur du hier.</p>
-  ${upcoming.map((t) => terminCard(t, by)).join('') || '<p class="empty">Keine anstehenden Termine.</p>'}
+  ${upcoming.map((t) => terminCard(t)).join('') || '<p class="empty">Keine anstehenden Termine.</p>'}
   <section class="new"><h2>Neuen Termin anlegen</h2>${terminForm(null)}</section>
-  ${past.length ? `<h2 class="past-head" style="margin:2rem 0 1rem;">Vergangene Termine</h2>${past.map((t) => terminCard(t, by)).join('')}` : ''}
+  ${past.length ? `<h2 class="past-head" style="margin:2rem 0 1rem;">Vergangene Termine</h2>${past.map((t) => terminCard(t)).join('')}` : ''}
 </div>
 <script>
   const TYPES = ${JSON.stringify(QUESTION_TYPES)};
@@ -320,7 +334,7 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
 
   app.get('/admin/choerle', requireAdminAuth, (req, res) => {
     res.set('Cache-Control', 'no-store');
-    res.send(renderPage(req.query.sort === 'name' ? 'name' : 'register'));
+    res.send(renderPage());
   });
 
   app.post('/admin/choerle', requireAdminAuth, (req, res) => {
@@ -361,7 +375,7 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
     if (!t) return res.status(404).send('Termin nicht gefunden.');
     const cell = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
     const lines = [['Name', 'Register', 'Kommt', ...t.questions.map((q) => q.text), 'Zuletzt geändert']];
-    for (const r of sortedResponses(t, 'register')) {
+    for (const r of sortedResponses(t)) {
       lines.push([r.name, r.register, r.kommt ? 'Ja' : 'Nein', ...t.questions.map((q) => answerText(q, r.answers[q.id])),
         new Date(r.updatedAt).toLocaleString('de-DE', { timeZone: TZ })]);
     }
