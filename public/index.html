@@ -763,6 +763,7 @@
           </div>
           <p class="form-msg" aria-live="polite"></p>
         </form>
+        <div class="ch-termine" id="ch-termine" hidden></div>
         <p class="ch-status" id="ch-status" hidden></p>
         <ul class="ch-songs" id="ch-songs" hidden></ul>
         <div id="ch-song" hidden></div>
@@ -1383,10 +1384,14 @@
     const chStatus = $('ch-status');
     const chSongs = $('ch-songs');
     const chSong = $('ch-song');
+    const chTermine = $('ch-termine');
     let chPendingSlug = null;
+    let chView = null;
 
     function chShow(view, text, isError) {
+      chView = view;
       chLogin.hidden = view !== 'login';
+      chTermine.hidden = view !== 'list' || !chTerminList.length;
       chSongs.hidden = view !== 'list';
       chSong.hidden = view !== 'song';
       chStatus.hidden = !text;
@@ -1419,6 +1424,7 @@
       chFetch('/api/choerle/songs').then(({ status, body }) => {
         if (openFormKey !== 'choerle') return;
         if (status === 401) return chNeedsLogin(null);
+        chLoadTermine();
         if (!body.ok) return chShow('list', body.error || 'Die Lieder konnten gerade nicht geladen werden.', true);
         formPanelHint.textContent = FORMS.choerle.hint;
         if (!body.songs.length) return chShow('list', 'Noch keine Lieder vorhanden.');
@@ -1456,6 +1462,132 @@
         formPanel.scrollTop = 0;
       }).catch(() => chShow('song', 'Das Lied konnte gerade nicht geladen werden.', true));
     }
+
+    // --- Auftrittstermine: Zu-/Absage, Register und Zusatzfragen (Übersicht mit Namen nur für den Admin) ---
+    // Name und Register merkt sich der Browser; der Server erkennt die eigene Antwort am Namen.
+    let chTerminList = [];
+    let chRegisters = [];
+    let chOpenTermin = null;
+    let chTerminSaved = null;
+
+    function chPerson() {
+      try { return JSON.parse(localStorage.getItem('choerle-person')) || {}; } catch (e) { return {}; }
+    }
+    function chSavePerson(p) {
+      try { localStorage.setItem('choerle-person', JSON.stringify(p)); } catch (e) { /* privater Modus */ }
+    }
+    function chFmtDate(d) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d || '')) return d || '';
+      return new Date(d + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function chLoadTermine() {
+      const p = chPerson();
+      chFetch('/api/choerle/termine' + (p.name ? '?name=' + encodeURIComponent(p.name) : '')).then(({ body }) => {
+        if (!body.ok) return;
+        chRegisters = body.registers;
+        chTerminList = body.termine;
+        chRenderTermine();
+      }).catch(() => {});
+    }
+
+    function chTerminForm(t) {
+      const p = chPerson();
+      const m = t.mine || {};
+      const esc = escapeHtmlClient;
+      const name = m.name || p.name || '';
+      const reg = m.register || p.register || '';
+      const yes = m.kommt === true;
+      const info = [t.meet && 'Treffpunkt: ' + esc(t.meet), t.deadline && 'Bitte antworten bis ' + esc(chFmtDate(t.deadline))].filter(Boolean);
+      const chip = (type, nameAttr, value, label, checked) =>
+        `<label class="ch-chip"><input type="${type}" name="${nameAttr}" value="${esc(value)}"${checked ? ' checked' : ''}><span>${esc(label)}</span></label>`;
+      const questions = t.questions.map((q) => {
+        const v = (m.answers || {})[q.id];
+        let field;
+        if (q.type === 'text') field = `<textarea name="q_${q.id}" rows="2">${esc(v || '')}</textarea>`;
+        else field = '<div class="ch-t-opts col">' + q.options.map((o) => chip(q.type === 'multi' ? 'checkbox' : 'radio', 'q_' + q.id, o, o, Array.isArray(v) ? v.includes(o) : v === o)).join('') + '</div>';
+        return `<div class="ch-t-group" data-only-yes="${q.onlyIfYes ? 1 : 0}"${q.onlyIfYes && !yes ? ' hidden' : ''}><span class="ch-t-label">${esc(q.text)}${q.required ? '' : ' <span class="opt">(optional)</span>'}${q.type === 'multi' ? ' <span class="opt">– mehrere möglich</span>' : ''}</span>${field}</div>`;
+      }).join('');
+      return `<form class="ch-t-form" data-id="${esc(t.id)}" novalidate>
+        ${info.length ? `<p class="ch-t-info">${info.join(' · ')}</p>` : ''}
+        ${t.note ? `<p class="ch-t-note">${esc(t.note).replace(/\n/g, '<br>')}</p>` : ''}
+        <label class="ch-t-name">Dein Name<input type="text" name="name" value="${esc(name)}" autocomplete="name" maxlength="80" required></label>
+        <div class="ch-t-group"><span class="ch-t-label">Register</span><div class="ch-t-opts">${chRegisters.map((r) => chip('radio', 'register', r, r, r === reg)).join('')}</div></div>
+        <div class="ch-t-group"><span class="ch-t-label">Kannst du?</span><div class="ch-t-opts">${chip('radio', 'kommt', 'ja', '✔ Ja, ich kann', m.kommt === true)}${chip('radio', 'kommt', 'nein', '✘ Nein, ich kann nicht', m.kommt === false)}</div></div>
+        ${questions}
+        <button type="submit" class="form-submit">${t.mine ? 'Antwort ändern' : 'Absenden'}</button>
+        <p class="form-msg" aria-live="polite"></p>
+      </form>`;
+    }
+
+    function chRenderTermine() {
+      const esc = escapeHtmlClient;
+      chTermine.innerHTML = chTerminList.length ? '<div class="ch-t-head">📅 Auftritte</div>' + chTerminList.map((t) => {
+        const m = t.mine;
+        const badge = m
+          ? (m.kommt ? '<span class="ch-t-badge yes">✔ Du bist dabei</span>' : '<span class="ch-t-badge no">✘ Abgesagt</span>')
+          : '<span class="ch-t-badge open">Bitte eintragen</span>';
+        const meta = [chFmtDate(t.date), t.time, t.place].filter(Boolean).map(esc).join(' · ');
+        const open = chOpenTermin === t.id;
+        return `<div class="ch-termin${m ? '' : ' todo'}${open ? ' open' : ''}">
+          <button type="button" class="ch-t-toggle" data-id="${esc(t.id)}" aria-expanded="${open}"><span class="ch-t-main"><span class="ch-t-title">${esc(t.title)}</span><span class="ch-t-meta">${meta}</span></span>${badge}</button>
+          ${chTerminSaved === t.id && !open ? '<p class="ch-t-saved">Danke, deine Antwort ist gespeichert. Ändern kannst du sie jederzeit hier.</p>' : ''}
+          ${open ? chTerminForm(t) : ''}
+        </div>`;
+      }).join('') : '';
+      chTermine.hidden = chView !== 'list' || !chTerminList.length;
+    }
+
+    chTermine.addEventListener('click', (e) => {
+      const btn = e.target.closest('.ch-t-toggle');
+      if (!btn) return;
+      chOpenTermin = chOpenTermin === btn.dataset.id ? null : btn.dataset.id;
+      chTerminSaved = null;
+      chRenderTermine();
+    });
+
+    chTermine.addEventListener('change', (e) => {
+      if (e.target.name !== 'kommt') return;
+      const form = e.target.form;
+      form.querySelectorAll('[data-only-yes="1"]').forEach((el) => { el.hidden = e.target.value !== 'ja'; });
+    });
+
+    chTermine.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const t = chTerminList.find((x) => x.id === form.dataset.id);
+      const msg = form.querySelector('.form-msg');
+      const btn = form.querySelector('.form-submit');
+      const fd = new FormData(form);
+      const kommt = fd.get('kommt');
+      const answers = {};
+      for (const q of t.questions) answers[q.id] = q.type === 'multi' ? fd.getAll('q_' + q.id) : (fd.get('q_' + q.id) || '');
+      const payload = { name: (fd.get('name') || '').trim(), register: fd.get('register'), kommt: kommt === 'ja' ? true : kommt === 'nein' ? false : null, answers };
+      const fail = (text) => { msg.className = 'form-msg error'; msg.textContent = text; };
+      if (payload.name.length < 2) return fail('Bitte deinen Namen eintragen.');
+      if (!payload.register) return fail('Bitte dein Register auswählen.');
+      if (payload.kommt === null) return fail('Bitte angeben, ob du kannst.');
+      btn.disabled = true;
+      fetch('/api/choerle/termine/' + encodeURIComponent(t.id) + '/antwort', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      })
+        .then((r) => r.json())
+        .then((body) => {
+          if (!body.ok) return fail(body.error || 'Speichern hat nicht geklappt.');
+          const nameChanged = chPerson().name !== payload.name;
+          chSavePerson({ name: payload.name, register: payload.register });
+          chOpenTermin = null;
+          chTerminSaved = t.id;
+          if (nameChanged) return chLoadTermine();
+          Object.assign(t, body.termin);
+          chRenderTermine();
+        })
+        .catch(() => fail('Speichern hat nicht geklappt. Bitte später erneut versuchen.'))
+        .finally(() => { btn.disabled = false; });
+    });
 
     chSongs.addEventListener('click', (e) => {
       const btn = e.target.closest('.ch-song');
