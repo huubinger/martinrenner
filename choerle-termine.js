@@ -79,6 +79,24 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
     };
   }
 
+  // Antworten auf die Zusatzfragen säubern; missing = erste unbeantwortete Pflichtfrage
+  function cleanAnswers(t, kommt, given) {
+    const answers = {};
+    let missing = null;
+    if (!given || typeof given !== 'object') given = {};
+    for (const q of t.questions) {
+      if (q.onlyIfYes && !kommt) continue;
+      let v = given[q.id];
+      if (q.type === 'single') v = q.options.includes(v) ? v : '';
+      else if (q.type === 'multi') v = q.options.filter((o) => [].concat(v || []).includes(o));
+      else v = longStr(v, 1000);
+      const empty = Array.isArray(v) ? !v.length : !v;
+      if (q.required && empty && !missing) missing = q;
+      if (!empty) answers[q.id] = v;
+    }
+    return { answers, missing };
+  }
+
   // --- Für die Mitsingenden ---
   app.get('/api/choerle/termine', requireChoerleAccess, (req, res) => {
     const key = nameKey(req.query.name);
@@ -96,18 +114,8 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
     if (!REGISTERS.includes(body.register)) return res.status(400).json({ ok: false, error: 'Bitte dein Register auswählen.' });
     if (typeof body.kommt !== 'boolean') return res.status(400).json({ ok: false, error: 'Bitte angeben, ob du kannst.' });
 
-    const answers = {};
-    const given = body.answers && typeof body.answers === 'object' ? body.answers : {};
-    for (const q of t.questions) {
-      if (q.onlyIfYes && !body.kommt) continue;
-      let v = given[q.id];
-      if (q.type === 'single') v = q.options.includes(v) ? v : '';
-      else if (q.type === 'multi') v = Array.isArray(v) ? q.options.filter((o) => v.includes(o)) : [];
-      else v = longStr(v, 1000);
-      const empty = Array.isArray(v) ? !v.length : !v;
-      if (q.required && empty) return res.status(400).json({ ok: false, error: `Bitte beantworte noch: „${q.text}“` });
-      if (!empty) answers[q.id] = v;
-    }
+    const { answers, missing } = cleanAnswers(t, body.kommt, body.answers);
+    if (missing) return res.status(400).json({ ok: false, error: `Bitte beantworte noch: „${missing.text}“` });
 
     const key = nameKey(name);
     const now = Date.now();
@@ -171,6 +179,30 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
     </form>`;
   }
 
+  // Admin trägt für jemand anderen ein (oder ändert einen Eintrag) – gleiche Felder wie auf der Homepage
+  function answerForm(t) {
+    const qs = t.questions.map((q) => {
+      const n = `answers[${q.id}]`;
+      let field;
+      if (q.type === 'text') field = `<textarea name="${n}"></textarea>`;
+      else field = '<div class="opts">' + q.options.map((o) => `<label><input type="${q.type === 'multi' ? 'checkbox' : 'radio'}" name="${n}${q.type === 'multi' ? '[]' : ''}" value="${escapeHtml(o)}"> ${escapeHtml(o)}</label>`).join('')
+        + (q.type === 'single' ? `<label><input type="radio" name="${n}" value=""> <em>keine Angabe</em></label>` : '') + '</div>';
+      return `<fieldset class="a-q${q.onlyIfYes ? ' only-yes' : ''}" data-qid="${q.id}"><legend>${escapeHtml(q.text)}${q.required ? ' *' : ''}</legend>${field}</fieldset>`;
+    }).join('');
+    return `<form method="POST" action="/admin/choerle/${t.id}/antwort" class="answer-form">
+      <input type="hidden" name="rid" value="">
+      <div class="grid">
+        <label>Name<input type="text" name="name" required minlength="2" maxlength="80"></label>
+        <label>Register<select name="register" required><option value="">– bitte wählen –</option>${REGISTERS.map((r) => `<option>${r}</option>`).join('')}</select></label>
+        <fieldset class="a-kommt"><legend>Kommt?</legend><div class="opts">
+          <label><input type="radio" name="kommt" value="ja" required> ✔ Ja</label><label><input type="radio" name="kommt" value="nein"> ✘ Nein</label></div></fieldset>
+      </div>
+      ${qs}
+      <p class="hint">Gibt es den Namen schon, wird dieser Eintrag überschrieben. Pflichtfragen (*) darfst du hier auch leer lassen.</p>
+      <div class="actions"><button type="submit" class="a-submit">Eintragen</button> <button type="button" class="ghost a-reset">Leeren</button></div>
+    </form>`;
+  }
+
   function terminCard(t) {
     const cols = 3 + t.questions.length;
     const rows = REGISTERS.map((reg) => {
@@ -180,7 +212,7 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
       return `<tr class="group"><th colspan="${cols}">${reg} <span>${yes} dabei${list.length - yes ? ` · ${list.length - yes} abgesagt` : ''}</span></th><th class="noprint"></th></tr>` + list.map((r) => `<tr class="${r.kommt ? 'yes' : 'no'}">
         <td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.register)}</td><td>${r.kommt ? '✔ Ja' : '✘ Nein'}</td>
         ${t.questions.map((q) => `<td>${escapeHtml(answerText(q, r.answers[q.id]))}</td>`).join('')}
-        <td class="noprint"><form method="POST" action="/admin/choerle/${t.id}/antwort/${r.id}/delete" onsubmit="return confirm(${escapeHtml(JSON.stringify('Eintrag von ' + r.name + ' löschen?'))});"><button class="link-del" title="Eintrag löschen">✕</button></form></td>
+        <td class="noprint row-tools"><button type="button" class="link-edit" title="Eintrag bearbeiten" data-r="${escapeHtml(JSON.stringify({ id: r.id, name: r.name, register: r.register, kommt: r.kommt, answers: r.answers }))}">✎</button><form method="POST" action="/admin/choerle/${t.id}/antwort/${r.id}/delete" onsubmit="return confirm(${escapeHtml(JSON.stringify('Eintrag von ' + r.name + ' löschen?'))});"><button class="link-del" title="Eintrag löschen">✕</button></form></td>
       </tr>`).join('');
     }).join('');
     const past = t.date < today();
@@ -201,6 +233,7 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
       ${t.responses.length ? `<div class="table-wrap"><table class="names">
         <thead><tr><th>Name</th><th>Register</th><th>Kommt</th>${t.questions.map((q) => `<th>${escapeHtml(q.text)}</th>`).join('')}<th class="noprint"></th></tr></thead>
         <tbody>${rows}</tbody></table></div>` : '<p class="empty">Noch keine Antworten.</p>'}
+      <details class="noprint answer-box"><summary>Antwort für jemanden eintragen</summary>${answerForm(t)}</details>
       <details class="noprint"><summary>Termin bearbeiten</summary>${terminForm(t)}
         <form method="POST" action="/admin/choerle/${t.id}/delete" onsubmit="return confirm('Termin samt allen Antworten löschen?');"><button class="danger">Termin löschen</button></form>
       </details>
@@ -260,6 +293,15 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
   .question .q-text { flex: 1; min-width: 220px; }
   .question textarea { min-height: 80px; }
   .q-tools button { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
+  .answer-form fieldset { border: 1px solid #334155; border-radius: 10px; padding: 0.5rem 0.7rem; margin: 0.6rem 0 0; }
+  .answer-form .grid fieldset { margin: 0; }
+  .answer-form legend { font-size: 0.85rem; color: #cbd5e1; padding: 0 0.3rem; }
+  .answer-form .opts { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
+  .answer-form .opts label { flex-direction: row; align-items: center; gap: 0.35rem; font-size: 0.9rem; color: #e2e8f0; }
+  .answer-form textarea { width: 100%; min-height: 60px; }
+  .answer-form .hint { color: #94a3b8; font-size: 0.8rem; margin: 0.6rem 0 0; }
+  .row-tools { white-space: nowrap; } .row-tools form { display: inline; }
+  .link-edit { background: none; color: #64748b; padding: 0 0.3rem; } .link-edit:hover { color: #38bdf8; }
   .message { background: #14532d; border-radius: 10px; padding: 0.6rem 0.9rem; margin-bottom: 1rem; }
   @media print {
     body { background: #fff; color: #000; } .noprint, .new, h1, .subtitle, .back, .past-head { display: none !important; }
@@ -299,6 +341,43 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
     sync();
     return el;
   }
+  // Antwort-Formular: Fragen „nur bei Zusage“ bei Absage ausblenden; ✎ füllt das Formular mit einem bestehenden Eintrag
+  document.querySelectorAll('.answer-form').forEach((form) => {
+    const sync = () => {
+      const no = form.querySelector('[name=kommt][value=nein]').checked;
+      form.querySelectorAll('.only-yes').forEach((el) => { el.style.display = no ? 'none' : ''; });
+    };
+    const reset = () => {
+      form.reset();
+      form.querySelector('[name=rid]').value = '';
+      form.querySelector('.a-submit').textContent = 'Eintragen';
+      sync();
+    };
+    form.querySelectorAll('[name=kommt]').forEach((el) => el.addEventListener('change', sync));
+    form.querySelector('.a-reset').addEventListener('click', reset);
+    const card = form.closest('.termin');
+    card.querySelectorAll('.link-edit').forEach((btn) => btn.addEventListener('click', () => {
+      const r = JSON.parse(btn.dataset.r);
+      reset();
+      form.querySelector('[name=rid]').value = r.id;
+      form.querySelector('[name=name]').value = r.name;
+      form.querySelector('[name=register]').value = r.register;
+      form.querySelector('[name=kommt][value=' + (r.kommt ? 'ja' : 'nein') + ']').checked = true;
+      form.querySelectorAll('.a-q').forEach((fs) => {
+        const v = r.answers[fs.dataset.qid];
+        if (v == null) return;
+        const ta = fs.querySelector('textarea');
+        if (ta) ta.value = v;
+        else fs.querySelectorAll('input').forEach((i) => { i.checked = [].concat(v).includes(i.value); });
+      });
+      form.querySelector('.a-submit').textContent = 'Änderungen speichern';
+      sync();
+      const box = form.closest('details');
+      box.open = true;
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+    sync();
+  });
   document.querySelectorAll('.termin-form').forEach((form) => {
     const box = form.querySelector('.questions');
     JSON.parse(box.dataset.questions || '[]').forEach((q) => box.appendChild(questionEl(q)));
@@ -358,6 +437,30 @@ module.exports = function setupChoerleTermine(app, { DATA_DIR, requireChoerleAcc
     db.termine = db.termine.filter((t) => t.id !== req.params.id);
     save();
     res.redirect('/admin/choerle');
+  });
+
+  app.post('/admin/choerle/:id/antwort', requireAdminAuth, (req, res) => {
+    const t = findTermin(req.params.id);
+    if (!t) return res.redirect('/admin/choerle');
+    const body = req.body || {};
+    const back = ' <a href="/admin/choerle#t-' + t.id + '">Zurück</a>';
+    const name = str(body.name, 80);
+    if (name.length < 2) return res.status(400).send('Bitte einen Namen eintragen.' + back);
+    if (!REGISTERS.includes(body.register)) return res.status(400).send('Bitte ein Register auswählen.' + back);
+    if (body.kommt !== 'ja' && body.kommt !== 'nein') return res.status(400).send('Bitte angeben, ob die Person kommt.' + back);
+    const kommt = body.kommt === 'ja';
+    const { answers } = cleanAnswers(t, kommt, body.answers);
+
+    const key = nameKey(name);
+    const byName = t.responses.find((r) => nameKey(r.name) === key);
+    const byId = body.rid ? t.responses.find((r) => r.id === body.rid) : null;
+    if (byId && byName && byName !== byId) return res.status(400).send(`Für „${escapeHtml(byName.name)}“ gibt es schon einen Eintrag.` + back);
+    const existing = byId || byName;
+    const now = Date.now();
+    if (existing) Object.assign(existing, { name, register: body.register, kommt, answers, updatedAt: now });
+    else t.responses.push({ id: newId(), name, register: body.register, kommt, answers, createdAt: now, updatedAt: now, byAdmin: true });
+    save();
+    res.redirect('/admin/choerle#t-' + t.id);
   });
 
   app.post('/admin/choerle/:id/antwort/:rid/delete', requireAdminAuth, (req, res) => {
