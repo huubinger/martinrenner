@@ -92,6 +92,9 @@ function voiceLabel(v) {
 function trackLabel(fileName, songTitle) {
   let label = fileName.replace(AUDIO_RE, '');
   const parts = label.split('_');
+  // GesangsverAI-Schema „<Titel>_<Stimme>_Vokal[_Üben]“ / „…_Klavier“ → „Vokal Üben“ (Stimme steht schon im Chip)
+  const art = parts.findIndex((p, i) => i >= 2 && /^(vokal|klavier)$/i.test(p));
+  if (art > 0) return parts.slice(art).join(' ');
   if (parts.length > 1) {
     // Präfix wie „Spielerfrauen_Voctails_bearb_“ entfernen – bei „Lead1_Vocals“ die letzten zwei Teile behalten
     const keep = /^vocals?$/i.test(parts[parts.length - 1]) && parts.length > 2 ? 2 : 1;
