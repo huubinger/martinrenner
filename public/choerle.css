@@ -238,3 +238,6 @@
 .ch-chip input:checked + span { background: rgba(56,189,248,0.2); border-color: #38bdf8; color: #f8fafc; font-weight: 600; }
 .ch-chip input:focus-visible + span { outline: 2px solid #38bdf8; outline-offset: 2px; }
 .ch-t-form .form-submit { justify-self: start; margin-top: 0; }
+.ch-register { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin: 0.2rem 0 0.6rem; font-size: 0.78rem; color: #94a3b8; }
+.ch-register .ch-speed { padding: 0.3rem 0.7rem; font-size: 0.78rem; }
+.ch-track[hidden] { display: none; }

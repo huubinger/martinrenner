@@ -178,6 +178,8 @@
     /* Eingeklappt: nur der aktuelle Track, damit die Noten möglichst viel Platz haben */
     .fv-side.collapsed .ch-track:not(.current),
     .fv-side.collapsed .ch-sync,
+    .fv-side.collapsed .ch-register,
+    .fv-side.collapsed .ch-register-empty,
     .fv-side.collapsed .ch-help,
     .fv-side.collapsed .ch-note,
     .fv-side.collapsed .ch-download,
@@ -281,7 +283,7 @@
       titleEl.textContent = song.title;
       document.title = song.title + ' – Chörle';
       const tracks = song.audio.length
-        ? `<div class="ch-tracks">${song.audio.map(ChoerlePlayer.trackHtml).join('')}</div>${ChoerlePlayer.SYNC_HTML}${ChoerlePlayer.HELP_HTML}`
+        ? `${ChoerlePlayer.tracksHtml(song.audio)}${ChoerlePlayer.SYNC_HTML}${ChoerlePlayer.HELP_HTML}`
         : '<p class="ch-status">Keine Übe-Tracks zu diesem Lied vorhanden.</p>';
       const pdfLinks = song.pdf
         ? `<div class="ch-pdf" style="margin-top:0.8rem"><a class="ch-btn ghost" href="${esc(song.pdf.url)}" target="_blank" rel="noopener">📄 PDF öffnen</a><a class="ch-btn ghost" href="${esc(song.pdf.url)}?download=1">Herunterladen</a></div>`
@@ -308,15 +310,20 @@
   // Übe-Tracks-Leiste am Handy: eingeklappt nur der aktuelle Track, aufgeklappt alle
   function initSheet(side) {
     const head = side.querySelector('.fv-sheet-head');
-    const first = side.querySelector('.ch-track');
     const label = head.querySelector('span');
+    const firstVisible = () => side.querySelector('.ch-track:not([hidden])');
     function setCurrent(track) {
       if (!track) return;
       side.querySelectorAll('.ch-track').forEach((t) => t.classList.toggle('current', t === track));
       // Eingeklappt ist der Track-Name ausgeblendet – deshalb in der Kopfzeile anzeigen
       label.textContent = '🎧 ' + track.querySelector('.ch-track-name').textContent;
     }
-    setCurrent(first);
+    setCurrent(firstVisible());
+    // Register gewechselt: Ist der aktuelle Track jetzt ausgeblendet, den ersten sichtbaren nehmen
+    side.addEventListener('ch-register', () => {
+      const cur = side.querySelector('.ch-track.current');
+      if (!cur || cur.hidden) setCurrent(firstVisible());
+    });
     side.addEventListener('play', (e) => setCurrent(e.target.closest('.ch-track')), true);
     head.addEventListener('click', () => {
       const collapsed = side.classList.toggle('collapsed');

@@ -62,9 +62,99 @@
     return out;
   }
 
+  // --- Register-Auswahl: zeigt nur die Tracks, die für Sopran, Alt, Tenor oder Bass relevant sind.
+  // Die Stimme wird aus dem Dateinamen erkannt (z. B. „Hoch_Sopran“, „Ohne dich_Alt 2“, „Wackelkontakt_T1_Solo“).
+  // Tracks ohne erkannte Stimme (SATB, SAB, Tutti, Playback, Klavier …) gelten für alle.
+  const REGISTER_KEY = 'ch-register';
+  const REGISTERS = [['S', 'Sopran'], ['A', 'Alt'], ['T', 'Tenor'], ['B', 'Bass']];
+  const VOICE_WORDS = {
+    sopran: 'S', soprano: 'S', sopr: 'S',
+    alt: 'A', alto: 'A', altus: 'A',
+    tenor: 'T', tenore: 'T',
+    bass: 'B', basso: 'B',
+    bariton: 'TB', baritone: 'TB',
+    mezzo: 'SA', mezzosopran: 'SA',
+    frauen: 'SA', damen: 'SA',
+    maenner: 'TB', herren: 'TB',
+  };
+  const VOICE_LETTERS = { s: 'S', a: 'A', t: 'T', b: 'B', ms: 'SA' };
+  const ALL_WORDS = /^(satb|sab|tutti|chor|chorus|gesamt|alle)$/;
+
+  // Liefert die passenden Register (z. B. "SA") oder "" für „alle“.
+  function trackVoices(name) {
+    const tokens = trackLabel(name).normalize('NFC')
+      .replace(/([a-zäöüß])([A-ZÄÖÜ])/g, '$1 $2')   // „WackelkontaktT1“ → „Wackelkontakt T1“
+      .toLowerCase()
+      .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+      .replace(/([a-z])(\d)/g, '$1 $2').replace(/(\d)([a-z])/g, '$1 $2')
+      .split(/[^a-z0-9]+/).filter(Boolean);
+    const words = new Set();
+    const letters = new Set();
+    let general = false;
+    tokens.forEach((t) => {
+      if (VOICE_WORDS[t]) VOICE_WORDS[t].split('').forEach((v) => words.add(v));
+      else if (VOICE_LETTERS[t]) VOICE_LETTERS[t].split('').forEach((v) => letters.add(v));
+      else if (ALL_WORDS.test(t)) general = true;
+      else if (/^[satb]{3,}$/.test(t)) t.split('').forEach((c) => letters.add(c.toUpperCase()));   // TTBB, SSA …
+    });
+    // Ausgeschriebene Stimme schlägt „Tutti“ (z. B. „…_Tutti_Alt“); einzelne Buchstaben zählen nur ohne „Tutti“/„SATB“.
+    const found = words.size ? words : general ? null : letters;
+    if (!found || !found.size || found.size === 4) return '';
+    return REGISTERS.map(([k]) => k).filter((k) => found.has(k)).join('');
+  }
+
+  function savedRegister() {
+    try {
+      const r = localStorage.getItem(REGISTER_KEY);
+      if (r !== null) return r;
+      // Noch nichts gewählt: Register aus der Termin-Rückmeldung übernehmen
+      const person = JSON.parse(localStorage.getItem('choerle-person') || '{}');
+      const hit = REGISTERS.find(([, label]) => label === person.register);
+      return hit ? hit[0] : '';
+    } catch (e) { return ''; }
+  }
+
+  function registerHtml() {
+    const btn = (key, label) => `<button type="button" class="ch-speed" data-register="${key}">${label}</button>`;
+    return `<div class="ch-register">Mein Register:
+      ${btn('', 'Alle')}${REGISTERS.map(([k, label]) => btn(k, label)).join('')}
+    </div><p class="ch-status ch-register-empty" hidden>Für dein Register gibt es bei diesem Lied keine eigenen Übe-Tracks.</p>`;
+  }
+
+  // Register-Leiste und alle Track-Karten eines Lieds
+  function tracksHtml(audio) {
+    const voiced = audio.some((a) => trackVoices(a.name));
+    return `${voiced ? registerHtml() : ''}<div class="ch-tracks">${audio.map(trackHtml).join('')}</div>`;
+  }
+
+  function applyRegister(container) {
+    const reg = savedRegister();
+    container.querySelectorAll('[data-register]').forEach((b) => b.classList.toggle('active', b.dataset.register === reg));
+    if (!container.querySelector('.ch-register')) return;
+    let shown = 0;
+    container.querySelectorAll('.ch-track').forEach((track) => {
+      const voices = track.dataset.voices;
+      const hide = !!reg && !!voices && !voices.includes(reg);
+      track.hidden = hide;
+      if (hide) track.querySelector('audio').pause();
+      if (!hide) shown++;
+    });
+    const empty = container.querySelector('.ch-register-empty');
+    if (empty) empty.hidden = shown > 0;
+    container.dispatchEvent(new CustomEvent('ch-register'));
+  }
+
+  function registerClick(e) {
+    const b = e.target.closest('[data-register]');
+    if (!b) return false;
+    try { localStorage.setItem(REGISTER_KEY, b.dataset.register); } catch (e2) {}
+    document.querySelectorAll('.ch-register').forEach((bar) => applyRegister(bar.parentElement));
+    return true;
+  }
+
   // --- Track-Karte ---
   function trackHtml(a) {
-    return `<div class="ch-track" data-url="${esc(a.url)}">
+    return `<div class="ch-track" data-url="${esc(a.url)}" data-voices="${trackVoices(a.name)}">
       <div class="ch-track-name">${esc(trackLabel(a.name))}</div>
       <audio controls preload="none" src="${esc(a.url)}"></audio>
       <div class="ch-track-tools">Tempo:
@@ -359,10 +449,11 @@
   function attach(container) {
     container.querySelectorAll('.ch-track').forEach(initTrack);
     container.querySelectorAll('.ch-sync').forEach(renderSyncBox);
+    applyRegister(container);
     if (container._chBound) return;
     container._chBound = true;
     container.addEventListener('click', (e) => {
-      if (practiceClick(e) || speedClick(e)) return;
+      if (registerClick(e) || practiceClick(e) || speedClick(e)) return;
       syncClick(e);
     });
     // Cue-Namen: beim Tippen speichern, ohne die Liste neu zu zeichnen (Fokus bleibt im Feld)
@@ -604,6 +695,8 @@
     esc,
     trackLabel,
     trackHtml,
+    tracksHtml,
+    trackVoices,
     HELP_HTML,
     SYNC_HTML: '<div class="ch-sync"></div>',
     attach,

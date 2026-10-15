@@ -1453,7 +1453,7 @@
           ? `<div class="ch-pdf"><a class="ch-btn" href="${fullUrl}">⛶ Vollbild: Noten &amp; Tracks</a><a class="ch-btn ghost" href="${escapeHtmlClient(song.pdf.url)}" target="_blank" rel="noopener">📄 Noten ansehen</a><a class="ch-btn ghost" href="${escapeHtmlClient(song.pdf.url)}?download=1">Herunterladen</a></div>`
           : `<div class="ch-pdf"><a class="ch-btn" href="${fullUrl}">⛶ Vollbild</a></div><p class="ch-status">Noten derzeit nicht verfügbar.</p>`;
         const tracks = song.audio.length
-          ? `<div class="ch-tracks">${song.audio.map(ChoerlePlayer.trackHtml).join('')}</div>${ChoerlePlayer.SYNC_HTML}${ChoerlePlayer.HELP_HTML}`
+          ? `${ChoerlePlayer.tracksHtml(song.audio)}${ChoerlePlayer.SYNC_HTML}${ChoerlePlayer.HELP_HTML}`
           : '<p class="ch-status">Keine Übe-Tracks zu diesem Lied vorhanden.</p>';
         chSong.innerHTML = `${back}<div class="ch-song-head">🎶 ${escapeHtmlClient(song.title)}</div>${pdf}${tracks}<p class="ch-note">Noten und Übe-Tracks sind nur zum persönlichen Üben für die Mitsingenden des Frühstücks-Chörle bestimmt. Weitergabe, Veröffentlichung oder sonstige Nutzung ist nicht gestattet.</p>`;
         ChoerlePlayer.attach(chSong);
