@@ -281,7 +281,7 @@ module.exports = function setupVoctailsKm(app, deps) {
       const plan = planFor(a);
       const deadline = a.statusDeadline ? new Date(a.statusDeadline) : null;
       const open = deadline && deadline.getTime() > Date.now();
-      return `<th class="app t${a.typId}" title="${escapeHtml(`${a.name}\n${fmtDateTime(a.start)}\nRückmeldung ${open ? 'bis ' + fmtDateTime(deadline) : 'geschlossen'}\nAutomatik: ${plan.why}`)}">
+      return `<th class="app t${a.typId}" data-tip="${escapeHtml(`${a.name}\n${fmtDateTime(a.start)}\nRückmeldung ${open ? 'bis ' + fmtDateTime(deadline) : 'geschlossen'}\nAutomatik: ${plan.why}`)}">
         <a href="https://web.konzertmeister.app/appointment/${a.id}/invites" target="_blank" rel="noopener">
           <span class="d">${escapeHtml(fmtDay(a.start))}</span><span class="n">${escapeHtml(String(a.name || '').trim())}</span>
           <span class="ty">${TYPE_NAMES[a.typId] || ''}${open ? '' : ' · zu'}</span></a></th>`;
@@ -296,7 +296,7 @@ module.exports = function setupVoctailsKm(app, deps) {
         const c = p.cells[i];
         if (!c) return '<td class="na" title="nicht eingeladen">–</td>';
         const note = p.notes && p.notes[i];
-        return `<td class="c ${c}" title="${escapeHtml(CELL[c][1] + (note ? ': ' + note : ''))}">${CELL[c][0]}${note ? '<sup>•</sup>' : ''}</td>`;
+        return `<td class="c ${c}${note ? ' note' : ''}" data-tip="${escapeHtml(CELL[c][1] + (note ? ': ' + note : ''))}">${CELL[c][0]}${note ? '<sup>•</sup>' : ''}</td>`;
       }).join('')}</tr>`).join('');
       return `<tbody><tr class="reg"><th>${escapeHtml(r.name)} <small>(${r.people.length})</small></th>${sums}</tr>${rows}</tbody>`;
     }).join('');
@@ -326,14 +326,16 @@ td.sum{font-size:12px}td.sum.bad{color:var(--red)}sup{color:var(--muted)}
 .modes{display:flex;gap:.4rem;flex-wrap:wrap;margin:.5rem 0}button{font:inherit;color:var(--text);background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:999px;padding:.35rem .9rem;cursor:pointer}
 button.on{background:var(--yellow);color:#1c0e21;border-color:var(--yellow);font-weight:700}
 ul.log{list-style:none;padding:0;margin:0;font-size:13px}ul.log li{padding:3px 0;border-bottom:1px solid var(--line)}ul.log time{color:var(--muted);margin-right:.4rem}
-.legend span{margin-right:1rem}.msg{color:var(--yellow)}.err{color:var(--red)}
+.legend span{margin-right:1rem}
+td.c,th.app{cursor:default}td.c.note{cursor:help;background:rgba(255,210,0,.07)}td.c.note sup{color:var(--yellow)}
+#tip{position:fixed;z-index:50;max-width:min(320px,90vw);background:#fbf8f2;color:#1c0e21;border-radius:10px;padding:7px 10px;font-size:13px;line-height:1.35;white-space:pre-line;text-align:left;box-shadow:0 6px 24px rgba(0,0,0,.45);pointer-events:none;display:none}.msg{color:var(--yellow)}.err{color:var(--red)}
 </style></head><body>
 <div class="top"><a class="back" href="/voctails/intern/">← Übe-Player</a><span class="muted">Chorleiter</span></div>
 <h1>Voctails – Termine &amp; Rückmeldungen</h1>
 ${msg ? `<p class="msg">${escapeHtml(msg)}</p>` : ''}
 ${!configured() ? '<p class="err">Konzertmeister-Zugang fehlt: In Railway (Projekt martinrenner.de) die Variablen <b>KM_MAIL</b> und <b>KM_PASSWORD</b> setzen.</p>' : ''}
 ${lastError ? `<p class="err">Letzter Fehler: ${escapeHtml(lastError)}</p>` : ''}
-<p class="legend muted"><span><b style="color:var(--green)">✓</b> zugesagt</span><span><b style="color:var(--red)">✗</b> abgesagt</span><span>? vielleicht</span><span>· keine Rückmeldung</span><span>– nicht eingeladen</span><span><sup>•</sup> mit Begründung (Maus drüber)</span></p>
+<p class="legend muted"><span><b style="color:var(--green)">✓</b> zugesagt</span><span><b style="color:var(--red)">✗</b> abgesagt</span><span>? vielleicht</span><span>· keine Rückmeldung</span><span>– nicht eingeladen</span><span><sup style="color:var(--yellow)">•</sup> mit Begründung (Maus drüber oder antippen)</span></p>
 ${apps.length ? `<div class="wrap"><table><thead><tr><th class="who">Stand ${data ? escapeHtml(fmtDateTime(data.at)) : ''}</th>${head}</tr></thead>${body}
 <tfoot><tr class="reg"><th>Gesamt</th>${totals}</tr></tfoot></table></div>` : (configured() ? '<p class="muted">Keine kommenden Termine gefunden.</p>' : '')}
 <p><a href="?neu=1">Neu laden</a></p>
@@ -349,6 +351,31 @@ Sobald sich alle gemeldet haben, wird die Rückmeldung sofort geschlossen und bl
 <p class="muted">Zuletzt geprüft: ${state.lastRun ? escapeHtml(fmtDateTime(state.lastRun)) : '–'} · prüft alle 15 Minuten</p>
 <ul class="log">${logHtml}</ul>
 </div>
+<div id="tip"></div>
+<script>
+(() => {
+  const tip = document.getElementById('tip');
+  let pinned = null;
+  const show = (el, x, y) => {
+    tip.textContent = el.dataset.tip; tip.style.display = 'block';
+    const r = tip.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(x + 14, innerWidth - r.width - 8)) + 'px';
+    tip.style.top = (y + 16 + r.height > innerHeight ? y - r.height - 10 : y + 16) + 'px';
+  };
+  const hide = () => { tip.style.display = 'none'; pinned = null; };
+  document.addEventListener('mousemove', (e) => {
+    if (pinned) return;
+    const el = e.target.closest('[data-tip]');
+    el ? show(el, e.clientX, e.clientY) : (tip.style.display = 'none');
+  });
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('td[data-tip]');
+    if (!el || el === pinned) return hide();
+    pinned = el; show(el, e.clientX, e.clientY);
+  });
+  document.querySelector('.wrap')?.addEventListener('scroll', hide, { passive: true });
+})();
+</script>
 </body></html>`;
   }
 
