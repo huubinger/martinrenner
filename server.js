@@ -687,6 +687,15 @@ const voctailsIntern = require('./voctails-intern')(app, {
   mp3Peaks,
   wavPeaks,
 });
+// Voctails × Konzertmeister: Anwesenheitsübersicht + Rückmelde-Automatik (siehe voctails-km.js)
+require('./voctails-km')(app, {
+  DATA_DIR,
+  escapeHtml,
+  hasAccess: voctailsIntern.hasAccess,
+  isLeiter: voctailsIntern.isLeiter,
+  loadMembers: voctailsIntern.loadMembers,
+  registers: voctailsIntern.REGISTERS,
+});
 
 // Balkonkraftwerk: Live-Werte des Wechselrichters zu Hause (siehe balkonkraftwerk.js)
 require('./balkonkraftwerk')(app, { DATA_DIR, readCookie });

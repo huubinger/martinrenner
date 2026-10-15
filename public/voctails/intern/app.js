@@ -437,7 +437,7 @@
       ${installHtml()}
       ${syncHtml()}
       <p class="leiter-link">${state.leiter
-        ? 'Du bist als <b>Chorleiter</b> angemeldet: In den Noten kannst du mit „✎ Schreiben“ Einträge für alle machen. <button class="linklike" id="leiter-logout">Abmelden</button>'
+        ? 'Du bist als <b>Chorleiter</b> angemeldet: In den Noten kannst du mit „✎ Schreiben“ Einträge für alle machen. <a href="/voctails/intern/termine">Termine &amp; Rückmeldungen</a> · <button class="linklike" id="leiter-logout">Abmelden</button>'
         : '<button class="linklike" id="leiter-login">Chorleiter-Anmeldung</button>'}</p>
       <p class="note">Noten und Übe-Tracks sind nur zum persönlichen Üben für die Sängerinnen und Sänger der Voctails bestimmt. Weitergabe oder Veröffentlichung ist nicht gestattet.</p>
     </div>`;

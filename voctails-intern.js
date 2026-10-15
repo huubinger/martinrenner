@@ -20,9 +20,9 @@ const DEFAULT_MEMBERS = [
   ['Birgit Gündisch', 'Mezzo'], ['Carina Keppler', 'Mezzo'], ['Christine Gundel', 'Mezzo'], ['Elisabeth Karasek', 'Mezzo'],
   ['Emilia Kontidis', 'Mezzo'], ['Hannah Weissmann', 'Mezzo'], ['Juli Held', 'Mezzo'], ['Julia Sedelies', 'Mezzo'],
   ['Luisa Bernert', 'Mezzo'], ['Valerie Von Raven-Niebelschütz', 'Mezzo'],
-  ['Anika Höhn', 'Alt'], ['Franziska Lang', 'Alt'], ['Jessie Niemann', 'Alt'], ['Julia Adam', 'Alt'],
+  ['Anika Höhn', 'Alt'], ['Franziska Lang', 'Alt'], ['Julia Adam', 'Alt'],
   ['Michaela Seyfarth', 'Alt'], ['Sarah Schmid', 'Alt'], ['Theresa Rudolph', 'Alt'], ['Tina Adam', 'Alt'],
-  ['Daniel Rivier', 'Tenor'], ['Dominik Hetzler', 'Tenor'], ['Jens Müller', 'Tenor'], ['Rico Siebel', 'Tenor'], ['Vincent Ziehr', 'Tenor'],
+  ['Daniel Rivier', 'Tenor'], ['Jessie Niemann', 'Tenor'], ['Dominik Hetzler', 'Tenor'], ['Jens Müller', 'Tenor'], ['Rico Siebel', 'Tenor'], ['Vincent Ziehr', 'Tenor'],
   ['Benjamin Müller', 'Bass'], ['Elian Schmetzer', 'Bass'], ['Jonathan Kaller', 'Bass'], ['Tobias Hetzler', 'Bass'], ['Tristan Pape', 'Bass'],
   ['Martin Renner', 'Beatbox'],
 ].map(([name, register]) => ({ name, register }));
@@ -110,9 +110,24 @@ module.exports = function setupVoctailsIntern(app, deps) {
   function loadMembers() {
     try {
       const list = JSON.parse(fs.readFileSync(MEMBERS_FILE, 'utf8'));
-      if (Array.isArray(list)) return list;
+      if (Array.isArray(list)) return migrateMembers(list);
     } catch (e) {}
     return DEFAULT_MEMBERS;
+  }
+  // Einmalige Änderungen an der gespeicherten Liste (danach gilt, was im Admin steht)
+  const MEMBER_MIGRATIONS = [
+    ['2026-10-15-niemann-tenor', (list) => list.forEach((m) => { if (/niemann/i.test(m.name)) m.register = 'Tenor'; })],
+  ];
+  function migrateMembers(list) {
+    const doneFile = path.join(DATA_DIR, 'voctails-members-migrations.json');
+    let done = [];
+    try { done = JSON.parse(fs.readFileSync(doneFile, 'utf8')); } catch (e) {}
+    const todo = MEMBER_MIGRATIONS.filter(([id]) => !done.includes(id));
+    if (!todo.length) return list;
+    todo.forEach(([id, fn]) => { fn(list); done.push(id); });
+    saveMembers(list);
+    fs.writeFileSync(doneFile, JSON.stringify(done));
+    return list;
   }
   function saveMembers(list) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -672,7 +687,7 @@ module.exports = function setupVoctailsIntern(app, deps) {
   // Bibliothek beim Start schon einmal laden, damit die erste Anfrage schnell ist
   if (TRACKS_LINK) setTimeout(() => getLibrary().catch((err) => console.error('Voctails-Bibliothek:', err.message)), 3000);
 
-  return { renderAdminSection, hasAccess };
+  return { renderAdminSection, hasAccess, isLeiter, loadMembers, REGISTERS };
 };
 
 module.exports.parseVoice = parseVoice;
