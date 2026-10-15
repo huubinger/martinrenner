@@ -2,10 +2,13 @@
 // Voctails × Konzertmeister (nur für den Chorleiter, unter /voctails/intern/termine):
 // – Anwesenheitsübersicht: wer hat für welchen Termin zu- oder abgesagt, nach Registern sortiert.
 // – Rückmelde-Automatik:
-//     Auftritte: solange die Rückmeldefrist läuft und jemand fehlt, alle 2 Tage erinnern
-//                (Konzertmeister schickt die Erinnerung nur an die, die sich noch nicht gemeldet haben).
+//     Abgelaufene Fristen werden wieder geöffnet, solange sich jemand nicht gemeldet hat
+//     (Auftritte bis Terminbeginn, Proben bis Montag 22 Uhr davor).
+//     Auftritte: alle 2 Tage erinnern (Konzertmeister schickt nur an die, die sich noch nicht gemeldet haben);
+//                nach 5 Erinnerungen ohne vollständige Rückmeldung wird geschlossen.
 //     Proben:    am Montag vor der Probe einmal erinnern, Montag 22 Uhr Rückmeldung schließen.
-//     Haben sich alle gemeldet, wird die Rückmeldung sofort geschlossen (Frist = jetzt).
+//     Haben sich alle gemeldet, wird die Rückmeldung sofort geschlossen (Frist = jetzt) und nie wieder
+//     geöffnet – absagen geht dann nur noch persönlich beim Chorleiter.
 // Konzertmeister hat keine offizielle Schnittstelle – genutzt wird dieselbe REST-API wie die Web-App
 // (rest.konzertmeister.app), angemeldet mit KM_MAIL / KM_PASSWORD (Railway-Variablen).
 const path = require('path');
@@ -16,6 +19,7 @@ const ORG_ID = Number(process.env.KM_ORG_ID || 149367); // Verein Voctails
 const TYPE_NAMES = { 1: 'Probe', 2: 'Auftritt', 3: 'Sonstiges', 4: 'Probenanfrage', 5: 'Auftrittsanfrage', 6: 'Information' };
 const REHEARSAL_TYPES = [1, 4];
 const REMIND_EVERY_MS = 48 * 60 * 60 * 1000;
+const MAX_REMINDERS = 5; // danach wird die Rückmeldung geschlossen
 const TICK_MS = 15 * 60 * 1000;
 const MODES = ['aus', 'probelauf', 'an'];
 
@@ -47,9 +51,9 @@ module.exports = function setupVoctailsKm(app, deps) {
   function loadState() {
     try {
       const s = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-      if (s && typeof s === 'object') return { mode: 'probelauf', reminded: {}, closed: {}, log: [], ...s };
+      if (s && typeof s === 'object') return { mode: 'probelauf', reminded: {}, remindCount: {}, closed: {}, log: [], ...s };
     } catch (e) {}
-    return { mode: 'probelauf', reminded: {}, closed: {}, log: [] };
+    return { mode: 'probelauf', reminded: {}, remindCount: {}, closed: {}, log: [] };
   }
   let state = loadState();
   function saveState() {
@@ -110,11 +114,27 @@ module.exports = function setupVoctailsKm(app, deps) {
   }
 
   const remind = (a) => km('PUT', `v2/app/${a.id}/remind?onlyUnanswered=true`);
-  // Rückmeldung schließen = Frist auf jetzt setzen (wie „Mehrere Termine bearbeiten → Rückmeldefrist“ in der Web-App)
-  const closeReplies = (a) => km('POST', 'v4/app/update/batch', {
+  // Frist setzen (wie „Mehrere Termine bearbeiten → Rückmeldefrist und Erinnerung“ in der Web-App)
+  const setDeadline = (a, deadline, reminder) => km('POST', 'v4/app/update/batch', {
     appointmentIds: [a.id],
-    batchCommand: { commandType: 'SET_APPOINTMENT_REPLY_DEADLINE_REMINDER', deadline: kmIso(Date.now()), deadlineReminder: kmIso(Date.now() - 60 * 1000) },
+    batchCommand: { commandType: 'SET_APPOINTMENT_REPLY_DEADLINE_REMINDER', deadline: kmIso(deadline), deadlineReminder: kmIso(reminder) },
   });
+  // Rückmeldung schließen = Frist auf jetzt. Danach sagt man nur noch persönlich beim Chorleiter ab.
+  const closeReplies = (a) => setDeadline(a, Date.now(), Date.now() - 60 * 1000);
+
+  // Montag vor der Probe, 22 Uhr deutscher Zeit
+  function rehearsalMonday(a) {
+    const startB = berlin(a.start);
+    return addDays(startB.day, -(((startB.weekday + 6) % 7) || 7));
+  }
+  function berlinDate(day, hour) {
+    for (const off of [1, 2]) {
+      const d = new Date(`${day}T${String(hour - off).padStart(2, '0')}:00:00Z`);
+      const b = berlin(d);
+      if (b.day === day && b.hour === hour) return d.getTime();
+    }
+    return new Date(`${day}T${String(hour - 1).padStart(2, '0')}:00:00Z`).getTime();
+  }
 
   // ---------- Regeln ----------
   // Liefert je Termin, was die Automatik jetzt tun würde (ohne es zu tun)
@@ -125,25 +145,33 @@ module.exports = function setupVoctailsKm(app, deps) {
     const unanswered = st.numUnanswered || 0;
     const nowB = berlin(now);
     const daytime = nowB.hour >= 9 && nowB.hour < 20;
-    if (!open) return { action: null, why: 'Rückmeldefrist abgelaufen' };
-    if (!unanswered) return { action: 'close', why: 'alle haben sich gemeldet' };
-    if (REHEARSAL_TYPES.includes(a.typId)) {
-      const startB = berlin(a.start);
-      const monday = addDays(startB.day, -(((startB.weekday + 6) % 7) || 7));
-      if (nowB.day > monday || (nowB.day === monday && nowB.hour >= 22)) return { action: 'close', why: 'Montag 22 Uhr vor der Probe – finale Rückmeldung' };
+    const rehearsal = REHEARSAL_TYPES.includes(a.typId);
+    const closedByUs = state.closed[a.id];
+    if (closedByUs) return { action: null, why: `von der Automatik geschlossen${closedByUs.reason ? ' (' + closedByUs.reason + ')' : ''}` };
+    if (!unanswered) return open ? { action: 'close', why: 'alle haben sich gemeldet' } : { action: null, why: 'alle gemeldet, Rückmeldung zu' };
+    if (rehearsal) {
+      const monday = rehearsalMonday(a);
+      const final = berlinDate(monday, 22);
+      if (now >= final) return open ? { action: 'close', why: 'Montag 22 Uhr vor der Probe – finale Rückmeldung' } : { action: null, why: 'Rückmeldung zu (Montag 22 Uhr)' };
+      if (!open) return { action: 'reopen', deadline: final, reminder: Math.max(now + 5 * 60 * 1000, final - 13 * 60 * 60 * 1000), why: `${unanswered} offen – Frist wieder öffnen bis ${fmtDateTime(final)}` };
       if (nowB.day === monday && nowB.hour >= 9) {
         return state.reminded[a.id] && berlin(state.reminded[a.id]).day === monday
-          ? { action: null, why: `heute schon erinnert, schließt um 22 Uhr` }
+          ? { action: null, why: 'heute schon erinnert, schließt um 22 Uhr' }
           : { action: 'remind', why: `${unanswered} offen – Erinnerung am Montag vor der Probe` };
       }
-      return { action: null, why: `Erinnerung am ${fmtDay(monday + 'T12:00:00Z')} um 9 Uhr` };
+      return { action: null, why: `${unanswered} offen – Erinnerung am ${fmtDay(monday + 'T12:00:00Z')} um 9 Uhr` };
     }
+    const start = new Date(a.start).getTime();
+    if (!open) return { action: 'reopen', deadline: start, reminder: Math.max(now + 5 * 60 * 1000, start - 24 * 60 * 60 * 1000), why: `${unanswered} offen – Frist wieder öffnen bis Terminbeginn` };
     const last = state.reminded[a.id] || 0;
-    if (now - last < REMIND_EVERY_MS) return { action: null, why: `${unanswered} offen – nächste Erinnerung ${fmtDateTime(last + REMIND_EVERY_MS)}` };
+    const count = state.remindCount[a.id] || 0;
+    if (now - last < REMIND_EVERY_MS) return { action: null, why: `${unanswered} offen – ${count} von ${MAX_REMINDERS} Erinnerungen, nächste ${fmtDateTime(last + REMIND_EVERY_MS)}` };
+    if (count >= MAX_REMINDERS) return { action: 'close', why: `${unanswered} ohne Reaktion nach ${MAX_REMINDERS} Erinnerungen` };
     if (!daytime) return { action: null, why: `${unanswered} offen – Erinnerung ab 9 Uhr` };
-    return { action: 'remind', why: `${unanswered} offen – Erinnerung (alle 2 Tage)` };
+    return { action: 'remind', why: `${unanswered} offen – Erinnerung ${count + 1} von ${MAX_REMINDERS} (alle 2 Tage)` };
   }
 
+  const ACTION_TEXT = { remind: 'erinnern', close: 'Rückmeldung schließen', reopen: 'Rückmeldefrist wieder öffnen' };
   let running = null;
   async function tick(force = false) {
     if (running) return running;
@@ -159,17 +187,21 @@ module.exports = function setupVoctailsKm(app, deps) {
           const label = `${TYPE_NAMES[a.typId] || 'Termin'} „${String(a.name || '').trim()}“ (${fmtDay(a.start)})`;
           if (state.mode !== 'an') {
             const key = `${a.id}:${plan.action}:${berlin(now).day}`;
-            if (!state.log.slice(-50).some((l) => l.key === key)) log(`Probelauf: würde ${plan.action === 'remind' ? 'erinnern' : 'Rückmeldung schließen'} – ${label}: ${plan.why}`, { key });
+            if (!state.log.slice(-50).some((l) => l.key === key)) log(`Probelauf: würde ${ACTION_TEXT[plan.action]} – ${label}: ${plan.why}`, { key });
             continue;
           }
           if (plan.action === 'remind') {
             await remind(a);
             state.reminded[a.id] = now;
+            state.remindCount[a.id] = (state.remindCount[a.id] || 0) + 1;
             log(`Erinnerung verschickt – ${label}: ${plan.why}`);
           } else if (plan.action === 'close') {
             await closeReplies(a);
-            state.closed[a.id] = now;
+            state.closed[a.id] = { at: now, reason: plan.why };
             log(`Rückmeldung geschlossen – ${label}: ${plan.why}`);
+          } else if (plan.action === 'reopen') {
+            await setDeadline(a, plan.deadline, plan.reminder);
+            log(`Rückmeldefrist geöffnet – ${label}: ${plan.why}`);
           }
         }
         state.lastRun = now;
@@ -308,9 +340,10 @@ ${apps.length ? `<div class="wrap"><table><thead><tr><th class="who">Stand ${dat
 
 <h2>Rückmelde-Automatik</h2>
 <div class="box">
-<p class="muted" style="margin:0">Auftritte: alle 2 Tage Erinnerung an alle ohne Rückmeldung, solange die Frist läuft (9–20 Uhr).<br>
+<p class="muted" style="margin:0">Abgelaufene Fristen werden wieder geöffnet, solange jemand fehlt (Auftritte bis Terminbeginn, Proben bis Montag 22 Uhr davor).<br>
+Auftritte: alle 2 Tage Erinnerung an alle ohne Rückmeldung (9–20 Uhr); nach 5 Erinnerungen wird geschlossen.<br>
 Proben: Montag vor der Probe um 9 Uhr Erinnerung, um 22 Uhr wird die Rückmeldung geschlossen.<br>
-Sobald sich alle gemeldet haben, wird die Rückmeldung sofort geschlossen. Termine mit abgelaufener Frist bleiben unberührt.</p>
+Sobald sich alle gemeldet haben, wird die Rückmeldung sofort geschlossen und bleibt zu – absagen dann nur noch persönlich beim Chorleiter.</p>
 <form method="POST" action="/voctails/intern/termine/modus" class="modes">${modeBtn('aus', 'Aus')}${modeBtn('probelauf', 'Probelauf (nur protokollieren)')}${modeBtn('an', 'An')}</form>
 <form method="POST" action="/voctails/intern/termine/jetzt"><button>Jetzt prüfen</button></form>
 <p class="muted">Zuletzt geprüft: ${state.lastRun ? escapeHtml(fmtDateTime(state.lastRun)) : '–'} · prüft alle 15 Minuten</p>
