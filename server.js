@@ -534,6 +534,39 @@ app.use('/buehne', (req, res) => {
   req.pipe(upstream);
 });
 
+// --- Programmheft-Tool (Programmhefte der Kreatief-Musicals): www.martinrenner.de/programmheft ---
+// Eigener Railway-Dienst (Repo programmheft-tool); gestreamt durchgereicht (Bild-Uploads, JSON-Sicherungen),
+// vor den Body-Parsern.
+const PROGRAMMHEFT_TOOL_URL = (process.env.PROGRAMMHEFT_TOOL_URL || '').replace(/\/+$/, '');
+app.use('/programmheft', (req, res) => {
+  if (/^\/programmheft(\?|$)/.test(req.originalUrl)) return res.redirect(301, req.originalUrl.replace('/programmheft', '/programmheft/'));
+  if (!PROGRAMMHEFT_TOOL_URL) return res.status(503).send('Programmheft-Tool ist nicht eingerichtet.');
+  const target = new URL(PROGRAMMHEFT_TOOL_URL + req.url);
+  const headers = {};
+  for (const name of ['content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
+    if (req.headers[name]) headers[name] = req.headers[name];
+  }
+  headers['x-forwarded-proto'] = 'https';
+  if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
+  const client = target.protocol === 'https:' ? require('https') : require('http');
+  const upstream = client.request(target, { method: req.method, headers, timeout: 5 * 60 * 1000 }, (up) => {
+    const out = {};
+    for (const name of ['content-type', 'content-length', 'content-disposition', 'cache-control', 'location', 'etag', 'last-modified', 'accept-ranges', 'content-range', 'x-meldungen']) {
+      if (up.headers[name]) out[name] = up.headers[name];
+    }
+    if (up.headers['set-cookie']) out['set-cookie'] = up.headers['set-cookie'].map((c) => c.replace(/;\s*Path=\/(?=;|$)/i, '; Path=/programmheft'));
+    res.writeHead(up.statusCode, out);
+    up.pipe(res);
+  });
+  upstream.on('timeout', () => upstream.destroy(new Error('Zeitüberschreitung')));
+  upstream.on('error', (error) => {
+    console.error('[programmheft]', error.message);
+    if (!res.headersSent) res.status(502).json({ error: 'Programmheft-Tool nicht erreichbar.' });
+    else res.end();
+  });
+  req.pipe(upstream);
+});
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // Dateinamen sind eindeutige UUIDs – ein neues Foto bekommt immer einen neuen Namen,
