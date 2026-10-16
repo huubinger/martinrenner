@@ -15,9 +15,10 @@ const LAV = '#f3eff8';
 // Alles in doppelter Größe zeichnen (scharf auf Retina), in der Signatur halb so groß anzeigen.
 const W = 960;
 const ROWS = 3;
-const TOP = 74;
-const ROW_H = 104;
-const H = TOP + ROWS * ROW_H + 58;
+const TOP = 78;
+const ROW_H = 44;
+const DATE_W = 130;
+const H = TOP + ROWS * ROW_H - 8;
 const RENDER_TTL_MS = 10 * 60 * 1000;
 
 const MONATE = ['JAN', 'FEB', 'MÄR', 'APR', 'MAI', 'JUN', 'JUL', 'AUG', 'SEP', 'OKT', 'NOV', 'DEZ'];
@@ -30,13 +31,13 @@ function berlinParts(iso) {
   return { wd: p.weekday.replace('.', ''), day: +p.day, month: +p.month - 1, time: `${p.hour}:${p.minute}` };
 }
 
-const TITLE_SIZE = 34;
-const TITLE_MAX_W = W - 146 - 30;
+const TITLE_SIZE = 24;
+const TITLE_MAX_W = W - DATE_W - 10;
 
 // Zu lange Titel auf den Kern kürzen („Weihnachten dahoim! – Zwei Musicalstars …“ → „Weihnachten dahoim!“).
 function shortTitle(t) {
   const s = String(t).replace(/\s+/g, ' ').trim();
-  if (BOLD.getAdvanceWidth(s, TITLE_SIZE) <= TITLE_MAX_W) return s;
+  if (LIGHT.getAdvanceWidth(s, TITLE_SIZE) <= TITLE_MAX_W) return s;
   const cut = s.split(/\s[–-]\s/)[0];
   return cut.length >= 4 ? cut : s;
 }
@@ -73,34 +74,35 @@ function textPath(font, text, x, y, size, fill, { maxW = Infinity, spacing = 0, 
   return `<path fill="${fill}" d="${d}"/>`;
 }
 
+// Dezent: weißer Grund, eine Zeile je Termin (Datum in Pink, Titel in Lila, Ort in Grau), alles klein.
 function buildSvg(groups) {
   const parts = [
-    `<rect width="${W}" height="${H}" rx="14" fill="${LAV}"/>`,
-    `<rect width="10" height="${H}" fill="${PINK}"/>`,
-    textPath(BOLD, 'NÄCHSTE TERMINE', 40, 50, 24, PINK, { spacing: 3 }),
+    `<rect width="${W}" height="${H}" fill="#ffffff"/>`,
+    `<rect y="0" width="${W}" height="2" fill="${LAV}"/>`,
+    textPath(BOLD, 'NÄCHSTE TERMINE', 0, 50, 17, '#8a8494', { spacing: 3 }),
   ];
+  const linkLabel = 'kreatief-neckarsulm.de';
+  parts.push(textPath(LIGHT, linkLabel, W - LIGHT.getAdvanceWidth(linkLabel, 19) - 2, 50, 19, '#8a8494'));
   groups.slice(0, ROWS).forEach((g, i) => {
-    const y = TOP + i * ROW_H;
-    const first = berlinParts(g.dates[0]);
+    const y = TOP + i * ROW_H + 26;
     const all = g.dates.map(berlinParts);
+    const first = all[0];
     const sameMonth = all.every((d) => d.month === first.month);
-    const dayText = sameMonth && all.length > 1 ? all.map((d) => d.day).join('/') : String(first.day);
-    parts.push(`<rect x="40" y="${y}" width="84" height="84" rx="10" fill="${LILA}"/>`);
-    parts.push(textPath(BOLD, dayText, 82, y + 50, all.length > 1 ? 32 : 42, '#ffffff', { anchor: 'middle', maxW: 76 }));
-    parts.push(textPath(BOLD, MONATE[first.month], 82, y + 74, 19, '#ffffff', { anchor: 'middle', spacing: 2 }));
-    parts.push(textPath(BOLD, g.title, 146, y + 36, TITLE_SIZE, LILA, { maxW: TITLE_MAX_W }));
-    const when = all.length > 1
-      ? all.map((d) => `${d.wd} ${d.day}.${d.month + 1}.`).join(' + ') + ` · ${first.time} Uhr`
-      : `${first.wd} ${first.day}.${first.month + 1}. · ${first.time} Uhr`;
-    const info = g.location ? `${when} · ${g.location}` : when;
-    parts.push(textPath(LIGHT, info, 146, y + 74, 26, GRAU, { maxW: W - 146 - 30 }));
+    const date = all.length > 1 && sameMonth
+      ? `${all.map((d) => d.day).join('./')}.${first.month + 1}.`
+      : `${first.wd} ${first.day}.${first.month + 1}.`;
+    parts.push(textPath(BOLD, date, 0, y, 21, PINK, { maxW: DATE_W - 16 }));
+    const title = fit(LIGHT, g.title, TITLE_SIZE, TITLE_MAX_W);
+    parts.push(textPath(LIGHT, title, DATE_W, y, TITLE_SIZE, LILA));
+    const tw = LIGHT.getAdvanceWidth(title, TITLE_SIZE);
+    const rest = TITLE_MAX_W - tw;
+    if (g.location && rest > 120) {
+      parts.push(textPath(LIGHT, ` · ${g.location}`, DATE_W + tw, y, 21, '#8a8494', { maxW: rest }));
+    }
   });
   if (!groups.length) {
-    parts.push(textPath(LIGHT, 'Neue Termine folgen in Kürze.', 40, TOP + 50, 30, GRAU));
+    parts.push(textPath(LIGHT, 'Neue Termine folgen in Kürze.', 0, TOP + 26, 24, GRAU));
   }
-  parts.push(textPath(LIGHT, 'Tickets und alle Termine: ', 40, H - 24, 26, GRAU));
-  const lw = LIGHT.getAdvanceWidth('Tickets und alle Termine: ', 26);
-  parts.push(textPath(BOLD, 'kreatief-neckarsulm.de', 40 + lw, H - 24, 26, LILA));
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join('')}</svg>`;
 }
 
