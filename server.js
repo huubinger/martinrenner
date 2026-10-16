@@ -2707,6 +2707,8 @@ app.get('/api/events-ticker', async (req, res) => {
   }
 });
 
+require('./signatur')(app, { getTickerEvents });
+
 app.listen(PORT, () => {
   console.log(`Server läuft auf Port ${PORT}`);
   ensureAllImageVariants();
