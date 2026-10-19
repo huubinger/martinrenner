@@ -1,38 +1,39 @@
 'use strict';
 // Tool-Übersicht unter /tools: Links auf alle eigenen Tools, hinter einem Passwort (TOOLS_PASSWORD, nur als Railway-Variable).
 // Neue Tools hier in TOOLS eintragen – die Seite baut sich daraus auf.
+// img = Icon public/tool-icons/<img>.webp (Kling-Icons, Quelle ~/Dropbox/Claude/Projekte/Tool-Icons_2026_10_19).
 const crypto = require('crypto');
 
 const COOKIE = 'tools_auth';
 
 const TOOLS = [
   { group: 'Musical & Kreatief', items: [
-    { name: 'Skript-Tool', icon: '📝', url: '/skript', info: 'Musical-Skripte schreiben und formatieren' },
-    { name: 'Bühnen-Tool', icon: '🎭', url: '/buehne', info: 'Bühnenbilder, Szenen-Umbauten, 3D' },
-    { name: 'Programmheft-Tool', icon: '📖', url: '/programmheft', info: 'Programmhefte, Druck-PDF für WIRmachenDRUCK' },
-    { name: 'Probenvideo', icon: '🎬', url: '/probenvideo', info: 'Probenvideos kommentieren und bemalen' },
-    { name: 'Playback-Tool', icon: '🎵', url: 'https://playback.martinrenner.de', info: 'Playbacks verwalten und abspielen' },
-    { name: 'Musicals', icon: '⭐', url: '/musicals', info: 'Kreatief-Musicals, Shows, Darstellersuche' },
-    { name: 'LOKAL-Tool', icon: '💶', url: '/lokal', info: 'Förderung LOK.26.0468' },
-    { name: 'Frühstücks-Chörle', icon: '☕', url: '/choerle', info: 'Übe-Tracks und Noten' },
-    { name: 'Voctails intern', icon: '🎤', url: '/voctails/intern/', info: 'Übe-Player und Termine' },
+    { name: 'Skript-Tool', img: 'skript', url: '/skript', info: 'Musical-Skripte schreiben und formatieren' },
+    { name: 'Bühnen-Tool', img: 'buehne', url: '/buehne', info: 'Bühnenbilder, Szenen-Umbauten, 3D' },
+    { name: 'Programmheft-Tool', img: 'programmheft', url: '/programmheft', info: 'Programmhefte, Druck-PDF für WIRmachenDRUCK' },
+    { name: 'Probenvideo', img: 'probenvideo', url: '/probenvideo', info: 'Probenvideos kommentieren und bemalen' },
+    { name: 'Playback-Tool', img: 'playback', url: 'https://playback.martinrenner.de', info: 'Playbacks verwalten und abspielen' },
+    { name: 'Musicals', img: 'musicals', url: '/musicals', info: 'Kreatief-Musicals, Shows, Darstellersuche' },
+    { name: 'LOKAL-Tool', img: 'lokal', url: '/lokal', info: 'Förderung LOK.26.0468' },
+    { name: 'Frühstücks-Chörle', img: 'choerle', url: '/choerle', info: 'Übe-Tracks und Noten' },
+    { name: 'Voctails intern', img: 'voctails', url: '/voctails/intern/', info: 'Übe-Player und Termine' },
   ] },
   { group: 'Büro', items: [
-    { name: 'Office-Tool', icon: '🗂️', url: 'https://office.martinrenner.de', info: 'Aufgaben und Vorgänge' },
-    { name: 'Office-Diktat', icon: '🎙️', url: 'https://office.martinrenner.de/diktat', info: 'Aufgaben per Sprache' },
-    { name: 'JPMR-Tool', icon: '🧾', url: 'https://jpmr-tool-production.up.railway.app', info: 'JPMR-Verwaltung' },
-    { name: 'Kulturkalender', icon: '📅', url: 'https://www.neckarsulmer-kulturkalender.de', info: 'Neckarsulmer Kulturkalender' },
-    { name: 'Homepage-Admin', icon: '⚙️', url: '/admin', info: 'Inhalte von martinrenner.de' },
+    { name: 'Office-Tool', img: 'office', url: 'https://office.martinrenner.de', info: 'Aufgaben und Vorgänge' },
+    { name: 'Office-Diktat', img: 'diktat', url: 'https://office.martinrenner.de/diktat', info: 'Aufgaben per Sprache' },
+    { name: 'JPMR-Tool', img: 'jpmr', url: 'https://jpmr-tool-production.up.railway.app', info: 'JPMR-Verwaltung' },
+    { name: 'Kulturkalender', img: 'kulturkalender', url: 'https://www.neckarsulmer-kulturkalender.de', info: 'Neckarsulmer Kulturkalender' },
+    { name: 'Homepage-Admin', img: 'admin', url: '/admin', info: 'Inhalte von martinrenner.de' },
   ] },
   { group: 'Zuhause', items: [
-    { name: 'Tagebuch', icon: '📔', url: '/tagebuch', info: 'Diktiertes Tagebuch' },
-    { name: 'Heizkurve', icon: '🌡️', url: '/heizung', info: 'Wärmepumpe' },
-    { name: 'Balkonkraftwerk', icon: '☀️', url: '/balkonkraftwerk', info: 'Leistung und Ertrag' },
-    { name: 'Kameras', icon: '📷', url: '/kameras', info: 'Überwachung an/aus' },
+    { name: 'Tagebuch', img: 'tagebuch', url: '/tagebuch', info: 'Diktiertes Tagebuch' },
+    { name: 'Heizkurve', img: 'heizkurve', url: '/heizung', info: 'Wärmepumpe' },
+    { name: 'Balkonkraftwerk', img: 'balkonkraftwerk', url: '/balkonkraftwerk', info: 'Leistung und Ertrag' },
+    { name: 'Kameras', img: 'kameras', url: '/kameras', info: 'Überwachung an/aus' },
   ] },
   { group: 'Lokal am Mac', items: [
-    { name: 'Skript-Tool lokal', icon: '💻', url: 'http://localhost:3210', info: 'Befehl skript' },
-    { name: 'Büroassistent', icon: '📬', url: 'http://localhost:3220', info: 'Cockpit (MacBook Air)' },
+    { name: 'Skript-Tool lokal', img: 'skript-lokal', url: 'http://localhost:3210', info: 'Befehl skript' },
+    { name: 'Büroassistent', img: 'buero', url: 'http://localhost:3220', info: 'Cockpit (MacBook Air)' },
   ] },
 ];
 
@@ -81,7 +82,7 @@ main{max-width:920px;margin:0 auto;padding:28px 16px 48px}h1{font-size:1.6rem;ma
 h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:28px 0 10px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 .tool{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:inherit;text-decoration:none;transition:background .15s,border-color .15s}
-.tool:hover{background:var(--hover);border-color:var(--accent)}.ico{font-size:1.5rem;width:2rem;text-align:center;flex:0 0 auto}
+.tool:hover{background:var(--hover);border-color:var(--accent)}.ico{width:44px;height:44px;flex:0 0 auto;border-radius:10px}
 .name{font-weight:600}.info{color:var(--muted);font-size:.85rem}
 .login{max-width:340px;margin:18vh auto 0;display:flex;flex-direction:column;gap:10px;text-align:center}
 .login input,.login button{font:inherit;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text)}
@@ -99,7 +100,7 @@ function loginPage(err) {
 function page(esc) {
   const groups = TOOLS.map((g) => `<h2>${esc(g.group)}</h2><div class="grid">${g.items.map((t) => {
     const external = /^https?:/.test(t.url) ? ' target="_blank" rel="noopener"' : '';
-    return `<a class="tool" href="${esc(t.url)}"${external}><span class="ico">${t.icon}</span>`
+    return `<a class="tool" href="${esc(t.url)}"${external}><img class="ico" src="/tool-icons/${esc(t.img)}.webp" alt="">`
       + `<span><span class="name">${esc(t.name)}</span><br><span class="info">${esc(t.info)}</span></span></a>`;
   }).join('')}</div>`).join('');
   return `${HEAD}<h1>🧰 Tools</h1><p class="sub">Alle Werkzeuge auf einen Blick</p>${groups}</main></body></html>`;
