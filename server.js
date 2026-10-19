@@ -779,9 +779,8 @@ app.get('/datenschutz.html', (req, res) => {
   res.send(renderDatenschutzPage(loadSettings()));
 });
 
-app.get('/apps', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'apps.html'));
-});
+// Frühere öffentliche Apps-Seite → Tool-Übersicht
+app.get(['/apps', '/apps.html'], (req, res) => res.redirect(301, '/tools'));
 
 app.get('/kontakt', (req, res) => {
   res.redirect(302, '/?p=martin-renner&form=kontakt');
