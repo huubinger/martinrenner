@@ -1,0 +1,17 @@
+{
+  "musical": "Das Album",
+  "playlist": "https://www.youtube.com/playlist?list=PLLOJNMAnVn3M",
+  "stand": "2026-10-19",
+  "quelle": "Kreatief-Probentool, Plan Oktober-November 2026 (Szenenproben)",
+  "proben": [
+    { "datum": "2026-10-23", "von": "18:00", "bis": "19:30", "szene": "23. Augen zu" },
+    { "datum": "2026-10-23", "von": "19:30", "bis": "21:00", "szene": "27. Plan A" },
+    { "datum": "2026-11-03", "von": "18:00", "bis": "19:30", "szene": "9. Die Einberufung" },
+    { "datum": "2026-11-03", "von": "19:30", "bis": "21:00", "szene": "22. Jean Jacques, Jean Claude und Jerome" },
+    { "datum": "2026-11-13", "von": "18:00", "bis": "19:30", "szene": "3. Meine Söhne" },
+    { "datum": "2026-11-17", "von": "18:00", "bis": "19:30", "szene": "15. Liebe ist scheiße" },
+    { "datum": "2026-11-17", "von": "19:30", "bis": "21:00", "szene": "16. Wackelkontakt" },
+    { "datum": "2026-11-19", "von": "19:30", "bis": "21:00", "szene": "19. Erzähl mir die Geschichte" }
+  ],
+  "szenen": ["1. Lebenslauf", "2. Schlag mich, Baby", "3. Meine Söhne", "4. Das Fotoalbum", "5. Der Manager", "6. Willst du mit mir geh’n?", "7. Die neue Sängerin", "8. Der Morgen danach", "9. Die Einberufung", "10. Klar Schiff", "11. Die Konzertvorbereitungen", "12. Das Konzert", "13. Der Vertrag", "14. Ab morgen", "15. Liebe ist scheiße", "16. Wackelkontakt", "17. Schwanger in schwarz-weiß", "18. Du hast den Farbfilm vergessen", "19. Erzähl mir die Geschichte", "20. Du kannst mich sehen", "21. Ein Lied aus alten Zeiten", "22. Jean Jacques, Jean Claude und Jerome", "23. Augen zu", "24. Die Hotline", "25. Hört bitte auf zu singen", "26. Alleinunterhalter", "27. Plan A", "28. Chocolate Chip Cookies", "29. Wachstum", "30. Zwei Welten", "31. Durch die Stille", "32. Mehr davon", "33. Hundert Leben", "34. Zugabe"]
+}

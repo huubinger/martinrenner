@@ -90,6 +90,14 @@
   #result h2 { margin: 0; font-size: 22px; }
   #result video { width: 100%; max-height: 60dvh; background: #000; border-radius: 12px; }
   #result p { color: var(--muted); margin: 0; font-size: 14px; }
+  #result .field { margin-top: 0; }
+  #result a { color: var(--accent); }
+  #result p.warn { color: var(--accent); }
+  #result p.warn:empty { display: none; }
+  .field input { display: block; width: 100%; margin-top: 6px; font: inherit; color: var(--text); background: var(--btn);
+    border: 0; border-radius: 12px; padding: 10px 12px; min-height: 44px; -webkit-user-select: text; user-select: text; }
+  .steps { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14px; }
+  .steps b { color: var(--text); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -159,7 +167,22 @@
   <h2>Kommentar fertig</h2>
   <video id="out" controls playsinline></video>
   <p id="outInfo"></p>
-  <button class="big" id="btnShare">In Fotos sichern / teilen</button>
+  <label class="field">Geprobte Szene
+    <select id="scene"><option value="">– Szene wählen –</option></select>
+  </label>
+  <label class="field">Titel auf YouTube
+    <input type="text" id="ytTitle" autocomplete="off">
+  </label>
+  <button class="big" id="btnYT">Auf YouTube hochladen</button>
+  <p id="ytMsg" class="warn"></p>
+  <ol class="steps">
+    <li>Im Teilen-Menü die <b>YouTube-App</b> wählen.</li>
+    <li>Titel einfügen – er ist schon kopiert.</li>
+    <li>Sichtbarkeit <b>„Nicht gelistet“</b>.</li>
+    <li>Playlist <b id="plName">des Musicals</b> wählen und hochladen.</li>
+  </ol>
+  <p>Das Probentool ordnet das Video über den Szenennamen im Titel der Szene zu. <a id="plLink" class="hidden" target="_blank" rel="noopener">Playlist öffnen</a></p>
+  <button id="btnShare">In Fotos sichern / teilen</button>
   <button id="btnRedo">Neu aufnehmen</button>
   <button class="link" id="btnNew">Anderes Video wählen</button>
 </section>
@@ -260,6 +283,7 @@ $('#file').onchange = async () => {
   const f = $('#file').files[0];
   if (!f) return;
   baseName = f.name.replace(/\.[^.]+$/, '') || 'Probe';
+  videoDate(f).then(d => { recDate = d; fillScenes(); });
   if (video.src) URL.revokeObjectURL(video.src);
   video.src = URL.createObjectURL(f);
   strokes = [];
@@ -553,7 +577,9 @@ function finishRec() {
   resultFile = new File([blob], baseName + ' – Kommentar.' + ext, { type });
   resultUrl = URL.createObjectURL(blob);
   $('#out').src = resultUrl;
-  $('#outInfo').textContent = resultFile.name + ' · ' + (blob.size / 1048576).toFixed(1).replace('.', ',') + ' MB';
+  $('#outInfo').textContent = 'Größe: ' + (blob.size / 1048576).toFixed(1).replace('.', ',') + ' MB';
+  $('#ytMsg').textContent = '';
+  updateTitle();
   show('result');
 }
 $('#btnRec').onclick = () => { if (recorder) stopRec(); else startRec(); };
@@ -573,20 +599,110 @@ $('#btnRecPause').onclick = () => {
 };
 window.addEventListener('beforeunload', e => { if (recorder) { e.preventDefault(); e.returnValue = ''; } });
 
+// ---------- Probenplan: Szene zum Aufnahmedatum ----------
+let plan = { musical: '', playlist: '', proben: [], szenen: [] };
+let recDate = null; // Aufnahmezeitpunkt des Probenvideos
+fetch('proben.json', { cache: 'no-store' }).then(r => r.json()).then(d => {
+  plan = d;
+  if (plan.playlist) { $('#plLink').href = plan.playlist; $('#plLink').classList.remove('hidden'); }
+  if (plan.musical) $('#plName').textContent = '„' + plan.musical + '“';
+  fillScenes();
+}).catch(() => {});
+
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const deDate = s => s.split('-').reverse().join('.');
+
+// iPhone-Videos tragen den Aufnahmezeitpunkt im mvhd-Atom; sonst Änderungsdatum der Datei
+async function videoDate(file) {
+  try {
+    let pos = 0;
+    while (pos + 8 <= file.size) {
+      const h = new DataView(await file.slice(pos, pos + 16).arrayBuffer());
+      const type = String.fromCharCode(h.getUint8(4), h.getUint8(5), h.getUint8(6), h.getUint8(7));
+      let size = h.getUint32(0);
+      if (size === 1) size = Number(h.getBigUint64(8));
+      else if (size === 0) size = file.size - pos;
+      if (size < 8) break;
+      if (type === 'moov') {
+        const buf = new Uint8Array(await file.slice(pos, pos + Math.min(size, 8e6)).arrayBuffer());
+        for (let i = 8; i < buf.length - 24; i++) {
+          if (buf[i] !== 0x6d || buf[i + 1] !== 0x76 || buf[i + 2] !== 0x68 || buf[i + 3] !== 0x64) continue; // 'mvhd'
+          const dv = new DataView(buf.buffer, i + 4);
+          const secs = dv.getUint8(0) === 1 ? Number(dv.getBigUint64(4)) : dv.getUint32(4);
+          const d = new Date((secs - 2082844800) * 1000);
+          if (d.getFullYear() >= 2020 && d.getFullYear() < 2100) return d;
+          break;
+        }
+        break;
+      }
+      pos += size;
+    }
+  } catch (e) {}
+  return file.lastModified ? new Date(file.lastModified) : null;
+}
+
+// Gefilmt wird am Ende der Probe: letzte Probe des Tages, die vor der Aufnahme begonnen hat
+function suggestedProbe() {
+  if (!recDate) return null;
+  const day = plan.proben.filter(p => p.datum === ymd(recDate));
+  const hm = pad(recDate.getHours()) + ':' + pad(recDate.getMinutes());
+  const started = day.filter(p => p.von <= hm);
+  return started.length ? started[started.length - 1] : day[0] || null;
+}
+function fillScenes() {
+  const sel = $('#scene'), keep = sel.value;
+  const day = recDate ? plan.proben.filter(p => p.datum === ymd(recDate)) : [];
+  const opt = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t || v; return o; };
+  sel.innerHTML = '';
+  sel.appendChild(opt('', '– Szene wählen –'));
+  if (day.length) {
+    const grp = document.createElement('optgroup');
+    grp.label = 'Probe am ' + deDate(day[0].datum);
+    for (const p of day) grp.appendChild(opt(p.szene, p.szene + ' (' + p.von + ')'));
+    sel.appendChild(grp);
+  }
+  const all = document.createElement('optgroup');
+  all.label = 'Alle Szenen';
+  for (const s of plan.szenen) all.appendChild(opt(s));
+  sel.appendChild(all);
+  const sug = suggestedProbe();
+  sel.value = keep || (sug ? sug.szene : '');
+  updateTitle();
+}
+function updateTitle() {
+  const scene = $('#scene').value;
+  const sug = suggestedProbe();
+  const datum = sug && sug.szene === scene ? sug.datum : ymd(recDate || new Date());
+  $('#ytTitle').value = (scene ? scene + ' – ' : '') + 'Probe ' + deDate(datum);
+}
+$('#scene').onchange = updateTitle;
+
 // ---------- Ergebnis ----------
-$('#btnShare').onclick = async () => {
+async function shareResult(name) {
   if (!resultFile) return;
-  if (navigator.canShare && navigator.canShare({ files: [resultFile] })) {
-    try { await navigator.share({ files: [resultFile], title: resultFile.name }); } catch (e) {}
+  const ext = resultFile.name.split('.').pop();
+  const file = name ? new File([resultFile], name.replace(/[\\/:*?"<>|]+/g, '-') + '.' + ext, { type: resultFile.type }) : resultFile;
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: name || file.name }); } catch (e) {}
     return;
   }
   const a = document.createElement('a');
   a.href = resultUrl;
-  a.download = resultFile.name;
+  a.download = file.name;
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+$('#btnYT').onclick = () => {
+  const title = $('#ytTitle').value.trim();
+  if (!$('#scene').value) { $('#ytMsg').textContent = 'Bitte zuerst die geprobte Szene wählen – über den Namen findet das Probentool das Video.'; return; }
+  $('#ytMsg').textContent = '';
+  // nicht abwarten: das Teilen-Menü braucht den Tipp noch „frisch“
+  try { navigator.clipboard.writeText(title).catch(() => {}); } catch (e) {}
+  shareResult(title);
 };
+$('#btnShare').onclick = () => shareResult($('#ytTitle').value.trim());
 $('#btnRedo').onclick = () => {
   $('#out').pause();
   video.currentTime = 0;
