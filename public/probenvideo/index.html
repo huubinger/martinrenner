@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Probenvideo">
+<meta name="theme-color" content="#111111">
+<meta name="robots" content="noindex">
+<title>Probenvideo kommentieren</title>
+<style>
+  :root {
+    --bg: #111111;
+    --panel: #1c1c1e;
+    --btn: #2c2c2e;
+    --btn-on: #3a3a3c;
+    --text: #f2f2f7;
+    --muted: #98989f;
+    --accent: #ffd400;
+    --rec: #ff3b30;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 16px/1.35 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+  body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    -webkit-user-select: none; user-select: none; overscroll-behavior: none; }
+  button, select { font: inherit; color: var(--text); background: var(--btn); border: 0; border-radius: 12px;
+    padding: 10px 12px; min-height: 44px; touch-action: manipulation; cursor: pointer; }
+  button:active { filter: brightness(1.3); }
+  button.on { background: var(--btn-on); box-shadow: inset 0 0 0 2px var(--accent); }
+  button:disabled { opacity: .4; }
+  .hidden { display: none !important; }
+  /* Quell-Videos: unsichtbar, aber nicht display:none, damit iOS Bilder liefert */
+  .feed { position: fixed; left: 0; top: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+
+  /* Start */
+  #start { max-width: 520px; margin: 0 auto; padding: 32px 16px; }
+  #start h1 { font-size: 26px; margin: 0 0 8px; }
+  #start p { color: var(--muted); margin: 0 0 16px; }
+  #start ol { color: var(--muted); padding-left: 20px; margin: 0 0 24px; }
+  #start li { margin-bottom: 6px; }
+  .big { display: block; width: 100%; font-size: 18px; font-weight: 600; padding: 16px; background: var(--accent); color: #000; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .field { margin-top: 16px; color: var(--muted); font-size: 14px; }
+  .field select { width: 100%; margin-top: 6px; }
+
+  /* Editor */
+  #editor { display: flex; flex-direction: column; height: 100%; }
+  .stagewrap { flex: none; display: flex; align-items: center; justify-content: center; background: #000; position: relative; }
+  #stage { display: block; max-width: 100%; max-height: 56vh; max-height: 56dvh; touch-action: none; }
+  .badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.65); padding: 4px 10px; border-radius: 999px;
+    font-size: 14px; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .badge.rec::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--rec);
+    margin-right: 6px; animation: blink 1s infinite; }
+  .badge.paused::before { animation: none; background: var(--muted); }
+  @keyframes blink { 50% { opacity: .2; } }
+  .controls { flex: 1; overflow-y: auto; padding: 10px 12px 16px; display: flex; flex-direction: column; gap: 10px; background: var(--panel); }
+  .hint { color: var(--muted); font-size: 13px; text-align: center; }
+  #btnRec { flex: 1; font-weight: 600; background: var(--rec); }
+  #btnRec.stop { background: var(--text); color: #000; }
+  #btnRecPause { flex: none; }
+  .seek { display: flex; align-items: center; gap: 8px; }
+  .seek input { flex: 1; accent-color: var(--accent); }
+  .time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 86px; text-align: right; }
+  .play { display: grid; grid-template-columns: 1fr 1fr 1.4fr 1fr 1fr; gap: 8px; }
+  .colors { display: flex; gap: 6px; }
+  .dot { width: 34px; min-height: 34px; height: 34px; padding: 0; border-radius: 50%; }
+  .dot.on { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--text); }
+  .grow { flex: 1; }
+  .vol { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+  .vol input { flex: 1; accent-color: var(--accent); }
+  .link { background: none; color: var(--muted); text-decoration: underline; padding: 8px; }
+  #msg { color: var(--accent); font-size: 14px; text-align: center; }
+
+  /* iPhone quer: Video links, Bedienung rechts */
+  @media (orientation: landscape) and (max-height: 600px) {
+    #editor { flex-direction: row; }
+    .stagewrap { flex: 1; height: 100%; }
+    #stage { max-height: 100%; }
+    .controls { flex: none; width: 300px; }
+  }
+
+  /* Ergebnis */
+  #result { max-width: 640px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 12px; }
+  #result h2 { margin: 0; font-size: 22px; }
+  #result video { width: 100%; max-height: 60dvh; background: #000; border-radius: 12px; }
+  #result p { color: var(--muted); margin: 0; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<video id="src" class="feed" playsinline preload="auto"></video>
+<video id="cam" class="feed" playsinline muted autoplay></video>
+
+<section id="start">
+  <h1>Probenvideo kommentieren</h1>
+  <p>Video der Szenenprobe ansehen, anhalten, draufmalen und dabei erklären – du bist als kleines Fenster im Bild. Heraus kommt ein fertiges Video zum Verschicken.</p>
+  <ol>
+    <li>Probenvideo aus den Fotos wählen</li>
+    <li>Kamerafenster an die passende Stelle ziehen</li>
+    <li>„Aufnahme starten“, abspielen, anhalten, erklären</li>
+    <li>„Aufnahme beenden“ und in Fotos sichern oder per WhatsApp teilen</li>
+  </ol>
+  <button class="big" id="btnPick">Probenvideo wählen</button>
+  <input type="file" id="file" accept="video/*" class="hidden">
+  <div class="field">Qualität
+    <select id="quality">
+      <option value="1280">HD 720p (kleinere Datei)</option>
+      <option value="1920">Full HD 1080p</option>
+    </select>
+  </div>
+  <p class="field">Tipp: Mit Kopfhörern aufnehmen, sonst landet der Originalton doppelt (über das Mikrofon) im Video.</p>
+</section>
+
+<section id="editor" class="hidden">
+  <div class="stagewrap">
+    <canvas id="stage" width="1280" height="720"></canvas>
+    <div class="badge hidden" id="badge">0:00</div>
+  </div>
+  <div class="controls">
+    <div class="row">
+      <button id="btnRec">● Aufnahme starten</button>
+      <button id="btnRecPause" class="hidden">Pause</button>
+    </div>
+    <div class="seek">
+      <input type="range" id="seek" min="0" max="1000" value="0">
+      <span class="time" id="time">0:00 / 0:00</span>
+    </div>
+    <div class="play">
+      <button id="btnBack10">−10 s</button>
+      <button id="btnBack">−2 s</button>
+      <button id="btnPlay">▶︎ Abspielen</button>
+      <button id="btnFwd">+2 s</button>
+      <button id="btnSpeed">1×</button>
+    </div>
+    <div class="row">
+      <button id="btnPen">✎ Stift</button>
+      <div class="colors" id="colors"></div>
+      <button id="btnClear" class="grow">Löschen</button>
+    </div>
+    <div class="row">
+      <button id="btnCam" class="on grow">Kamera an</button>
+      <button id="btnSize">Größe M</button>
+      <button id="btnShape">Kreis</button>
+    </div>
+    <label class="vol">Originalton <input type="range" id="vol" min="0" max="100" value="80"></label>
+    <div id="msg"></div>
+    <div class="hint">Tippen aufs Video: Start/Stopp · Kamerafenster ziehen zum Verschieben · Zeichnungen verschwinden beim Weiterspielen</div>
+    <button class="link" id="btnOther">Anderes Video wählen</button>
+  </div>
+</section>
+
+<section id="result" class="hidden">
+  <h2>Kommentar fertig</h2>
+  <video id="out" controls playsinline></video>
+  <p id="outInfo"></p>
+  <button class="big" id="btnShare">In Fotos sichern / teilen</button>
+  <button id="btnRedo">Neu aufnehmen</button>
+  <button class="link" id="btnNew">Anderes Video wählen</button>
+</section>
+
+<script>
+const $ = s => document.querySelector(s);
+const video = $('#src'), cam = $('#cam'), canvas = $('#stage'), g = canvas.getContext('2d');
+
+const COLORS = ['#ffd400', '#ff3b30', '#ffffff', '#34c759'];
+const SIZES = [['S', .24], ['M', .34], ['L', .46]];
+const SPEEDS = [1, .5, .25];
+
+let baseName = 'Probe';
+let maxSide = 1280;
+let camStream = null, camOn = true, micConnected = false;
+let actx = null, dest = null, videoGain = null, micGain = null;
+const pip = { x: .82, y: .74, sizeIdx: 1, round: true };
+let strokes = [], current = null, penOn = false, penColor = COLORS[0];
+let drag = null, tap = null;
+let recorder = null, chunks = [], recMime = '', recAccum = 0, recSince = 0, wakeLock = null;
+let resultFile = null, resultUrl = null, loopRunning = false;
+
+function show(id) {
+  for (const s of ['start', 'editor', 'result']) $('#' + s).classList.toggle('hidden', s !== id);
+}
+function note(t) { $('#msg').textContent = t || ''; }
+function fmt(t) {
+  if (!isFinite(t)) t = 0;
+  const m = Math.floor(t / 60), s = Math.floor(t % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+// ---------- Ton: Originalton + Mikrofon zusammenmischen ----------
+function setupAudio() {
+  if (actx) { actx.resume(); return; }
+  try {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    dest = actx.createMediaStreamDestination();
+    videoGain = actx.createGain();
+    videoGain.gain.value = $('#vol').value / 100;
+    actx.createMediaElementSource(video).connect(videoGain);
+    videoGain.connect(actx.destination);
+    videoGain.connect(dest);
+    micGain = actx.createGain();
+    micGain.gain.value = 1.3;
+    micGain.connect(dest);
+    actx.resume();
+  } catch (e) {
+    actx = null;
+    console.warn('WebAudio nicht verfügbar', e);
+  }
+}
+function connectMic() {
+  if (micConnected || !actx || !camStream) return;
+  const tracks = camStream.getAudioTracks();
+  if (!tracks.length) return;
+  actx.createMediaStreamSource(new MediaStream(tracks)).connect(micGain);
+  micConnected = true;
+}
+
+// nur einmal nachfragen, auch wenn mehrere Stellen gleichzeitig starten
+let camPromise = null;
+function startCamera() { return camPromise || (camPromise = openCamera()); }
+async function openCamera() {
+  const audio = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio });
+  } catch (e) {
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({ audio });
+      setCam(false);
+      note('Keine Kamera freigegeben – es wird nur dein Ton aufgenommen.');
+    } catch (e2) {
+      note('Kamera und Mikrofon sind nicht freigegeben (iPhone: Einstellungen → Safari → Kamera/Mikrofon).');
+      return;
+    }
+  }
+  if (camStream.getVideoTracks().length) {
+    cam.srcObject = camStream;
+    cam.play().catch(() => {});
+  }
+  connectMic();
+}
+
+// ---------- Video laden ----------
+$('#btnPick').onclick = () => { setupAudio(); $('#file').click(); };
+$('#btnOther').onclick = $('#btnNew').onclick = () => {
+  if (recorder) return;
+  video.pause();
+  show('start');
+  $('#file').value = '';
+  $('#file').click();
+};
+$('#quality').onchange = e => { maxSide = +e.target.value; if (video.videoWidth) sizeCanvas(); };
+
+$('#file').onchange = async () => {
+  const f = $('#file').files[0];
+  if (!f) return;
+  baseName = f.name.replace(/\.[^.]+$/, '') || 'Probe';
+  if (video.src) URL.revokeObjectURL(video.src);
+  video.src = URL.createObjectURL(f);
+  strokes = [];
+  note('Video wird geladen …');
+  show('editor');
+  await new Promise((res, rej) => {
+    video.onloadedmetadata = res;
+    video.onerror = () => rej(new Error('Video lässt sich nicht öffnen'));
+  }).catch(e => note(e.message));
+  sizeCanvas();
+  // iOS zeigt das erste Bild erst nach einem Abspielversuch
+  video.muted = true;
+  try { await video.play(); } catch (e) {}
+  video.pause();
+  video.currentTime = 0;
+  video.muted = false;
+  note('');
+  startLoop();
+  startCamera();
+};
+
+function sizeCanvas() {
+  const w = video.videoWidth || 1280, h = video.videoHeight || 720;
+  const k = Math.min(1, maxSide / Math.max(w, h));
+  canvas.width = Math.round(w * k / 2) * 2;
+  canvas.height = Math.round(h * k / 2) * 2;
+}
+
+// ---------- Zeichnen ----------
+function pipRect() {
+  const W = canvas.width, H = canvas.height;
+  const s = SIZES[pip.sizeIdx][1] * Math.min(W, H);
+  const m = Math.min(W, H) * .03;
+  const cx = Math.min(W - m - s / 2, Math.max(m + s / 2, pip.x * W));
+  const cy = Math.min(H - m - s / 2, Math.max(m + s / 2, pip.y * H));
+  return { cx, cy, s };
+}
+function shapePath(cx, cy, s) {
+  g.beginPath();
+  if (pip.round) { g.arc(cx, cy, s / 2, 0, Math.PI * 2); return; }
+  const r = s * .14, x = cx - s / 2, y = cy - s / 2;
+  g.moveTo(x + r, y);
+  g.arcTo(x + s, y, x + s, y + s, r);
+  g.arcTo(x + s, y + s, x, y + s, r);
+  g.arcTo(x, y + s, x, y, r);
+  g.arcTo(x, y, x + s, y, r);
+  g.closePath();
+}
+function drawPip() {
+  const vw = cam.videoWidth, vh = cam.videoHeight;
+  if (!vw) return;
+  const { cx, cy, s } = pipRect();
+  const side = Math.min(vw, vh);
+  g.save();
+  g.shadowColor = 'rgba(0,0,0,.55)';
+  g.shadowBlur = s * .08;
+  shapePath(cx, cy, s);
+  g.fillStyle = '#000';
+  g.fill();
+  g.restore();
+  g.save();
+  shapePath(cx, cy, s);
+  g.clip();
+  g.translate(cx, cy);
+  g.scale(-1, 1); // spiegeln wie beim Selfie
+  g.drawImage(cam, (vw - side) / 2, (vh - side) / 2, side, side, -s / 2, -s / 2, s, s);
+  g.restore();
+  g.save();
+  shapePath(cx, cy, s);
+  g.lineWidth = Math.max(2, s * .025);
+  g.strokeStyle = '#fff';
+  g.stroke();
+  g.restore();
+}
+function drawStrokes(now) {
+  const base = Math.min(canvas.width, canvas.height);
+  strokes = strokes.filter(st => !st.fade || now - st.fade < 600);
+  for (const st of strokes) {
+    const a = st.fade && now > st.fade ? 1 - (now - st.fade) / 600 : 1;
+    if (st.pts.length < 1) continue;
+    g.save();
+    g.globalAlpha = Math.max(0, a);
+    g.lineCap = g.lineJoin = 'round';
+    g.lineWidth = base * .012;
+    g.strokeStyle = st.color;
+    g.shadowColor = 'rgba(0,0,0,.6)';
+    g.shadowBlur = base * .01;
+    g.beginPath();
+    g.moveTo(st.pts[0][0], st.pts[0][1]);
+    if (st.pts.length === 1) g.lineTo(st.pts[0][0] + .1, st.pts[0][1]);
+    for (let i = 1; i < st.pts.length; i++) g.lineTo(st.pts[i][0], st.pts[i][1]);
+    g.stroke();
+    g.restore();
+  }
+}
+function frame() {
+  const W = canvas.width, H = canvas.height, now = performance.now();
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, W, H);
+  if (video.readyState >= 2) g.drawImage(video, 0, 0, W, H);
+  drawStrokes(now);
+  if (camOn) drawPip();
+  updateTime();
+  requestAnimationFrame(frame);
+}
+function startLoop() { if (!loopRunning) { loopRunning = true; requestAnimationFrame(frame); } }
+
+// Beim Weiterspielen verschwinden die Zeichnungen
+video.addEventListener('play', () => {
+  const t = performance.now() + 1200;
+  for (const st of strokes) if (!st.fade) st.fade = t;
+});
+
+// ---------- Berührungen auf dem Video ----------
+function canvasPoint(e) {
+  const r = canvas.getBoundingClientRect();
+  return [(e.clientX - r.left) * canvas.width / r.width, (e.clientY - r.top) * canvas.height / r.height];
+}
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  canvas.setPointerCapture(e.pointerId);
+  const p = canvasPoint(e);
+  if (camOn && cam.videoWidth) {
+    const { cx, cy, s } = pipRect();
+    if (Math.abs(p[0] - cx) < s / 2 && Math.abs(p[1] - cy) < s / 2) {
+      drag = { dx: p[0] - cx, dy: p[1] - cy };
+      return;
+    }
+  }
+  if (penOn) {
+    current = { color: penColor, pts: [p], fade: null };
+    strokes.push(current);
+    return;
+  }
+  tap = { p, t: Date.now() };
+});
+canvas.addEventListener('pointermove', e => {
+  const p = canvasPoint(e);
+  if (drag) {
+    pip.x = (p[0] - drag.dx) / canvas.width;
+    pip.y = (p[1] - drag.dy) / canvas.height;
+    const { cx, cy } = pipRect(); // am Rand festhalten
+    pip.x = cx / canvas.width;
+    pip.y = cy / canvas.height;
+  } else if (current) {
+    current.pts.push(p);
+  }
+});
+function pointerEnd(e) {
+  if (current && !video.paused) current.fade = performance.now() + 2000;
+  if (tap) {
+    const p = canvasPoint(e), d = Math.hypot(p[0] - tap.p[0], p[1] - tap.p[1]);
+    if (d < canvas.width * .03 && Date.now() - tap.t < 500) togglePlay();
+  }
+  drag = current = tap = null;
+}
+canvas.addEventListener('pointerup', pointerEnd);
+canvas.addEventListener('pointercancel', () => { drag = current = tap = null; });
+
+// ---------- Abspielen ----------
+function togglePlay() {
+  setupAudio();
+  if (video.paused) video.play().catch(err => note('Abspielen nicht möglich: ' + err.message));
+  else video.pause();
+}
+function jump(d) { video.currentTime = Math.max(0, Math.min(video.duration || 0, video.currentTime + d)); }
+video.addEventListener('play', () => { $('#btnPlay').textContent = '❚❚ Pause'; });
+video.addEventListener('pause', () => { $('#btnPlay').textContent = '▶︎ Abspielen'; });
+$('#btnPlay').onclick = togglePlay;
+$('#btnBack10').onclick = () => jump(-10);
+$('#btnBack').onclick = () => jump(-2);
+$('#btnFwd').onclick = () => jump(2);
+$('#btnSpeed').onclick = () => {
+  const i = (SPEEDS.indexOf(video.playbackRate) + 1) % SPEEDS.length;
+  video.playbackRate = SPEEDS[i];
+  $('#btnSpeed').textContent = String(SPEEDS[i]).replace('.', ',') + '×';
+  $('#btnSpeed').classList.toggle('on', SPEEDS[i] !== 1);
+};
+let seeking = false;
+$('#seek').addEventListener('input', e => {
+  seeking = true;
+  if (video.duration) video.currentTime = e.target.value / 1000 * video.duration;
+});
+$('#seek').addEventListener('change', () => { seeking = false; });
+let lastTimeText = '';
+function updateTime() {
+  const d = video.duration || 0;
+  const txt = fmt(video.currentTime) + ' / ' + fmt(d);
+  if (txt !== lastTimeText) { $('#time').textContent = txt; lastTimeText = txt; }
+  if (!seeking && d) $('#seek').value = Math.round(video.currentTime / d * 1000);
+  if (recorder) {
+    const el = (recAccum + (recorder.state === 'recording' ? performance.now() - recSince : 0)) / 1000;
+    $('#badge').textContent = (recorder.state === 'paused' ? 'Pausiert ' : '') + fmt(el);
+  }
+}
+$('#vol').addEventListener('input', e => { if (videoGain) videoGain.gain.value = e.target.value / 100; else video.volume = e.target.value / 100; });
+
+// ---------- Stift ----------
+for (const c of COLORS) {
+  const b = document.createElement('button');
+  b.className = 'dot' + (c === penColor ? ' on' : '');
+  b.style.background = c;
+  b.setAttribute('aria-label', 'Farbe');
+  b.onclick = () => {
+    penColor = c;
+    document.querySelectorAll('.dot').forEach(x => x.classList.toggle('on', x === b));
+    if (!penOn) $('#btnPen').click();
+  };
+  $('#colors').appendChild(b);
+}
+$('#btnPen').onclick = () => { penOn = !penOn; $('#btnPen').classList.toggle('on', penOn); };
+$('#btnClear').onclick = () => { strokes = []; };
+
+// ---------- Kamerafenster ----------
+function setCam(on) {
+  camOn = on;
+  $('#btnCam').classList.toggle('on', on);
+  $('#btnCam').textContent = on ? 'Kamera an' : 'Kamera aus';
+}
+$('#btnCam').onclick = () => setCam(!camOn);
+$('#btnSize').onclick = () => {
+  pip.sizeIdx = (pip.sizeIdx + 1) % SIZES.length;
+  $('#btnSize').textContent = 'Größe ' + SIZES[pip.sizeIdx][0];
+};
+$('#btnShape').onclick = () => {
+  pip.round = !pip.round;
+  $('#btnShape').textContent = pip.round ? 'Kreis' : 'Eckig';
+};
+
+// ---------- Aufnahme ----------
+function pickMime() {
+  if (!window.MediaRecorder) return null;
+  const list = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a', 'video/mp4',
+    'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  return list.find(m => MediaRecorder.isTypeSupported(m)) || '';
+}
+async function startRec() {
+  setupAudio();
+  await startCamera();
+  connectMic();
+  const mime = pickMime();
+  if (mime === null || !canvas.captureStream) { note('Dieser Browser kann nicht aufnehmen. Bitte Safari ab iOS 15 verwenden.'); return; }
+  const tracks = canvas.captureStream(30).getVideoTracks();
+  if (dest) tracks.push(...dest.stream.getAudioTracks());
+  else if (camStream) tracks.push(...camStream.getAudioTracks());
+  const opts = { videoBitsPerSecond: maxSide > 1280 ? 8e6 : 5e6, audioBitsPerSecond: 128000 };
+  if (mime) opts.mimeType = mime;
+  try {
+    recorder = new MediaRecorder(new MediaStream(tracks), opts);
+  } catch (e) {
+    note('Aufnahme konnte nicht starten: ' + e.message);
+    return;
+  }
+  recMime = recorder.mimeType || mime || 'video/mp4';
+  chunks = [];
+  recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  recorder.onstop = finishRec;
+  recorder.start(1000);
+  recAccum = 0;
+  recSince = performance.now();
+  $('#btnRec').textContent = '■ Aufnahme beenden';
+  $('#btnRec').classList.add('stop');
+  $('#btnRecPause').classList.remove('hidden');
+  $('#btnRecPause').textContent = 'Pause';
+  $('#badge').className = 'badge rec';
+  $('#btnOther').disabled = true;
+  $('#quality').disabled = true;
+  note('');
+  try { wakeLock = await navigator.wakeLock?.request('screen'); } catch (e) {}
+}
+function stopRec() {
+  if (!recorder) return;
+  video.pause();
+  recorder.stop();
+}
+function finishRec() {
+  const type = recMime.split(';')[0];
+  const ext = type.includes('mp4') ? 'mp4' : 'webm';
+  const blob = new Blob(chunks, { type });
+  chunks = [];
+  recorder = null;
+  wakeLock?.release?.().catch(() => {});
+  wakeLock = null;
+  $('#btnRec').textContent = '● Aufnahme starten';
+  $('#btnRec').classList.remove('stop');
+  $('#btnRecPause').classList.add('hidden');
+  $('#badge').className = 'badge hidden';
+  $('#btnOther').disabled = false;
+  $('#quality').disabled = false;
+  if (resultUrl) URL.revokeObjectURL(resultUrl);
+  resultFile = new File([blob], baseName + ' – Kommentar.' + ext, { type });
+  resultUrl = URL.createObjectURL(blob);
+  $('#out').src = resultUrl;
+  $('#outInfo').textContent = resultFile.name + ' · ' + (blob.size / 1048576).toFixed(1).replace('.', ',') + ' MB';
+  show('result');
+}
+$('#btnRec').onclick = () => { if (recorder) stopRec(); else startRec(); };
+$('#btnRecPause').onclick = () => {
+  if (!recorder) return;
+  if (recorder.state === 'recording') {
+    recorder.pause();
+    recAccum += performance.now() - recSince;
+    $('#btnRecPause').textContent = 'Weiter';
+    $('#badge').className = 'badge rec paused';
+  } else {
+    recorder.resume();
+    recSince = performance.now();
+    $('#btnRecPause').textContent = 'Pause';
+    $('#badge').className = 'badge rec';
+  }
+};
+window.addEventListener('beforeunload', e => { if (recorder) { e.preventDefault(); e.returnValue = ''; } });
+
+// ---------- Ergebnis ----------
+$('#btnShare').onclick = async () => {
+  if (!resultFile) return;
+  if (navigator.canShare && navigator.canShare({ files: [resultFile] })) {
+    try { await navigator.share({ files: [resultFile], title: resultFile.name }); } catch (e) {}
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = resultUrl;
+  a.download = resultFile.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
+$('#btnRedo').onclick = () => {
+  $('#out').pause();
+  video.currentTime = 0;
+  strokes = [];
+  $('#quality').disabled = false;
+  show('editor');
+};
+</script>
+</body>
+</html>
