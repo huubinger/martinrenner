@@ -4,6 +4,7 @@
 // liest den Wechselrichter aus und schickt die Werte an POST /balkonkraftwerk/api/ingest (Header X-Token = BKW_TOKEN).
 // Gespeichert wird in DATA_DIR/balkonkraftwerk.json: Messpunkte der letzten 60 Tage + Tageserträge dauerhaft.
 // Tageserträge kommen aus dem Gesamtzähler, weil der Tageszähler des Wechselrichters ohne Uhrzeit nicht zurückgesetzt wird.
+// Tage ohne Messung (niemand zu Hause) bekommen den Ertrag der Lücke gleichmäßig verteilt und gelten als geschätzt.
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -30,16 +31,44 @@ module.exports = function setupBalkonkraftwerk(app, { DATA_DIR, readCookie }) {
   const dayKey = (ms) => new Date(ms).toLocaleDateString('sv-SE', { timeZone: TZ }); // JJJJ-MM-TT
   const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 
-  // Tagesertrag = Zählerstand am Tagesende minus letzter Stand vor dem Tag (bzw. erster Stand des Tages)
+  // Je Tag: erster und letzter Zählerstand (start = Stand vor dem Tag bzw. erster Stand, nur für den allerersten Tag gebraucht)
   function addToDays(s) {
     if (s.total === null) return;
     const k = dayKey(s.t);
-    const d = db.days[k] || (db.days[k] = { start: null, end: null });
+    const d = db.days[k] || (db.days[k] = { start: null, first: null, end: null });
     if (d.start === null) {
       const before = Object.keys(db.days).filter((x) => x < k).sort().pop();
       d.start = before && db.days[before].end !== null ? db.days[before].end : s.total;
     }
+    d.first = Math.min(d.first ?? s.total, s.total);
     d.end = Math.max(d.end ?? s.total, s.total);
+  }
+  // Ältere Tage ohne „first“ aus den gespeicherten Messpunkten ergänzen
+  for (const [k, d] of Object.entries(db.days)) {
+    if (d.first !== undefined && d.first !== null) continue;
+    const t = db.samples.filter((x) => x.total !== null && dayKey(x.t) === k).map((x) => x.total);
+    d.first = t.length ? Math.min(...t) : d.start;
+  }
+
+  const nextDay = (k) => new Date(Date.parse(k + 'T12:00:00Z') + 864e5).toISOString().slice(0, 10);
+  const r1 = (x) => Math.round(x * 10) / 10;
+
+  // Tageserträge mit Lücken: Ertrag zwischen letztem Stand vor der Lücke und erstem Stand danach wird
+  // gleichmäßig auf die Tage ohne Messung und den Tag der nächsten Messung verteilt.
+  function dailyYields() {
+    const keys = Object.keys(db.days).filter((k) => db.days[k].end !== null).sort();
+    const days = [], gaps = [];
+    keys.forEach((k, i) => {
+      const d = db.days[k];
+      if (!i) { days.push({ day: k, kwh: r1(d.end - (d.start ?? d.first)), est: false }); return; }
+      const missing = [];
+      for (let m = nextDay(keys[i - 1]); m < k; m = nextDay(m)) missing.push(m);
+      const gap = Math.max(0, d.first - db.days[keys[i - 1]].end), share = gap / (missing.length + 1);
+      missing.forEach((m) => days.push({ day: m, kwh: r1(share), est: true }));
+      days.push({ day: k, kwh: r1(d.end - d.first + share), est: false, part: missing.length > 0 });
+      if (missing.length) gaps.push({ from: missing[0], to: k, days: missing.length + 1, kwh: r1(gap), each: r1(share) });
+    });
+    return { days, gaps };
   }
 
   function hasAccess(req) {
@@ -121,13 +150,14 @@ module.exports = function setupBalkonkraftwerk(app, { DATA_DIR, readCookie }) {
   app.get('/balkonkraftwerk/api/data', (req, res) => {
     if (!hasAccess(req)) return res.status(401).json({ error: 'login' });
     const today = dayKey(Date.now());
-    const days = Object.entries(db.days).sort(([a], [b]) => (a < b ? -1 : 1))
-      .map(([day, d]) => ({ day, kwh: d.end !== null && d.start !== null ? Math.round((d.end - d.start) * 10) / 10 : null }));
+    const { days, gaps } = dailyYields();
     const since = Date.now() - 48 * 3600e3;
     res.set('Cache-Control', 'no-store').json({
       latest: db.samples[db.samples.length - 1] || null,
       today: (days.find((d) => d.day === today) || {}).kwh ?? null,
+      todayPart: !!(days.find((d) => d.day === today) || {}).part,
       days: days.slice(-60),
+      gaps: gaps.filter((g) => g.to >= (days[Math.max(0, days.length - 30)] || {}).day),
       curve: db.samples.filter((x) => x.t >= since).map((x) => [x.t, x.p]),
     });
   });
@@ -171,9 +201,9 @@ const PAGE = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta n
   <div class="card"><div class="k">Gesamtertrag</div><div class="v" id="total">–</div></div>
 </div>
 <div class="card" style="margin-bottom:16px"><h2>Leistung – letzte 48 Stunden</h2><div id="curve"></div></div>
-<div class="card" style="margin-bottom:16px"><h2>Tageserträge</h2><div id="days"></div></div>
+<div class="card" style="margin-bottom:16px"><h2>Tageserträge</h2><div id="days"></div><div class="note" id="gaps"></div></div>
 <div class="card"><h2>Details</h2><div class="small" id="det"></div></div>
-<p class="note">Die Werte kommen, solange ein Gerät zu Hause im WLAN ist (MacBook bzw. iPhone). Beim Öffnen der Seite wird automatisch neu ausgelesen, wenn das MacBook zu Hause wach ist. Lücken in der Kurve = niemand zu Hause; die Tageserträge werden aus dem Gesamtzähler trotzdem vollständig nachgetragen.</p>
+<p class="note">Die Werte kommen, solange ein Gerät zu Hause im WLAN ist (MacBook bzw. iPhone). Beim Öffnen der Seite wird automatisch neu ausgelesen, wenn das MacBook zu Hause wach ist. Lücken in der Kurve = niemand zu Hause. Der Ertrag einer Lücke kommt aus dem Gesamtzähler und wird gleichmäßig auf ihre Tage verteilt (helle Balken = geschätzt).</p>
 </main><script>
 const f1 = (x, d = 1) => x === null || x === undefined ? '–' : x.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d });
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -191,14 +221,18 @@ function curveSvg(pts) {
     g += '<text x="' + x(t) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="' + css('--muted') + '">' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + '</text>'; }
   return '<svg viewBox="0 0 ' + W + ' ' + H + '">' + g + '<path d="' + path + '" fill="none" stroke="' + css('--sun') + '" stroke-width="2.2" stroke-linejoin="round"/></svg>' + (pts.length ? '' : '<p class="note">Noch keine Messpunkte.</p>');
 }
+const dm = (k) => k.slice(8) + '.' + k.slice(5, 7) + '.';
+function gapsText(gaps) {
+  return gaps.map((g) => 'Keine Messung ' + dm(g.from) + '–' + dm(g.to) + ': ' + f1(g.kwh) + ' kWh gleichmäßig auf ' + g.days + ' Tage verteilt (je ≈ ' + f1(g.each) + ' kWh).').join('<br>');
+}
 function daysSvg(days) {
   days = days.slice(-30); if (!days.length) return '<p class="note">Noch keine Tageswerte.</p>';
   const W = 840, H = 200, L = 40, B = 22, max = Math.max(1, ...days.map((d) => d.kwh || 0)), bw = (W - L) / days.length;
   let g = '';
   days.forEach((d, i) => { const h = (d.kwh || 0) / max * (H - B - 16), xx = L + i * bw;
-    g += '<rect x="' + (xx + 2) + '" y="' + (H - B - h) + '" width="' + Math.max(2, bw - 4) + '" height="' + h + '" rx="3" fill="' + css('--sun') + '"><title>' + d.day + ': ' + f1(d.kwh) + ' kWh</title></rect>';
-    if (days.length <= 10 || i % 3 === days.length % 3 - 1 || i === days.length - 1) g += '<text x="' + (xx + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="' + css('--muted') + '">' + d.day.slice(8) + '.' + d.day.slice(5, 7) + '.</text>';
-    if (bw > 26 && d.kwh) g += '<text x="' + (xx + bw / 2) + '" y="' + (H - B - h - 4) + '" text-anchor="middle" font-size="10" fill="' + css('--muted') + '">' + f1(d.kwh) + '</text>'; });
+    g += '<rect x="' + (xx + 2) + '" y="' + (H - B - h) + '" width="' + Math.max(2, bw - 4) + '" height="' + h + '" rx="3" fill="' + css(d.est ? '--sun2' : '--sun') + '"><title>' + dm(d.day) + ': ' + f1(d.kwh) + ' kWh' + (d.est ? ' (geschätzt)' : d.part ? ' (teilweise geschätzt)' : '') + '</title></rect>';
+    if (days.length <= 10 || i % 3 === days.length % 3 - 1 || i === days.length - 1) g += '<text x="' + (xx + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="' + css('--muted') + '">' + dm(d.day) + '</text>';
+    if (bw > 26 && d.kwh) g += '<text x="' + (xx + bw / 2) + '" y="' + (H - B - h - 4) + '" text-anchor="middle" font-size="10" fill="' + css('--muted') + '">' + (d.est ? '≈' : '') + f1(d.kwh) + '</text>'; });
   return '<svg viewBox="0 0 ' + W + ' ' + H + '">' + g + '</svg>';
 }
 async function load() {
@@ -209,10 +243,11 @@ async function load() {
   const old = Date.now() - s.t > 20 * 60e3;
   document.getElementById('stand').innerHTML = 'Stand: ' + new Date(s.t).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) + ' (<span class="' + (old ? 'stale' : '') + '">' + ago(s.t) + '</span>)';
   document.getElementById('p').innerHTML = old ? '– <small>(veraltet: ' + f1(s.p, 0) + ' W)</small>' : f1(s.p, 0) + ' <small>W</small>';
-  document.getElementById('today').innerHTML = f1(d.today) + ' <small>kWh</small>';
+  document.getElementById('today').innerHTML = (d.todayPart ? '≈ ' : '') + f1(d.today) + ' <small>kWh' + (d.todayPart ? ' (inkl. Lücke)' : '') + '</small>';
   document.getElementById('total').innerHTML = f1(s.total) + ' <small>kWh</small>';
   document.getElementById('curve').innerHTML = curveSvg(d.curve);
   document.getElementById('days').innerHTML = daysSvg(d.days);
+  document.getElementById('gaps').innerHTML = gapsText(d.gaps || []);
   const det = [];
   (s.pv || []).forEach((m, i) => det.push(['Modul ' + (i + 1), f1(m.v) + ' V · ' + f1(m.i) + ' A · ' + f1(m.v * m.i, 0) + ' W']));
   det.push(['Netzspannung', f1(s.grid_v) + ' V'], ['Netzfrequenz', f1(s.freq, 2) + ' Hz'], ['Temperatur', f1(s.temp) + ' °C'], ['Quelle', s.src || '–']);
