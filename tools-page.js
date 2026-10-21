@@ -1,7 +1,7 @@
 'use strict';
 // Tool-Übersicht unter /tools: Links auf alle eigenen Tools, hinter einem Passwort (TOOLS_PASSWORD, nur als Railway-Variable).
 // Neue Tools hier in TOOLS eintragen – die Seite baut sich daraus auf.
-// img = Icon public/tool-icons/<img>.webp (Kling-Icons, Quelle ~/Dropbox/Claude/Projekte/Tool-Icons_2026_10_19).
+// img = Icon public/tool-icons/<img>.webp (Kling-Icons, Quelle ~/Dropbox/Claude/Projekte/Tool-Icons).
 const crypto = require('crypto');
 
 const COOKIE = 'tools_auth';
