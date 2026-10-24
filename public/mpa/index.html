@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0e0f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MPA-Control</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="mpa.css?v=1">
+</head>
+<body>
+<header class="kopf">
+  <div class="marke"><b>MPA</b>-Control</div>
+  <button class="status" id="status" type="button" data-tab="verbindung"><i></i><span>Demo</span></button>
+  <button class="sperre" id="sperre" type="button" aria-label="Bedienung sperren">
+    <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+  </button>
+</header>
+
+<p class="hinweis" id="demoHinweis">Demo-Modus: Die Regler steuern die Box noch nicht – das Bluetooth-Protokoll wird gerade entschlüsselt.</p>
+
+<main>
+  <section class="tab ist-aktiv" id="tab-mixer" aria-label="Mixer">
+    <div class="kanaele" id="kanaele"></div>
+  </section>
+
+  <section class="tab" id="tab-klang" aria-label="Klang">
+    <div class="chips" id="klangKanal"></div>
+    <svg class="kurve" id="kurve" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true">
+      <line x1="0" y1="50" x2="300" y2="50"/><path id="kurvePfad"/>
+    </svg>
+    <div class="eq" id="eq"></div>
+    <div class="karte">
+      <label class="zeile"><span>Effekt</span><select id="fxTyp"></select></label>
+      <div class="zeile"><span>Effektanteil</span><div class="quer" id="fxAnteil"></div></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-szenen" aria-label="Szenen">
+    <div class="szenen" id="szenen"></div>
+    <div class="knopfreihe">
+      <button type="button" class="knopf" id="szeneSpeichern">+ Aktuelle Einstellung speichern</button>
+      <button type="button" class="knopf leise" id="szenenBearbeiten">Bearbeiten</button>
+      <button type="button" class="knopf leise" id="rueckgaengig" disabled>↶ Rückgängig</button>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-verbindung" aria-label="Verbindung">
+    <div class="karte">
+      <h2>Box</h2>
+      <p id="btHinweis" class="klein"></p>
+      <div class="knopfreihe">
+        <button type="button" class="knopf" id="verbinden">Box verbinden</button>
+        <button type="button" class="knopf leise" id="trennen" hidden>Trennen</button>
+      </div>
+      <label class="schalter"><input type="checkbox" id="wach" checked><span>Display bleibt an</span></label>
+    </div>
+    <details class="karte" id="diagnose">
+      <summary><h2>Diagnose (Protokoll lernen)</h2></summary>
+      <p class="klein">Verbindet sich mit der Box, zeigt alle Services und schreibt jede Meldung mit. Am Drehregler der Box drehen und beobachten, welche Bytes sich ändern.</p>
+      <label class="zeile"><span>Service-UUIDs</span><input id="diagServices" placeholder="z. B. 0000ffe0-0000-1000-8000-00805f9b34fb, …"></label>
+      <div class="knopfreihe"><button type="button" class="knopf" id="diagVerbinden">Verbinden &amp; mitlesen</button><button type="button" class="knopf leise" id="diagKopieren">Log kopieren</button><button type="button" class="knopf leise" id="diagLeeren">Leeren</button></div>
+      <label class="zeile"><span>Senden an</span><select id="diagChar"></select></label>
+      <label class="zeile"><span>Bytes (hex)</span><input id="diagBytes" placeholder="z. B. a5 01 10 3f"></label>
+      <div class="knopfreihe"><button type="button" class="knopf" id="diagSenden">Senden</button></div>
+      <pre class="log" id="diagLog"></pre>
+    </details>
+  </section>
+</main>
+
+<footer class="fuss">
+  <div class="master">
+    <button type="button" class="mute" id="masterMute" aria-pressed="false">Mute</button>
+    <div class="quer gross" id="masterFader"></div>
+    <output id="masterWert">70</output>
+  </div>
+  <nav class="reiter" aria-label="Bereiche">
+    <button type="button" data-tab="mixer" aria-current="true">Mixer</button>
+    <button type="button" data-tab="klang">Klang</button>
+    <button type="button" data-tab="szenen">Szenen</button>
+    <button type="button" data-tab="verbindung">Verbindung</button>
+  </nav>
+</footer>
+
+<div class="sperrschicht" id="sperrschicht" hidden>
+  <button type="button" id="entsperren">🔒 Gesperrt – zum Entsperren gedrückt halten</button>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="protokoll.js?v=1"></script>
+<script src="mpa.js?v=1"></script>
+</body>
+</html>

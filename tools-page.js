@@ -17,6 +17,7 @@ const TOOLS = [
     { name: 'LOKAL-Tool', img: 'lokal', url: '/lokal', info: 'Förderung LOK.26.0468' },
     { name: 'Frühstücks-Chörle', img: 'choerle', url: '/choerle', info: 'Übe-Tracks und Noten' },
     { name: 'Voctails intern', img: 'voctails', url: '/voctails/intern/', info: 'Übe-Player und Termine' },
+    { name: 'MPA-Control', img: 'mpa', url: '/mpa/', info: 'Box steuern (MPA200BT, im Browser Bluefy)' },
   ] },
   { group: 'Büro', items: [
     { name: 'Office-Tool', img: 'office', url: 'https://office.martinrenner.de', info: 'Aufgaben und Vorgänge' },
