@@ -575,7 +575,7 @@ app.use('/bewertung', (req, res) => {
   if (!BEWERTUNG_URL) return res.status(503).send('Bewertungstool ist nicht eingerichtet.');
   const target = new URL(BEWERTUNG_URL + req.url);
   const headers = {};
-  for (const name of ['content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
+  for (const name of ['authorization', 'content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
     if (req.headers[name]) headers[name] = req.headers[name];
   }
   headers['x-forwarded-proto'] = 'https';
