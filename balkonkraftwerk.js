@@ -266,6 +266,6 @@ async function refresh() {
   await load();
   el.innerHTML += ' · Wechselrichter nicht erreichbar (nachts aus oder MacBook nicht zu Hause)';
 }
-load().then(refresh); setInterval(load, 60000);
+load().then(refresh); setInterval(() => { if (!document.hidden) load(); }, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) load().then(refresh); });
 </script></body></html>`;

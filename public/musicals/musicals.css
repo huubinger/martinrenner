@@ -60,6 +60,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .spot-a { animation: sweep-a 9s ease-in-out infinite alternate; }
   .spot-b { animation: sweep-b 11s ease-in-out infinite alternate; }
 }
+/* Scheinwerfer nur bewegen, solange der Kopfbereich zu sehen ist (spart Strom) */
+.spot.is-still { animation-play-state: paused; }
 @keyframes sweep-a { from { transform: rotate(-30deg); } to { transform: rotate(-14deg); } }
 @keyframes sweep-b { from { transform: rotate(30deg); } to { transform: rotate(12deg); } }
 

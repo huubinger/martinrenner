@@ -75,7 +75,7 @@
     border-radius: 50%;
     border: 2px solid #38bdf8;
     opacity: 0;
-    animation: evt-pulse 2.4s ease-out infinite;
+    animation: evt-pulse 2.4s ease-out 5; /* nur ein paar Mal pulsieren, nicht endlos (spart Strom) */
   }
   @keyframes evt-pulse {
     0% { transform: scale(0.5); opacity: 0.7; }

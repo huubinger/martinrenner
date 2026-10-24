@@ -1828,25 +1828,36 @@ function slugifyChoerle(str) {
 
 // In Dropbox liegt pro Lied ein eigener Ordner (Ordnername = Liedtitel),
 // darin die PDF-Noten und die MP3-Übe-Tracks.
+// Dropbox-Ordnerinhalt, 30 Sekunden zwischengespeichert: Ein Audio-Player stellt beim Abspielen
+// und Spulen viele Range-Anfragen, die sonst jedes Mal zwei Dropbox-Abfragen auslösen würden.
+const DROPBOX_LIST_TTL_MS = 30 * 1000;
+const dropboxListCache = new Map();
+function listDropboxFolder(folderPath) {
+  const hit = dropboxListCache.get(folderPath);
+  if (hit && hit.until > Date.now()) return hit.entries;
+  const entries = (async () => {
+    const token = await getDropboxAccessToken();
+    const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ path: folderPath, recursive: false }),
+    });
+    if (!listRes.ok) {
+      throw new Error(`Dropbox list_folder fehlgeschlagen: ${listRes.status} ${await listRes.text()}`);
+    }
+    return (await listRes.json()).entries;
+  })();
+  dropboxListCache.set(folderPath, { entries, until: Date.now() + DROPBOX_LIST_TTL_MS });
+  entries.catch(() => dropboxListCache.delete(folderPath));
+  return entries;
+}
+
 async function listChoerleSongFolders() {
-  const token = await getDropboxAccessToken();
-  const folderPath = process.env.DROPBOX_FOLDER_PATH || '';
-
-  const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ path: folderPath, recursive: false }),
-  });
-
-  if (!listRes.ok) {
-    throw new Error(`Dropbox list_folder fehlgeschlagen: ${listRes.status} ${await listRes.text()}`);
-  }
-
-  const listData = await listRes.json();
-  const folders = listData.entries
+  const entries = await listDropboxFolder(process.env.DROPBOX_FOLDER_PATH || '');
+  const folders = entries
     .filter((entry) => entry['.tag'] === 'folder')
     .map((f) => ({ title: f.name, path_lower: f.path_lower, slug: slugifyChoerle(f.name) }));
 
@@ -1860,23 +1871,7 @@ async function listChoerleSongFolders() {
 // Dateinamen zurück – der eigentliche Datei-Inhalt läuft über die eigene
 // Proxy-Route /choerle/:slug/file/:filename weiter unten.
 async function getSongFiles(folderPathLower) {
-  const token = await getDropboxAccessToken();
-
-  const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ path: folderPathLower, recursive: false }),
-  });
-
-  if (!listRes.ok) {
-    throw new Error(`Dropbox list_folder fehlgeschlagen: ${listRes.status} ${await listRes.text()}`);
-  }
-
-  const listData = await listRes.json();
-  const files = listData.entries.filter((entry) => entry['.tag'] === 'file');
+  const files = (await listDropboxFolder(folderPathLower)).filter((entry) => entry['.tag'] === 'file');
 
   const pdf = files.find((f) => /\.pdf$/i.test(f.name)) || null;
   const audio = files
@@ -1890,20 +1885,7 @@ async function getSongFiles(folderPathLower) {
 }
 
 async function findSongFile(folderPathLower, filename) {
-  const token = await getDropboxAccessToken();
-  const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ path: folderPathLower, recursive: false }),
-  });
-  if (!listRes.ok) {
-    throw new Error(`Dropbox list_folder fehlgeschlagen: ${listRes.status} ${await listRes.text()}`);
-  }
-  const listData = await listRes.json();
-  return listData.entries.find((e) => e['.tag'] === 'file' && e.name === filename) || null;
+  return (await listDropboxFolder(folderPathLower)).find((e) => e['.tag'] === 'file' && e.name === filename) || null;
 }
 
 // Dropbox verlangt für HTTP-Header (Dropbox-API-Arg) reines ASCII. Nicht-ASCII-
@@ -2228,7 +2210,15 @@ app.get('/choerle/:slug/file/:filename', async (req, res) => {
       // sonst antwortet Dropbox mit "path/not_found".
       'Dropbox-API-Arg': asciiSafeJson({ path: file.path_lower }),
     };
-    if (req.headers.range) dropboxHeaders.Range = req.headers.range;
+    // Browser-Cache: Dateiversion als ETag – unveränderte Dateien werden nicht erneut aus Dropbox geladen
+    const etag = file.content_hash ? `"${file.content_hash}"` : null;
+    if (etag) {
+      res.setHeader('ETag', etag);
+      res.setHeader('Cache-Control', 'private, max-age=3600');
+      if (req.headers['if-none-match'] === etag) return res.status(304).end();
+    }
+    const ifRange = req.headers['if-range'];
+    if (req.headers.range && (!ifRange || ifRange === etag)) dropboxHeaders.Range = req.headers.range;
 
     const dropboxRes = await fetch('https://content.dropboxapi.com/2/files/download', {
       method: 'POST',

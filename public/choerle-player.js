@@ -255,10 +255,15 @@
     } else region.style.display = 'none';
   }
 
+  // Position nur neu setzen, wenn sie sich um mindestens einen Pixel bewegt hat (spart Neuberechnungen beim Abspielen)
   function renderPos(track) {
     const audio = track.querySelector('audio');
     const dur = shownDuration(track);
     const ratio = dur ? Math.min(1, audio.currentTime / dur) : 0;
+    if (!track._barW) track._barW = track.querySelector('.ch-bar').clientWidth;
+    const px = Math.round(ratio * track._barW);
+    if (px === track._posPx) return;
+    track._posPx = px;
     track.querySelector('.ch-bar-pos').style.width = ratio * 100 + '%';
     drawWave(track, ratio);
   }
@@ -304,9 +309,8 @@
         if (!body || !Array.isArray(body.peaks) || !body.peaks.length) return;
         track._wave = { peaks: body.peaks, duration: Number(body.duration) || null };
         track.querySelector('.ch-bar').classList.add('has-wave');
+        track._posPx = null;
         render(track);
-        drawWave(track, 0, true);
-        renderPos(track);
       })
       .catch(() => {});
   }
@@ -316,34 +320,69 @@
     audio.currentTime = Math.max(0, dur ? Math.min(t, dur - 0.05) : t);
   }
 
-  // Loop-Ende prüfen: bei "timeupdate" (läuft auch bei gesperrtem Handy weiter) und
-  // zusätzlich per Timer, weil "timeupdate" nur ca. 4× pro Sekunde feuert.
+  // Loop-Ende prüfen: bei "timeupdate" (läuft auch bei gesperrtem Handy weiter) und zusätzlich mit
+  // einem einzelnen Timer genau auf Punkt B, weil "timeupdate" nur ca. 4× pro Sekunde feuert.
   function checkLoop(track) {
     const audio = track.querySelector('audio');
     const m = track._marks;
     if (m.loop && m.a !== null && m.b !== null && audio.currentTime >= m.b) seek(audio, m.a);
   }
 
+  function scheduleLoop(track) {
+    clearTimeout(track._loopTimer);
+    const audio = track.querySelector('audio');
+    const m = track._marks;
+    if (audio.paused || !m.loop || m.a === null || m.b === null) return;
+    const ms = ((m.b - audio.currentTime) / (audio.playbackRate || 1)) * 1000;
+    track._loopTimer = setTimeout(() => {
+      checkLoop(track);
+      scheduleLoop(track);
+    }, Math.max(15, ms));
+  }
+
+  // Laufende Position zeichnen: nur während der Wiedergabe und nur bei sichtbarer Seite
+  // (requestAnimationFrame pausiert im Hintergrund-Tab und bei gesperrtem Bildschirm).
+  function startPosLoop(track) {
+    if (track._raf) return;
+    const audio = track.querySelector('audio');
+    const step = () => {
+      track._raf = null;
+      if (audio.paused) return;
+      renderPos(track);
+      track._raf = requestAnimationFrame(step);
+    };
+    track._raf = requestAnimationFrame(step);
+  }
+
+  // Wellenform erst laden, wenn der Track sichtbar wird (ausgeblendete Register laden nichts)
+  const waveObserver = window.IntersectionObserver
+    ? new IntersectionObserver((entries) => entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      waveObserver.unobserve(entry.target);
+      loadWave(entry.target.closest('.ch-track'));
+    }), { rootMargin: '200px' })
+    : null;
+
   function initTrack(track) {
+    if (track._marks) return;   // schon aktiviert – keine doppelten Listener
     track._marks = readMarks(track.dataset.url);
     const audio = track.querySelector('audio');
     const bar = track.querySelector('.ch-bar');
     audio.addEventListener('loadedmetadata', () => render(track));
     audio.addEventListener('timeupdate', () => {
       checkLoop(track);
-      renderPos(track);
+      if (audio.paused) renderPos(track);   // beim Abspielen zeichnet startPosLoop
     });
     audio.addEventListener('play', () => {
       const m = track._marks;
       // Beim Start im Loop-Modus außerhalb des Abschnitts → an den Anfang des Abschnitts.
       if (m.loop && m.a !== null && m.b !== null && (audio.currentTime < m.a - 0.5 || audio.currentTime >= m.b)) seek(audio, m.a);
-      clearInterval(track._timer);
-      track._timer = setInterval(() => {
-        if (audio.paused) return clearInterval(track._timer);
-        checkLoop(track);
-        renderPos(track);
-      }, 50);
+      scheduleLoop(track);
+      startPosLoop(track);
     });
+    audio.addEventListener('pause', () => clearTimeout(track._loopTimer));
+    audio.addEventListener('seeked', () => scheduleLoop(track));
+    audio.addEventListener('ratechange', () => scheduleLoop(track));
     audio.addEventListener('ended', () => {
       const m = track._marks;
       if (m.loop && m.a !== null && m.b !== null) {
@@ -376,9 +415,16 @@
     const stop = () => { track._dragging = false; };
     bar.addEventListener('pointerup', stop);
     bar.addEventListener('pointercancel', stop);
-    if (window.ResizeObserver) new ResizeObserver(() => drawWave(track, Math.min(1, audio.currentTime / (shownDuration(track) || Infinity)), true)).observe(bar);
+    if (window.ResizeObserver) {
+      new ResizeObserver(() => {
+        track._barW = bar.clientWidth;
+        track._posPx = null;
+        drawWave(track, Math.min(1, audio.currentTime / (shownDuration(track) || Infinity)), true);
+      }).observe(bar);
+    }
     render(track);
-    loadWave(track);
+    if (waveObserver) waveObserver.observe(bar);
+    else loadWave(track);
   }
 
   function practiceClick(e) {
@@ -427,6 +473,7 @@
     m.updatedAt = Date.now();
     writeMarks(track.dataset.url, m);
     render(track);
+    scheduleLoop(track);
     Sync.changed();
     return true;
   }
@@ -492,6 +539,7 @@
       const fresh = readMarks(track.dataset.url);
       if (fresh.updatedAt === track._marks.updatedAt) return;
       track._marks = fresh;
+      scheduleLoop(track);
       // Nicht neu zeichnen, während hier gerade ein Cue-Name getippt wird (Fokus ginge verloren)
       if (track.contains(document.activeElement) && document.activeElement.matches('[data-cue-name]')) return renderBar(track);
       render(track);

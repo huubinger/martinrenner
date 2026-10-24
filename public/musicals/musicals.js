@@ -382,6 +382,15 @@
 
   window.addEventListener('hashchange', function () { if (DATA) fromHash(); });
 
+  // Scheinwerfer-Animation anhalten, sobald der Kopfbereich aus dem Bild gescrollt ist
+  var spots = document.querySelectorAll('.spot');
+  if (spots.length && window.IntersectionObserver) {
+    new IntersectionObserver(function (entries) {
+      var still = !entries[0].isIntersecting;
+      spots.forEach(function (s) { s.classList.toggle('is-still', still); });
+    }).observe(spots[0].parentElement);
+  }
+
   fetch('/musicals/data.json', { cache: 'no-cache' })
     .then(function (r) { return r.json(); })
     .then(function (d) {

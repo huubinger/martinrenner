@@ -541,9 +541,13 @@
   }
 
   // --- Bildschirm bleibt an (Wake Lock), Standard: an; Einstellung wird gemerkt ---
+  // Spart Akku: Ohne Wiedergabe und ohne Berühren/Blättern darf der Bildschirm nach 15 Minuten wieder ausgehen.
   const wakeBtn = document.getElementById('fv-wake');
+  const WAKE_IDLE_MS = 15 * 60 * 1000;
   let wakeWanted = true;
   let wakeLock = null;
+  let idleTimer = null;
+  let lastActive = 0;
   try { wakeWanted = localStorage.getItem('ch-fv-wake') !== '0'; } catch (e) {}
   async function updateWake() {
     if (wakeWanted && !wakeLock && document.visibilityState === 'visible') {
@@ -567,8 +571,29 @@
       updateWake();
     });
     document.addEventListener('visibilitychange', updateWake);
-    // Manche Browser erlauben es erst nach einer Berührung
-    document.addEventListener('pointerdown', () => { if (wakeWanted && !wakeLock) updateWake(); });
+    const playing = () => Array.from(document.querySelectorAll('audio')).some((a) => !a.paused);
+    function idleCheck() {
+      if (playing()) return armIdle();
+      if (wakeLock) wakeLock.release();
+    }
+    function armIdle() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(idleCheck, WAKE_IDLE_MS);
+    }
+    // Aktivität hält den Bildschirm an; manche Browser erlauben den Wake Lock außerdem erst nach einer Berührung
+    function active(e) {
+      const now = Date.now();
+      if (now - lastActive < 1000) return;
+      lastActive = now;
+      armIdle();
+      if (wakeWanted && !wakeLock && !(e && e.target && e.target.closest && e.target.closest('#fv-wake'))) updateWake();
+    }
+    document.addEventListener('pointerdown', active);
+    document.addEventListener('keydown', active);
+    document.addEventListener('scroll', active, { capture: true, passive: true });
+    document.addEventListener('play', active, true);
+    document.addEventListener('pause', armIdle, true);
+    armIdle();
     updateWake();
   }
 

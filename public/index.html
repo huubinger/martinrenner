@@ -1690,6 +1690,19 @@
       renderStories();
     }
 
+    // Im Hintergrund-Tab nicht weiterblättern (spart Strom und das Nachladen von Fotos)
+    let pausedHidden = false;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && timer) {
+        clearInterval(timer);
+        timer = null;
+        pausedHidden = true;
+      } else if (!document.hidden && pausedHidden) {
+        pausedHidden = false;
+        restart();
+      }
+    });
+
     async function loadSlides() {
       try {
         const res = await fetch('/api/projects');

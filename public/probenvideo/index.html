@@ -379,15 +379,23 @@ function drawStrokes(now) {
     g.restore();
   }
 }
+// Nur neu zeichnen, wenn sich etwas ändern kann: Video läuft, Kamera an, Aufnahme, Zeichnen
+// oder ausblendende Striche – sonst nur bei geändertem Stand (z. B. Spulen). Spart viel Strom.
+let lastState = '';
 function frame() {
+  requestAnimationFrame(frame);
   const W = canvas.width, H = canvas.height, now = performance.now();
+  if (!recorder && $('#editor').classList.contains('hidden')) return;
+  const state = [video.currentTime, video.readyState, W, H, camOn, strokes.length, strokes.reduce((n, st) => n + st.pts.length, 0)].join();
+  const busy = !video.paused || recorder || (camOn && cam.videoWidth) || current || drag || strokes.some(st => st.fade);
+  if (!busy && state === lastState) return;
+  lastState = state;
   g.fillStyle = '#000';
   g.fillRect(0, 0, W, H);
   if (video.readyState >= 2) g.drawImage(video, 0, 0, W, H);
   drawStrokes(now);
   if (camOn) drawPip();
   updateTime();
-  requestAnimationFrame(frame);
 }
 function startLoop() { if (!loopRunning) { loopRunning = true; requestAnimationFrame(frame); } }
 
