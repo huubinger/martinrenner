@@ -21,6 +21,7 @@ const TOOLS = [
     { name: 'MPA-Control', img: 'mpa', url: '/mpa/', info: 'Box steuern (MPA200BT, im Browser Bluefy)' },
   ] },
   { group: 'Büro', items: [
+    { name: 'Lucy', img: 'lucy', url: '/buero/', info: 'Büro-Assistentin – Chat + Sprache' },
     { name: 'Office-Tool', img: 'office', url: 'https://office.martinrenner.de', info: 'Aufgaben und Vorgänge' },
     { name: 'Office-Diktat', img: 'diktat', url: 'https://office.martinrenner.de/diktat', info: 'Aufgaben per Sprache' },
     { name: 'JPMR-Tool', img: 'jpmr', url: 'https://jpmr-tool-production.up.railway.app', info: 'JPMR-Verwaltung' },

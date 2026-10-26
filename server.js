@@ -631,6 +631,40 @@ app.use('/tagebuch', (req, res) => {
   req.pipe(upstream);
 });
 
+// --- Lucy (Büro-Assistentin, Chat + Sprache): www.martinrenner.de/buero ---
+// Eigener Railway-Dienst (Repo lucy); gestreamt durchgereicht (Chat-Antworten als Server-Sent Events, Audio-Uploads), vor den Body-Parsern.
+const BUERO_URL = (process.env.BUERO_URL || '').replace(/\/+$/, '');
+app.use('/buero', (req, res) => {
+  if (/^\/buero(\?|$)/.test(req.originalUrl)) return res.redirect(301, req.originalUrl.replace('/buero', '/buero/'));
+  if (!BUERO_URL) return res.status(503).send('Lucy ist nicht eingerichtet.');
+  const target = new URL(BUERO_URL + req.url);
+  const headers = {};
+  for (const name of ['content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
+    if (req.headers[name]) headers[name] = req.headers[name];
+  }
+  headers['x-forwarded-proto'] = 'https';
+  if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
+  const client = target.protocol === 'https:' ? require('https') : require('http');
+  const upstream = client.request(target, { method: req.method, headers, timeout: 10 * 60 * 1000 }, (up) => {
+    const out = {};
+    for (const name of ['content-type', 'content-length', 'content-disposition', 'cache-control', 'location', 'etag', 'last-modified', 'accept-ranges', 'content-range']) {
+      if (up.headers[name]) out[name] = up.headers[name];
+    }
+    if (up.headers['set-cookie']) out['set-cookie'] = up.headers['set-cookie'].map((c) => c.replace(/;\s*Path=\/(?=;|$)/i, '; Path=/buero'));
+    if (String(up.headers['content-type'] || '').startsWith('text/event-stream')) out['x-accel-buffering'] = 'no';
+    res.writeHead(up.statusCode, out);
+    if (res.flushHeaders) res.flushHeaders();
+    up.pipe(res);
+  });
+  upstream.on('timeout', () => upstream.destroy(new Error('Zeitüberschreitung')));
+  upstream.on('error', (error) => {
+    console.error('[buero]', error.message);
+    if (!res.headersSent) res.status(502).json({ error: 'Lucy nicht erreichbar.' });
+    else res.end();
+  });
+  req.pipe(upstream);
+});
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // Dateinamen sind eindeutige UUIDs – ein neues Foto bekommt immer einen neuen Namen,
