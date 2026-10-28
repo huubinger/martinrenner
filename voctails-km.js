@@ -9,6 +9,8 @@
 //     Proben:    am Montag vor der Probe einmal erinnern, Montag 22 Uhr Rückmeldung schließen.
 //     Haben sich alle gemeldet, wird die Rückmeldung sofort geschlossen (Frist = jetzt) und nie wieder
 //     geöffnet – absagen geht dann nur noch persönlich beim Chorleiter.
+// – „Vielleicht“ gibt es grundsätzlich nicht: bei allen kommenden Terminen wird die Option ausgeschaltet
+//   (läuft auch im Modus „Aus“).
 // Konzertmeister hat keine offizielle Schnittstelle – genutzt wird dieselbe REST-API wie die Web-App
 // (rest.konzertmeister.app), angemeldet mit KM_MAIL / KM_PASSWORD (Railway-Variablen).
 const path = require('path');
@@ -119,6 +121,8 @@ module.exports = function setupVoctailsKm(app, deps) {
     appointmentIds: [a.id],
     batchCommand: { commandType: 'SET_APPOINTMENT_REPLY_DEADLINE_REMINDER', deadline: kmIso(deadline), deadlineReminder: kmIso(reminder) },
   });
+  // „Vielleicht“ als Antwort ausschalten (wie „Mehrere Termine bearbeiten → ‚Vielleicht‘ Option erlauben“)
+  const disallowMaybe = (ids) => km('POST', 'v4/app/update/batch', { appointmentIds: ids, allowOptionMaybe: false });
   // Rückmeldung schließen = Frist auf jetzt. Danach sagt man nur noch persönlich beim Chorleiter ab.
   const closeReplies = (a) => setDeadline(a, Date.now(), Date.now() - 60 * 1000);
 
@@ -177,10 +181,18 @@ module.exports = function setupVoctailsKm(app, deps) {
     if (running) return running;
     running = (async () => {
       state = loadState();
-      if (!configured() || (state.mode === 'aus' && !force)) return;
+      if (!configured()) return;
       try {
         const apps = await upcomingAppointments();
         const now = Date.now();
+        // Grundsätzlich kein „Vielleicht“: gilt unabhängig vom Modus, auch für neu angelegte Termine
+        const withMaybe = apps.filter((a) => a.allowOptionMaybe);
+        for (let i = 0; i < withMaybe.length; i += 30) {
+          const batch = withMaybe.slice(i, i + 30);
+          await disallowMaybe(batch.map((a) => a.id));
+          log(`„Vielleicht“ ausgeschaltet – ${batch.map((a) => `${TYPE_NAMES[a.typId] || 'Termin'} „${String(a.name || '').trim()}“ (${fmtDay(a.start)})`).join(', ')}`);
+        }
+        if (state.mode === 'aus' && !force) { state.lastRun = now; lastError = ''; return; }
         for (const a of apps) {
           const plan = planFor(a, now);
           if (!plan.action) continue;
