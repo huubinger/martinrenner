@@ -1,3 +1,6 @@
 node_modules
 .env
 data/
+
+# Arbeitsdaten der Musical-Seite liegen in der Dropbox (Projekte/Kreatief/Musical-Archiv/Musical-Seite), nicht im öffentlichen Repo
+tools/
