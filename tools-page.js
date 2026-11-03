@@ -17,6 +17,7 @@ const TOOLS = [
     { name: 'Musicals', img: 'musicals', url: '/musicals', info: 'Kreatief-Musicals, Shows, Darstellersuche' },
     { name: 'LOKAL-Tool', img: 'lokal', url: '/lokal', info: 'Förderung LOK.26.0468' },
     { name: 'Frühstücks-Chörle', img: 'choerle', url: '/choerle', info: 'Übe-Tracks und Noten' },
+    { name: 'Chor X Probentool', img: 'choerle', url: '/chorx/admin', info: 'Übe-Tracks, Noten, Hausaufgaben für Chor-X-Chöre' },
     { name: 'Voctails intern', img: 'voctails', url: '/voctails/intern/', info: 'Übe-Player und Termine' },
     { name: 'MPA-Control', img: 'mpa', url: '/mpa/', info: 'Box steuern (MPA200BT, im Browser Bluefy)' },
   ] },

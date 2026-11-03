@@ -663,6 +663,41 @@ app.use('/kalender', (req, res) => {
   req.pipe(upstream);
 });
 
+// --- Chor X Probentool (Übe-Tracks, Noten, Live-Anmerkungen für die Chöre von Chor X): www.martinrenner.de/chorx ---
+// Eigener Railway-Dienst (Repo chorx-tool); gestreamt durchgereicht (Audio mit Range, Live-Anmerkungen per SSE), vor den Body-Parsern.
+const CHORX_URL = (process.env.CHORX_URL || '').replace(/\/+$/, '');
+app.use('/chorx', (req, res) => {
+  if (/^\/chorx(\?|$)/.test(req.originalUrl)) return res.redirect(301, req.originalUrl.replace('/chorx', '/chorx/'));
+  if (!CHORX_URL) return res.status(503).send('Chor X Probentool ist nicht eingerichtet.');
+  const target = new URL(CHORX_URL + req.url);
+  const headers = {};
+  for (const name of ['authorization', 'content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'if-none-match', 'if-modified-since', 'range']) {
+    if (req.headers[name]) headers[name] = req.headers[name];
+  }
+  headers['x-forwarded-proto'] = 'https';
+  if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
+  // Das Tool nimmt nur Anfragen mit diesem Schlüssel an; die echte Besucher-IP braucht es für die Passwort-Bremse
+  headers['x-chorx-proxy'] = process.env.CHORX_PROXY_SECRET || '';
+  headers['x-chorx-ip'] = req.headers['cf-connecting-ip'] || req.ip || '';
+  const client = target.protocol === 'https:' ? require('https') : require('http');
+  const upstream = client.request(target, { method: req.method, headers, timeout: 0 }, (up) => {
+    const out = {};
+    for (const name of ['content-type', 'content-length', 'cache-control', 'location', 'etag', 'last-modified', 'content-range', 'accept-ranges']) {
+      if (up.headers[name]) out[name] = up.headers[name];
+    }
+    if (up.headers['set-cookie']) out['set-cookie'] = up.headers['set-cookie'].map((c) => c.replace(/;\s*Path=\/(?=;|$)/i, '; Path=/chorx'));
+    res.writeHead(up.statusCode, out);
+    up.pipe(res);
+  });
+  upstream.on('timeout', () => upstream.destroy(new Error('Zeitüberschreitung')));
+  upstream.on('error', (error) => {
+    console.error('[chorx]', error.message);
+    if (!res.headersSent) res.status(502).json({ error: 'Chor X Probentool nicht erreichbar.' });
+    else res.end();
+  });
+  req.pipe(upstream);
+});
+
 // --- Lucy (Büro-Assistentin, Chat + Sprache): www.martinrenner.de/buero ---
 // Eigener Railway-Dienst (Repo lucy); gestreamt durchgereicht (Chat-Antworten als Server-Sent Events, Audio-Uploads), vor den Body-Parsern.
 const BUERO_URL = (process.env.BUERO_URL || '').replace(/\/+$/, '');
