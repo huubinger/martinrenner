@@ -37,7 +37,6 @@ const TOOLS = [
   ] },
   { group: 'Lokal am Mac', items: [
     { name: 'Skript-Tool lokal', img: 'skript-lokal', url: 'http://localhost:3210', info: 'Befehl skript' },
-    { name: 'Büroassistent', img: 'buero', url: 'http://localhost:3220', info: 'Cockpit (MacBook Air)' },
   ] },
 ];
 
