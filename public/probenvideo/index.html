@@ -98,6 +98,17 @@
     border: 0; border-radius: 12px; padding: 10px 12px; min-height: 44px; -webkit-user-select: text; user-select: text; }
   .steps { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14px; }
   .steps b { color: var(--text); font-weight: 600; }
+
+  /* Gespeicherte Aufnahmen */
+  #saved { margin-top: 28px; }
+  #saved h2 { font-size: 18px; margin: 0 0 4px; }
+  #saved > p { font-size: 13px; }
+  .rec-item { display: flex; align-items: center; gap: 8px; background: var(--panel); border-radius: 12px; padding: 8px 8px 8px 12px; margin-top: 8px; }
+  .rec-item .info { flex: 1; min-width: 0; }
+  .rec-item .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rec-item .m { color: var(--muted); font-size: 13px; }
+  .rec-item .m.open { color: var(--accent); }
+  .rec-item button { flex: none; }
 </style>
 </head>
 <body>
@@ -123,6 +134,11 @@
     </select>
   </div>
   <p class="field">Tipp: Mit Kopfhörern aufnehmen, sonst landet der Originalton doppelt (über das Mikrofon) im Video.</p>
+  <div id="saved" class="hidden">
+    <h2>Letzte Aufnahmen</h2>
+    <p>Jede fertige Aufnahme wird automatisch hier auf dem iPhone gespeichert – auch wenn die Seite geschlossen wird. Die letzten 10 bleiben erhalten.</p>
+    <div id="savedList"></div>
+  </div>
 </section>
 
 <section id="editor" class="hidden">
@@ -167,6 +183,7 @@
   <h2>Kommentar fertig</h2>
   <video id="out" controls playsinline></video>
   <p id="outInfo"></p>
+  <p id="savedInfo"></p>
   <label class="field">Geprobte Szene
     <select id="scene"><option value="">– Szene wählen –</option></select>
   </label>
@@ -185,6 +202,7 @@
   <button id="btnShare">In Fotos sichern / teilen</button>
   <button id="btnRedo">Neu aufnehmen</button>
   <button class="link" id="btnNew">Anderes Video wählen</button>
+  <button class="link" id="btnHome">Zur Startseite</button>
 </section>
 
 <script>
@@ -588,7 +606,15 @@ function finishRec() {
   $('#outInfo').textContent = 'Größe: ' + (blob.size / 1048576).toFixed(1).replace('.', ',') + ' MB';
   $('#ytMsg').textContent = '';
   updateTitle();
+  $('#btnRedo').classList.remove('hidden');
   show('result');
+  currentId = Date.now();
+  resultShared = false;
+  $('#savedInfo').textContent = 'Wird auf dem iPhone gespeichert …';
+  dbPut({ id: currentId, name: resultFile.name, type, blob, size: blob.size,
+    scene: $('#scene').value, title: $('#ytTitle').value, shared: false, recDate: recDate ? recDate.getTime() : null })
+    .then(() => { $('#savedInfo').textContent = '✓ Automatisch auf dem iPhone gespeichert (Startseite → „Letzte Aufnahmen“).'; prune(); })
+    .catch(e => { $('#savedInfo').textContent = '⚠︎ Automatisches Speichern fehlgeschlagen – bitte „In Fotos sichern“ tippen.'; console.warn(e); });
 }
 $('#btnRec').onclick = () => { if (recorder) stopRec(); else startRec(); };
 $('#btnRecPause').onclick = () => {
@@ -605,7 +631,106 @@ $('#btnRecPause').onclick = () => {
     $('#badge').className = 'badge rec';
   }
 };
-window.addEventListener('beforeunload', e => { if (recorder) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => {
+  if (recorder || (resultFile && !resultShared && !$('#result').classList.contains('hidden'))) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// ---------- Automatisch speichern (IndexedDB, bleibt auf dem iPhone) ----------
+const KEEP = 10;
+let currentId = null, resultShared = false, dbp = null;
+function db() {
+  return dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open('probenvideo', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('aufnahmen', { keyPath: 'id' });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => { dbp = null; rej(r.error); };
+  }));
+}
+async function tx(mode, fn) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const t = d.transaction('aufnahmen', mode), st = t.objectStore('aufnahmen');
+    const out = fn(st);
+    t.oncomplete = () => res(out && 'result' in out ? out.result : undefined);
+    t.onerror = t.onabort = () => rej(t.error);
+  });
+}
+const dbPut = o => tx('readwrite', st => st.put(o));
+const dbGet = id => tx('readonly', st => st.get(id));
+const dbDel = id => tx('readwrite', st => st.delete(id));
+const dbAll = () => tx('readonly', st => st.getAll());
+async function dbPatch(id, patch) { const o = await dbGet(id); if (o) await dbPut(Object.assign(o, patch)); }
+async function prune() {
+  const all = (await dbAll()).sort((a, b) => b.id - a.id);
+  for (const o of all.slice(KEEP)) await dbDel(o.id);
+}
+try { navigator.storage?.persist?.(); } catch (e) {}
+
+function markShared() {
+  resultShared = true;
+  if (currentId) dbPatch(currentId, { shared: true }).catch(() => {});
+}
+// Szene/Titel bei der gespeicherten Aufnahme mitführen
+$('#ytTitle').addEventListener('input', () => { if (currentId) dbPatch(currentId, { title: $('#ytTitle').value }).catch(() => {}); });
+$('#scene').addEventListener('change', () => { if (currentId) dbPatch(currentId, { scene: $('#scene').value, title: $('#ytTitle').value }).catch(() => {}); });
+
+function fmtWhen(id) {
+  const d = new Date(id);
+  return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '. ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' Uhr';
+}
+async function renderSaved() {
+  let all = [];
+  try { all = (await dbAll()).sort((a, b) => b.id - a.id); } catch (e) {}
+  const list = $('#savedList');
+  list.textContent = '';
+  $('#saved').classList.toggle('hidden', !all.length);
+  for (const o of all) {
+    const row = document.createElement('div');
+    row.className = 'rec-item';
+    const info = document.createElement('div');
+    info.className = 'info';
+    const t = document.createElement('div');
+    t.className = 't';
+    t.textContent = o.title || o.name;
+    const m = document.createElement('div');
+    m.className = 'm' + (o.shared ? '' : ' open');
+    m.textContent = fmtWhen(o.id) + ' · ' + (o.size / 1048576).toFixed(1).replace('.', ',') + ' MB · ' + (o.shared ? 'geteilt' : 'noch nicht gesichert');
+    info.append(t, m);
+    const open = document.createElement('button');
+    open.textContent = 'Öffnen';
+    open.onclick = () => openSaved(o.id);
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.setAttribute('aria-label', 'Löschen');
+    del.onclick = async () => {
+      if (del.dataset.sure !== '1') { del.dataset.sure = '1'; del.textContent = 'Löschen?'; return; }
+      await dbDel(o.id).catch(() => {});
+      renderSaved();
+    };
+    row.append(info, open, del);
+    list.appendChild(row);
+  }
+}
+async function openSaved(id) {
+  const o = await dbGet(id).catch(() => null);
+  if (!o) { renderSaved(); return; }
+  if (resultUrl) URL.revokeObjectURL(resultUrl);
+  resultFile = new File([o.blob], o.name, { type: o.type });
+  resultUrl = URL.createObjectURL(o.blob);
+  currentId = o.id;
+  resultShared = !!o.shared;
+  $('#out').src = resultUrl;
+  $('#outInfo').textContent = 'Aufnahme vom ' + fmtWhen(o.id) + ' · ' + (o.size / 1048576).toFixed(1).replace('.', ',') + ' MB';
+  $('#savedInfo').textContent = '✓ Auf dem iPhone gespeichert.';
+  $('#ytMsg').textContent = '';
+  if (o.scene && ![...$('#scene').options].some(x => x.value === o.scene)) $('#scene').appendChild(new Option(o.scene, o.scene));
+  $('#scene').value = o.scene || '';
+  $('#ytTitle').value = o.title || '';
+  recDate = o.recDate ? new Date(o.recDate) : recDate;
+  $('#btnRedo').classList.toggle('hidden', !video.src);
+  show('result');
+}
+$('#btnHome').onclick = () => { $('#out').pause(); show('start'); renderSaved(); };
 
 // ---------- Probenplan: Szene zum Aufnahmedatum ----------
 let plan = { musical: '', playlist: '', proben: [], szenen: [] };
@@ -692,7 +817,7 @@ async function shareResult(name) {
   const ext = resultFile.name.split('.').pop();
   const file = name ? new File([resultFile], name.replace(/[\\/:*?"<>|]+/g, '-') + '.' + ext, { type: resultFile.type }) : resultFile;
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: name || file.name }); } catch (e) {}
+    try { await navigator.share({ files: [file], title: name || file.name }); markShared(); } catch (e) {}
     return;
   }
   const a = document.createElement('a');
@@ -701,6 +826,7 @@ async function shareResult(name) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+  markShared();
 }
 $('#btnYT').onclick = () => {
   const title = $('#ytTitle').value.trim();
@@ -718,6 +844,7 @@ $('#btnRedo').onclick = () => {
   $('#quality').disabled = false;
   show('editor');
 };
+renderSaved();
 </script>
 </body>
 </html>
