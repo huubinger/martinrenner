@@ -682,7 +682,7 @@ app.use('/chorx', (req, res) => {
   const client = target.protocol === 'https:' ? require('https') : require('http');
   const upstream = client.request(target, { method: req.method, headers, timeout: 0 }, (up) => {
     const out = {};
-    for (const name of ['content-type', 'content-length', 'cache-control', 'location', 'etag', 'last-modified', 'content-range', 'accept-ranges']) {
+    for (const name of ['content-type', 'content-length', 'cache-control', 'location', 'etag', 'last-modified', 'content-range', 'accept-ranges', 'content-disposition', 'content-security-policy', 'x-content-type-options']) {
       if (up.headers[name]) out[name] = up.headers[name];
     }
     if (up.headers['set-cookie']) out['set-cookie'] = up.headers['set-cookie'].map((c) => c.replace(/;\s*Path=\/(?=;|$)/i, '; Path=/chorx'));
@@ -691,10 +691,14 @@ app.use('/chorx', (req, res) => {
   });
   upstream.on('timeout', () => upstream.destroy(new Error('Zeitüberschreitung')));
   upstream.on('error', (error) => {
+    if (res.destroyed || req.destroyed) return; // Besucher hat abgebrochen (Tab zu, Download weg) – kein Fehler
     console.error('[chorx]', error.message);
     if (!res.headersSent) res.status(502).json({ error: 'Chor X Probentool nicht erreichbar.' });
     else res.end();
   });
+  // Bricht das Handy ab (Upload, Download, Live-Verbindung), auch die Verbindung zum Tool schließen
+  req.on('close', () => { if (!req.complete) upstream.destroy(); });
+  res.on('close', () => { if (!res.writableFinished) upstream.destroy(); });
   req.pipe(upstream);
 });
 
@@ -2866,7 +2870,9 @@ app.get('/api/events-ticker', async (req, res) => {
 
 require('./signatur')(app, { getTickerEvents });
 
-app.listen(PORT, () => {
+const httpServer = app.listen(PORT, () => {
   console.log(`Server läuft auf Port ${PORT}`);
   ensureAllImageVariants();
 });
+// Große Uploads (Chor X Ablage bis 95 MB) über langsame Leitungen: Node-Standard wären 5 Minuten
+httpServer.requestTimeout = 30 * 60000;
