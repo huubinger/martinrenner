@@ -8,6 +8,8 @@ const sharp = require('sharp');
 const { Readable } = require('stream');
 
 const app = express();
+// Railway-Healthcheck: vor allen Weiterleitungen/Logins, damit ein kaputter Build nicht live geht
+app.get('/healthz', (req, res) => res.type('text').send('ok'));
 const PORT = process.env.PORT || 3000;
 
 // --- Persistenter Speicher (Railway Volume) ---
