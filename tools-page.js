@@ -10,6 +10,7 @@ const TOOLS = [
   { group: 'Musical & Kreatief', items: [
     { name: 'Skript-Tool', img: 'skript', url: '/skript', info: 'Musical-Skripte schreiben und formatieren' },
     { name: 'Bühnen-Tool', img: 'buehne', url: '/buehne', info: 'Bühnenbilder, Szenen-Umbauten, 3D' },
+    { name: 'Licht-Tool', img: 'licht', url: '/licht/', info: 'Licht im Kreatief steuern (Chases, Frontlicht)' },
     { name: 'Programmheft-Tool', img: 'programmheft', url: '/programmheft', info: 'Programmhefte, Druck-PDF für WIRmachenDRUCK' },
     { name: 'Bewertungstool', img: 'bewertung', url: '/bewertung/', info: 'Entwürfe per Swipe bewerten, Feedback an Claude' },
     { name: 'Probenvideo', img: 'probenvideo', url: '/probenvideo', info: 'Probenvideos kommentieren und bemalen' },

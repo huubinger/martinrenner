@@ -536,6 +536,47 @@ app.use('/buehne', (req, res) => {
   req.pipe(upstream);
 });
 
+// --- Licht-Tool (Lichtsteuerung Kreatief vom Handy): www.martinrenner.de/licht ---
+// Eigener Railway-Dienst (Repo licht-tool, LICHT_CLOUD=1); Passwort prüft das Tool selbst. Braucht WebSocket
+// (Bedienung + Brücke im Kreatief) → Upgrade-Weiterleitung unten bei httpServer.on('upgrade').
+const LICHT_URL = (process.env.LICHT_URL || '').replace(/\/+$/, '');
+const lichtKopf = (req) => {
+  const headers = {};
+  for (const name of ['content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since', 'origin']) {
+    if (req.headers[name]) headers[name] = req.headers[name];
+  }
+  headers['x-forwarded-proto'] = 'https';
+  headers['x-forwarded-prefix'] = '/licht';
+  headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.socket?.remoteAddress || 'unbekannt';
+  headers['x-licht-client-ip'] = headers['x-forwarded-for']; // für die Login-Sperre je Gerät
+  if (process.env.LICHT_PROXY_SECRET) headers['x-proxy-secret'] = process.env.LICHT_PROXY_SECRET; // nur über die Homepage, nicht direkt
+  return headers;
+};
+app.use('/licht', (req, res) => {
+  if (!req.originalUrl.startsWith('/licht')) return res.redirect(301, '/licht' + req.originalUrl.slice(6)); // /LICHT → /licht (Cookie-Pfad)
+  if (/^\/licht(\?|$)/.test(req.originalUrl)) return res.redirect(301, req.originalUrl.replace('/licht', '/licht/'));
+  if (!LICHT_URL) return res.status(503).send('Licht-Tool ist nicht eingerichtet.');
+  const target = new URL(LICHT_URL + req.url);
+  const client = target.protocol === 'https:' ? require('https') : require('http');
+  const upstream = client.request(target, { method: req.method, headers: lichtKopf(req), timeout: 30 * 60 * 1000 }, (up) => {
+    const out = {};
+    for (const name of ['content-type', 'content-length', 'content-disposition', 'cache-control', 'location', 'etag', 'last-modified', 'accept-ranges', 'content-range']) {
+      if (up.headers[name]) out[name] = up.headers[name];
+    }
+    if (up.headers['set-cookie']) out['set-cookie'] = up.headers['set-cookie'].map((c) => c.replace(/;\s*Path=\/(?=;|$)/i, '; Path=/licht'));
+    res.writeHead(up.statusCode, out);
+    up.pipe(res);
+  });
+  upstream.on('timeout', () => upstream.destroy(new Error('Zeitüberschreitung')));
+  upstream.on('error', (error) => {
+    console.error('[licht]', error.message);
+    if (!res.headersSent) res.status(502).send('Licht-Tool nicht erreichbar.');
+    else res.end();
+  });
+  res.on('close', () => { if (!res.writableFinished) upstream.destroy(); }); // Handy bricht ab → Verbindung zum Tool freigeben
+  req.pipe(upstream);
+});
+
 // --- Programmheft-Tool (Programmhefte der Kreatief-Musicals): www.martinrenner.de/programmheft ---
 // Eigener Railway-Dienst (Repo programmheft-tool); gestreamt durchgereicht (Bild-Uploads, JSON-Sicherungen),
 // vor den Body-Parsern.
@@ -2878,3 +2919,37 @@ const httpServer = app.listen(PORT, () => {
 });
 // Große Uploads (Chor X Ablage bis 95 MB) über langsame Leitungen: Node-Standard wären 5 Minuten
 httpServer.requestTimeout = 30 * 60000;
+
+// WebSocket-Weiterleitung für das Licht-Tool (/licht/ = Bedienung, /licht/bruecke = Brücke im Kreatief)
+httpServer.on('upgrade', (req, socket, head) => {
+  // Fehler am Client-Socket immer abfangen (Node nimmt beim Upgrade seinen Handler weg → sonst Absturz der Homepage)
+  let up = null;
+  socket.on('error', () => { if (up) up.destroy(); socket.destroy(); });
+  if (!LICHT_URL || !/^\/licht(\/|\?|$)/.test(req.url)) return socket.destroy();
+  const target = new URL(LICHT_URL + (req.url.replace(/^\/licht/, '') || '/'));
+  const headers = lichtKopf(req);
+  for (const name of ['connection', 'upgrade', 'sec-websocket-key', 'sec-websocket-version', 'sec-websocket-extensions', 'sec-websocket-protocol', 'x-bruecke-token']) {
+    if (req.headers[name]) headers[name] = req.headers[name];
+  }
+  const client = target.protocol === 'https:' ? require('https') : require('http');
+  up = client.request(target, { method: 'GET', headers, timeout: 15000 });
+  socket.on('close', () => { if (up && !up.upgradeFertig) up.destroy(); });
+  up.on('timeout', () => up.destroy(new Error('Zeitüberschreitung')));
+  up.on('upgrade', (res, upSocket, upHead) => {
+    up.upgradeFertig = true;
+    upSocket.on('error', () => {});
+    if (socket.destroyed) return upSocket.destroy();
+    let antwort = `HTTP/1.1 ${res.statusCode} ${res.statusMessage}\r\n`;
+    for (let i = 0; i < res.rawHeaders.length; i += 2) antwort += `${res.rawHeaders[i]}: ${res.rawHeaders[i + 1]}\r\n`;
+    socket.write(antwort + '\r\n');
+    if (upHead && upHead.length) socket.write(upHead);
+    if (head && head.length) upSocket.write(head);
+    socket.setNoDelay(true); upSocket.setNoDelay(true);
+    upSocket.pipe(socket); socket.pipe(upSocket);
+    const zu = () => { socket.destroy(); upSocket.destroy(); };
+    socket.on('error', zu); upSocket.on('error', zu); socket.on('close', zu); upSocket.on('close', zu);
+  });
+  up.on('response', (res) => { socket.end(`HTTP/1.1 ${res.statusCode} ${res.statusMessage}\r\n\r\n`); res.resume(); });
+  up.on('error', (e) => { console.error('[licht ws]', e.message); socket.destroy(); });
+  up.end();
+});
