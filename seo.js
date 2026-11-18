@@ -199,7 +199,8 @@ const PAGES = [
         <p>Statt klassischer Männerchorliteratur: deutsche Pop- und Rocksongs, moderne Arrangements und jede Menge Spaß. Lauter Männer gehört zum Liederkranz Kochersteinsfeld, singt auswendig, mit Druck, Humor und einem ganz eigenen Sound – und zeigt, dass Männerchor alles andere als angestaubt ist.</p>
         <p><a class="more" href="https://www.liederkranz-kochersteinsfeld.de" rel="noopener">Liederkranz Kochersteinsfeld →</a></p>` },
       { id: 'fruehstuecks-choerle', h2: 'Frühstücks-Chörle – singen und frühstücken', project: 'fruehstuecks-choerle', html: `
-        <p>Jeden Donnerstag von 9 bis 10 Uhr im HerzMahl in Neckarsulm: gemeinsam singen, lachen und danach zusammen frühstücken. Der Chor richtet sich vor allem an ältere Menschen; ich leite ihn gemeinsam mit Vocalcoach Patrick Bach – ohne Leistungsdruck, ohne Vorsingen und ohne Vorkenntnisse.</p>` },
+        <p>Jeden Donnerstag von 9 bis 10 Uhr im HerzMahl in Neckarsulm: gemeinsam singen, lachen und danach zusammen frühstücken. Der Chor richtet sich vor allem an ältere Menschen; ich leite ihn gemeinsam mit Vocalcoach Patrick Bach – ohne Leistungsdruck, ohne Vorsingen und ohne Vorkenntnisse.</p>
+        <p><a class="more" href="/choerle">Übe-Tracks &amp; Noten für alle, die mitsingen →</a></p>` },
       { h2: 'Euer Chor sucht eine Chorleitung?', html: `
         <p>Mit <a href="/chorleiter">Chor X</a> coachen Patrick Bach und ich Chöre ohne Chorleitung im Raum Heilbronn und in Baden-Württemberg – mit Proben vor Ort, Übe-Tracks und eigenem Probentool.</p>` },
     ],
