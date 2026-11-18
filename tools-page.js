@@ -3,6 +3,7 @@
 // Neue Tools hier in TOOLS eintragen – die Seite baut sich daraus auf.
 // img = Icon public/tool-icons/<img>.webp (Kling-Icons, Quelle ~/Dropbox/Claude/Projekte/Werkzeuge/Tool-Icons).
 const crypto = require('crypto');
+const { isOwner, setOwnerCookie, clearOwnerCookie } = require('./owner-sso');
 
 const COOKIE = 'tools_auth';
 
@@ -48,6 +49,7 @@ module.exports = function setupToolsPage(app, { readCookie, escapeHtml }) {
   const failed = new Map();
 
   function hasAccess(req) {
+    if (isOwner(req)) return true;
     const value = readCookie(req, COOKIE);
     if (!PASSWORD || !value || value.length !== AUTH.length) return false;
     return crypto.timingSafeEqual(Buffer.from(value), Buffer.from(AUTH));
@@ -62,19 +64,38 @@ module.exports = function setupToolsPage(app, { readCookie, escapeHtml }) {
     if (tries.length >= 10) return res.status(429).send(loginPage('Zu viele Versuche. Bitte später erneut probieren.'));
     if (String((req.body || {}).password || '').trim() !== PASSWORD) {
       tries.push(now); failed.set(ip, tries);
-      return res.status(401).send(loginPage('Das Passwort stimmt leider nicht.'));
+      return res.status(401).send(loginPage('Das Passwort stimmt leider nicht.', safeNext((req.body || {}).next)));
     }
     failed.delete(ip);
     res.cookie(COOKIE, AUTH, {
       maxAge: 365 * 864e5, httpOnly: true, sameSite: 'lax', path: '/tools',
       secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
     });
+    // Gleichzeitig Martins Login für alle Tools (owner-sso.js)
+    setOwnerCookie(req, res);
+    res.redirect(303, safeNext((req.body || {}).next) || '/tools');
+  });
+
+  // Abmelden von allen Tools auf diesem Gerät
+  app.get('/tools/logout', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    clearOwnerCookie(res);
+    res.clearCookie(COOKIE, { path: '/tools' });
     res.redirect(303, '/tools');
+  });
+
+  // /login?next=/skript/ – Login-Seite für alle Tools, springt danach zurück
+  app.get(['/login', '/login/'], (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const next = safeNext(req.query.next);
+    if (isOwner(req)) return res.redirect(303, next || '/tools');
+    res.status(200).send(loginPage('', next));
   });
 
   app.get(['/tools', '/tools/'], (req, res) => {
     res.set('Cache-Control', 'no-store');
     if (!hasAccess(req)) return res.status(401).send(loginPage(''));
+    if (!isOwner(req)) setOwnerCookie(req, res); // altes /tools-Cookie → auf Login für alle Tools hochstufen
     res.send(page(escapeHtml));
   });
 };
@@ -96,8 +117,18 @@ h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut
 const HEAD = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>Tools</title><style>${STYLE}</style></head><body><main>`;
 
-function loginPage(err) {
+// Nur eigene Pfade als Rücksprung (kein //fremde-seite.de, kein javascript:)
+function safeNext(value) {
+  const v = String(value || '');
+  return /^\/(?![\/\\])[^\s]*$/.test(v) ? v : '';
+}
+
+function loginPage(err, next) {
+  const attr = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   return `${HEAD}<form class="login" method="post" action="/tools/login"><h1>🧰 Tools</h1>
+<p class="sub" style="margin:0">Ein Login für alle Tools</p>
+<input type="text" name="username" value="Martin" autocomplete="username" hidden>
+${next ? `<input type="hidden" name="next" value="${attr(next)}">` : ''}
 <input type="password" name="password" placeholder="Passwort" aria-label="Passwort" autocomplete="current-password" autofocus required>
 <button type="submit">Öffnen</button>${err ? `<p class="err">${err}</p>` : ''}</form></main></body></html>`;
 }

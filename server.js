@@ -6,6 +6,8 @@ const multer = require('multer');
 const nodemailer = require('nodemailer');
 const sharp = require('sharp');
 const { Readable } = require('stream');
+// Ein Login für Martin über alle Tools (siehe owner-sso.js)
+const { isOwner, ownerSso } = require('./owner-sso');
 
 const app = express();
 // Railway-Healthcheck: vor allen Weiterleitungen/Logins, damit ein kaputter Build nicht live geht
@@ -385,6 +387,7 @@ app.use('/kameras', async (req, res) => {
       if (req.headers[name]) headers[name] = req.headers[name];
     }
     // „Alle aus/an“ kann bei offline-Kameras einige Minuten dauern.
+    ownerSso(req, headers, 'kameras');
     const upstream = await fetch(KAMERA_TOOL_URL + req.url, {
       method: req.method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(10 * 60 * 1000),
     });
@@ -419,6 +422,7 @@ app.use('/lokal', async (req, res) => {
     for (const name of ['content-type', 'cookie', 'user-agent', 'accept']) {
       if (req.headers[name]) headers[name] = req.headers[name];
     }
+    ownerSso(req, headers, 'lokal');
     const upstream = await fetch(LOKAL_TOOL_URL + req.url, {
       method: req.method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(2 * 60 * 1000),
     });
@@ -453,6 +457,7 @@ app.use('/heizung', async (req, res) => {
     for (const name of ['content-type', 'cookie', 'user-agent', 'accept']) {
       if (req.headers[name]) headers[name] = req.headers[name];
     }
+    ownerSso(req, headers, 'heizung');
     const upstream = await fetch(HEIZKURVE_URL + req.url, {
       method: req.method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(60 * 1000),
     });
@@ -482,6 +487,7 @@ app.use('/skript', (req, res) => {
   for (const name of ['content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
     if (req.headers[name]) headers[name] = req.headers[name];
   }
+  ownerSso(req, headers, 'skript');
   headers['x-forwarded-proto'] = 'https';
   if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
   const client = target.protocol === 'https:' ? require('https') : require('http');
@@ -515,6 +521,7 @@ app.use('/buehne', (req, res) => {
   for (const name of ['content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
     if (req.headers[name]) headers[name] = req.headers[name];
   }
+  ownerSso(req, headers, 'buehne');
   headers['x-forwarded-proto'] = 'https';
   if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
   const client = target.protocol === 'https:' ? require('https') : require('http');
@@ -550,6 +557,7 @@ const lichtKopf = (req) => {
   headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.socket?.remoteAddress || 'unbekannt';
   headers['x-licht-client-ip'] = headers['x-forwarded-for']; // für die Login-Sperre je Gerät
   if (process.env.LICHT_PROXY_SECRET) headers['x-proxy-secret'] = process.env.LICHT_PROXY_SECRET; // nur über die Homepage, nicht direkt
+  ownerSso(req, headers, 'licht'); // gilt auch für den WebSocket (Upgrade nutzt lichtKopf)
   return headers;
 };
 app.use('/licht', (req, res) => {
@@ -589,6 +597,7 @@ app.use('/programmheft', (req, res) => {
   for (const name of ['content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
     if (req.headers[name]) headers[name] = req.headers[name];
   }
+  ownerSso(req, headers, 'programmheft');
   headers['x-forwarded-proto'] = 'https';
   if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
   const client = target.protocol === 'https:' ? require('https') : require('http');
@@ -621,6 +630,7 @@ app.use('/bewertung', (req, res) => {
   for (const name of ['authorization', 'content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
     if (req.headers[name]) headers[name] = req.headers[name];
   }
+  ownerSso(req, headers, 'bewertung');
   headers['x-forwarded-proto'] = 'https';
   if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
   const client = target.protocol === 'https:' ? require('https') : require('http');
@@ -653,6 +663,7 @@ app.use('/tagebuch', (req, res) => {
   for (const name of ['content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
     if (req.headers[name]) headers[name] = req.headers[name];
   }
+  ownerSso(req, headers, 'tagebuch');
   headers['x-forwarded-proto'] = 'https';
   if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
   const client = target.protocol === 'https:' ? require('https') : require('http');
@@ -685,6 +696,7 @@ app.use('/kalender', (req, res) => {
   for (const name of ['authorization', 'content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'if-none-match', 'if-modified-since']) {
     if (req.headers[name]) headers[name] = req.headers[name];
   }
+  ownerSso(req, headers, 'kalender');
   headers['x-forwarded-proto'] = 'https';
   if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
   const client = target.protocol === 'https:' ? require('https') : require('http');
@@ -722,6 +734,7 @@ app.use('/chorx', (req, res) => {
   // Das Tool nimmt nur Anfragen mit diesem Schlüssel an; die echte Besucher-IP braucht es für die Passwort-Bremse
   headers['x-chorx-proxy'] = process.env.CHORX_PROXY_SECRET || '';
   headers['x-chorx-ip'] = req.headers['cf-connecting-ip'] || req.ip || '';
+  ownerSso(req, headers, 'chorx');
   const client = target.protocol === 'https:' ? require('https') : require('http');
   const upstream = client.request(target, { method: req.method, headers, timeout: 0 }, (up) => {
     const out = {};
@@ -756,6 +769,7 @@ app.use('/buero', (req, res) => {
   for (const name of ['content-type', 'content-length', 'cookie', 'user-agent', 'accept', 'range', 'if-none-match', 'if-modified-since']) {
     if (req.headers[name]) headers[name] = req.headers[name];
   }
+  ownerSso(req, headers, 'buero');
   headers['x-forwarded-proto'] = 'https';
   if (req.headers['cf-connecting-ip'] || req.ip) headers['x-forwarded-for'] = req.headers['cf-connecting-ip'] || req.ip;
   const client = target.protocol === 'https:' ? require('https') : require('http');
@@ -800,6 +814,7 @@ const MUSICALS_PUBLIC = new Set(['/musicals/musicals.css', '/musicals/kreatief_l
 const musicalsFailedLogins = new Map();
 
 function hasMusicalsAccess(req) {
+  if (isOwner(req)) return true;
   const value = readCookie(req, MUSICALS_COOKIE);
   if (!value || value.length !== MUSICALS_TOKEN.length) return false;
   return crypto.timingSafeEqual(Buffer.from(value), Buffer.from(MUSICALS_TOKEN));
@@ -1042,6 +1057,7 @@ function requireAdminAuth(req, res, next) {
   if (!user || !pass) {
     return res.status(500).send('Admin-Zugang ist nicht konfiguriert (ADMIN_USERNAME/ADMIN_PASSWORD fehlen).');
   }
+  if (isOwner(req)) return next(); // angemeldet über die Tool-Übersicht (owner-sso.js)
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Basic ')) {
     res.set('WWW-Authenticate', 'Basic realm="Admin"');
