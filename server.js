@@ -948,6 +948,9 @@ require('./balkonkraftwerk')(app, { DATA_DIR, readCookie });
 // Tool-Übersicht: Links auf alle eigenen Tools, passwortgeschützt (siehe tools-page.js)
 require('./tools-page')(app, { readCookie, escapeHtml });
 
+// SEO-Seiten (Veranstaltungstechnik, Chorleitung/Chor X, Chöre, Musical) + robots.txt + sitemap.xml (siehe seo.js)
+require('./seo')(app, { escapeHtml, loadProjects, imageVariants });
+
 // --- Rechtliche Seiten & Kontaktformular (dynamisch, siehe unten) ---
 // Diese Routen müssen VOR der Static-Middleware registriert werden, damit sie
 // die alten statischen public/impressum.html & public/datenschutz.html überschreiben.
