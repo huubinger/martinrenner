@@ -38,12 +38,57 @@ const PAGES = [
     sections: [
       { h2: 'Technik-Verleih: was du mieten kannst', html: `
         <div class="cards">
-          <div class="card"><h3>Tontechnik</h3><p>PA-Anlagen für kleine und große Räume, Monitorboxen, Digitalmischpulte, Funk- und Headset-Mikrofone, Kabel, Stative und Stageboxen.</p></div>
-          <div class="card"><h3>Lichttechnik</h3><p>LED-Scheinwerfer, Moving Heads, Effektlicht, Traversen und DMX-Steuerung – für stimmungsvolle Bühnen und gut ausgeleuchtete Gesichter.</p></div>
-          <div class="card"><h3>Bühne</h3><p>Bühnenpodeste und Chorpodeste, Bühnenaufbau für Chöre, Bands und Ensembles – drinnen wie Open Air.</p></div>
-          <div class="card"><h3>Video &amp; Leinwand</h3><p>Beamer, Leinwand und Zuspielung von Videos, Playbacks und Präsentationen während der Show.</p></div>
+          <div class="card"><h3>Tontechnik</h3><p>PA-Anlagen für kleine und große Räume, Monitorboxen, Digitalmischpulte, Funk- und Headset-Mikrofone, In-Ear-Monitoring, Kabel, Stative und Stageboxen.</p></div>
+          <div class="card"><h3>Lichttechnik</h3><p>Moving Heads, LED-Washlights und -Bars, klassische Theaterscheinwerfer, Hazer und DMX-/Art-Net-Steuerung – für stimmungsvolle Bühnen und gut ausgeleuchtete Gesichter.</p></div>
+          <div class="card"><h3>Bühne &amp; Rigging</h3><p>Bühnenpodeste, Kettenzüge, Wind-Up-Stative, Bannerrahmen und Pavillons – drinnen wie Open Air.</p></div>
+          <div class="card"><h3>Strom, Video &amp; Transport</h3><p>Stromverteiler und CEE-Kabel bis 63 A, Netzwerk und Glasfaser, Ultrakurzdistanz-Beamer – und auf Wunsch Transport per Sprinter oder 7,5-t-LKW.</p></div>
         </div>
         <p>Welche Geräte im Einzelnen verfügbar sind, hängt vom Termin ab – schick mir einfach die Eckdaten, dann stelle ich ein passendes Paket zusammen.</p>` },
+      { h2: 'Auszug aus dem Bestand', html: `
+        <p>Eine Auswahl dessen, was im Lager steht (ohne Preise – die gibt es mit dem Angebot):</p>
+        <div class="cards">
+          <div class="card"><h3>Beschallung</h3><ul class="ticks">
+            <li>Coda Audio CoRAY4 Line-Array mit Low-Extension</li>
+            <li>Coda Linus Endstufen</li>
+            <li>Coda Subwoofer SCV-F und SC8</li>
+            <li>Coda G712, G715, Rx40, HOPS5, D5 und K189pro</li>
+          </ul></div>
+          <div class="card"><h3>Mischpulte &amp; Stageboxen</h3><ul class="ticks">
+            <li>Allen &amp; Heath dLive C2500 mit CDM48 Mixrack</li>
+            <li>Allen &amp; Heath GLD-80</li>
+            <li>Yamaha 01V96</li>
+            <li>Stageboxen DX168, AR2412 und GX4816</li>
+          </ul></div>
+          <div class="card"><h3>Mikrofone &amp; Funk</h3><ul class="ticks">
+            <li>Shure QLXD mit KSM9</li>
+            <li>Funkrack mit 40 Kanälen</li>
+            <li>beyerdynamic Opus 910 als Hand- und Headsetsender</li>
+            <li>30 Sennheiser e835s</li>
+            <li>beyerdynamic MC930, Drum-Set, Großmembranmikrofone</li>
+          </ul></div>
+          <div class="card"><h3>In-Ear &amp; Monitoring</h3><ul class="ticks">
+            <li>Shure PSM300</li>
+            <li>Sennheiser EW 300 IEM G3</li>
+            <li>Messmikrofone iSEMcon EMX 7150</li>
+          </ul></div>
+          <div class="card"><h3>Licht</h3><ul class="ticks">
+            <li>GrandMA onPC Wing</li>
+            <li>Fixtures: 12 Favo Lite Vader Pro 350 Spots, 16 Favo Lite W-0760 Washes, MediaLED Washlight und SpotBeam</li>
+            <li>DeSisti-Fresnel (1 und 2 kW), ARRI Junior 650 Plus</li>
+            <li>Litecraft Outdoor-LED-Bars</li>
+            <li>SmokeFactory TourHazer II</li>
+            <li>Dimmer-Rack 63 A, Art-Net-Rack mit DMX-Splittern</li>
+          </ul></div>
+          <div class="card"><h3>Bühne, Strom &amp; Netzwerk</h3><ul class="ticks">
+            <li>Bühnenpodeste 2 × 0,5 m</li>
+            <li>Handkettenzüge 0,5 t</li>
+            <li>Wind-Up-Stative bis 85 kg</li>
+            <li>Pavillons 3 × 3 m und 6 × 3 m</li>
+            <li>Event-Stromverteiler 63 A und 32 A mit CEE-Kabeln</li>
+            <li>Kabelbrücken</li>
+            <li>Netzwerktrommeln bis 100 m, Glasfaser 200 m</li>
+          </ul></div>
+        </div>` },
       { h2: 'Mit oder ohne Techniker', html: `
         <p>Du kannst die Technik <strong>nur mieten</strong> oder <strong>mit Betreuung</strong> buchen: Aufbau, Soundcheck, Mischen während der Veranstaltung und Abbau. Gerade bei Chorkonzerten, Musicals und Veranstaltungen mit vielen Mikrofonen lohnt sich jemand, der den Ablauf von der Bühne aus kennt.</p>` },
       { h2: 'Für welche Veranstaltungen?', html: `
