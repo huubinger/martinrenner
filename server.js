@@ -977,6 +977,11 @@ app.get('/datenschutz.html', (req, res) => {
   res.send(renderDatenschutzPage(loadSettings()));
 });
 
+// Adressen ohne .html bzw. alte Links, die Google als 404 gemeldet hat (Search Console 19.11.2026)
+app.get(['/impressum', '/impressum/'], (req, res) => res.redirect(301, '/impressum.html'));
+app.get(['/datenschutz', '/datenschutz/'], (req, res) => res.redirect(301, '/datenschutz.html'));
+app.get(['/experimenta', '/experimenta/'], (req, res) => res.redirect(301, '/'));
+
 // Frühere öffentliche Apps-Seite → Tool-Übersicht
 app.get(['/apps', '/apps.html'], (req, res) => res.redirect(301, '/tools'));
 
