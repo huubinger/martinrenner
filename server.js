@@ -960,6 +960,9 @@ require('./voctails-km')(app, {
 // Balkonkraftwerk: Live-Werte des Wechselrichters zu Hause (siehe balkonkraftwerk.js)
 require('./balkonkraftwerk')(app, { DATA_DIR, readCookie });
 
+// Liedwunsch-Abstimmung Männerchor „Lauter Männer“ unter /lautermaenner (siehe lauter-maenner.js)
+require('./lauter-maenner')(app, { DATA_DIR, escapeHtml });
+
 // Tool-Übersicht: Links auf alle eigenen Tools, passwortgeschützt (siehe tools-page.js)
 require('./tools-page')(app, { readCookie, escapeHtml });
 
