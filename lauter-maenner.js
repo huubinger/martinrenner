@@ -44,12 +44,13 @@ const SONGS = [
 
 const SONG_IDS = new Set(SONGS.map((s) => s.id));
 
-// Aktive Sänger aus Konzertmeister (Verein Liederkranz Kochersteinsfeld, Stand 26.11.2026; ohne Leiter und inaktive).
+// Aktive Sänger aus Konzertmeister (Verein Liederkranz Kochersteinsfeld, Stand 26.11.2026; ohne Leiter und inaktive),
+// dazu Wolfgang Weik (nicht in Konzertmeister, auf Martins Wunsch).
 // Wer fehlt, wählt „Mein Name fehlt“ und tippt ihn ein.
 const SAENGER = ['Armin Götzinger', 'Bernhard Keiner', 'Günter Frank', 'Gunter Schmetzer', 'Harald Hetzler', 'Heinz Wollensack',
   'Helmut Lange', 'Joachim Sinderhauf', 'Jörg Hömme', 'Karl Braun', 'Konrad Brütsch', 'Lukas Einfalt', 'Marc Zendler',
   'Michael Matthes', 'Philipp Grein', 'Raimund Heiler', 'Rainer Schwab', 'Rudi Stahl-Gaumann', 'Torsten Schmötzer',
-  'Werner Frank', 'Wolfgang Grein', 'Wolfgang Speiser'];
+  'Werner Frank', 'Wolfgang Grein', 'Wolfgang Speiser', 'Wolfgang Weik'];
 const ANDERS = '__anders';
 
 const normName = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
