@@ -44,6 +44,14 @@ const SONGS = [
 
 const SONG_IDS = new Set(SONGS.map((s) => s.id));
 
+// Aktive Sänger aus Konzertmeister (Verein Liederkranz Kochersteinsfeld, Stand 26.11.2026; ohne Leiter und inaktive).
+// Wer fehlt, wählt „Mein Name fehlt“ und tippt ihn ein.
+const SAENGER = ['Armin Götzinger', 'Bernhard Keiner', 'Günter Frank', 'Gunter Schmetzer', 'Harald Hetzler', 'Heinz Wollensack',
+  'Helmut Lange', 'Joachim Sinderhauf', 'Jörg Hömme', 'Karl Braun', 'Konrad Brütsch', 'Lukas Einfalt', 'Marc Zendler',
+  'Michael Matthes', 'Philipp Grein', 'Raimund Heiler', 'Rainer Schwab', 'Rudi Stahl-Gaumann', 'Torsten Schmötzer',
+  'Werner Frank', 'Wolfgang Grein', 'Wolfgang Speiser'];
+const ANDERS = '__anders';
+
 const normName = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/ß/g, 'ss').replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -93,7 +101,7 @@ module.exports = function setupLauterMaenner(app, { DATA_DIR, escapeHtml }) {
   main { max-width:760px; margin:0 auto; padding:20px 20px 120px; }
   .name { background:#fff; border:1px solid var(--linie); border-radius:12px; padding:16px; margin-bottom:18px; }
   .name label { font-weight:700; display:block; margin-bottom:6px; }
-  .name input { width:100%; font:inherit; padding:11px 12px; border:1px solid #ccc; border-radius:8px; }
+  .name input, .name select { width:100%; background:#fff; font:inherit; padding:11px 12px; border:1px solid #ccc; border-radius:8px; }
   .song { display:flex; gap:12px; align-items:flex-start; background:#fff; border:1px solid var(--linie); border-radius:12px; padding:14px; margin-bottom:10px; cursor:pointer; transition:border-color .15s, box-shadow .15s; }
   .song.on { border-color:var(--schwarz); box-shadow:inset 0 0 0 2px var(--gelb); }
   .song input { width:22px; height:22px; margin:2px 0 0; accent-color:var(--schwarz); flex:none; }
@@ -141,7 +149,7 @@ module.exports = function setupLauterMaenner(app, { DATA_DIR, escapeHtml }) {
     const chosen = new Set(prev ? prev.songs : []);
     const msg = req.query.danke
       ? `<div class="msg"><b>Danke, ${esc(name)}!</b> Deine Stimme ist gespeichert. Du kannst sie jederzeit ändern: einfach unten neu wählen und wieder abschicken.</div>`
-      : prev && !req.query.fehler ? `<div class="msg">Auf diesem Gerät wurde schon als <b>${esc(prev.name)}</b> abgestimmt. Nicht du? Dann trag bitte deinen eigenen Namen ein, sonst wird die Stimme von ${esc(prev.name)} überschrieben.</div>`
+      : prev && !req.query.fehler ? `<div class="msg">Auf diesem Gerät wurde schon als <b>${esc(prev.name)}</b> abgestimmt. Nicht du? Dann wähl bitte oben deinen eigenen Namen aus, sonst wird die Stimme von ${esc(prev.name)} überschrieben.</div>`
       : req.query.fehler ? `<div class="msg"><b>Hoppla:</b> ${esc(String(req.query.fehler).slice(0, 120))}</div>` : '';
     res.send(page('Lauter Männer – Liedwünsche', `
 <header><div class="wrap"><small>Lauter Männer · Liederkranz Kochersteinsfeld</small>
@@ -149,8 +157,13 @@ module.exports = function setupLauterMaenner(app, { DATA_DIR, escapeHtml }) {
 <p>Hier sind alle Vorschläge aus unserer WhatsApp-Gruppe. Hört gern rein und wählt bis zu ${MAX_VOTES === 5 ? 'fünf' : MAX_VOTES} Favoriten. Wer noch einmal abstimmt, ersetzt damit seine alte Stimme.</p></div></header>
 <main>${msg}
 <form method="post" action="/lautermaenner" id="f">
-<div class="name"><label for="name">Dein Name</label>
-<input id="name" name="name" required maxlength="60" autocomplete="name" placeholder="Vor- und Nachname" value="${esc(name)}"></div>
+<div class="name"><label for="name">Wer bist du?</label>
+<select id="name" name="name" required>
+<option value="">Bitte Namen auswählen …</option>
+${SAENGER.map((n) => `<option${n === name ? ' selected' : ''}>${esc(n)}</option>`).join('')}
+<option value="${ANDERS}"${name && !SAENGER.includes(name) ? ' selected' : ''}>Mein Name fehlt</option>
+</select>
+<input id="name2" name="name2" maxlength="60" placeholder="Vor- und Nachname" value="${name && !SAENGER.includes(name) ? esc(name) : ''}" style="margin-top:8px"></div>
 ${SONGS.map((s) => songHtml(s, chosen.has(s.id))).join('\n')}
 <div class="bar"><div class="wrap"><span id="z">0 von ${MAX_VOTES} gewählt</span><button type="submit" id="b">Abstimmen</button></div></div>
 </form></main>
@@ -158,16 +171,19 @@ ${SONGS.map((s) => songHtml(s, chosen.has(s.id))).join('\n')}
 const max=${MAX_VOTES}, boxes=[...document.querySelectorAll('input[name=songs]')], z=document.getElementById('z'), b=document.getElementById('b');
 function upd(){const n=boxes.filter(x=>x.checked).length; z.textContent=n+' von '+max+' gewählt';
  boxes.forEach(x=>{x.disabled=!x.checked&&n>=max; x.closest('.song').classList.toggle('on',x.checked);}); b.disabled=n===0;}
+const sel=document.getElementById('name'), n2=document.getElementById('name2');
+function nm(){const a=sel.value==='__anders'; n2.style.display=a?'':'none'; n2.required=a;} sel.addEventListener('change',nm); nm();
 boxes.forEach(x=>x.addEventListener('change',upd)); document.querySelectorAll('.song a').forEach(a=>a.addEventListener('click',e=>e.stopPropagation())); upd();
 </script>`));
   });
 
   app.post('/lautermaenner', (req, res) => {
-    const name = String((req.body && req.body.name) || '').trim().replace(/\s+/g, ' ').slice(0, 60);
+    const b = req.body || {};
+    const name = String((b.name === ANDERS ? b.name2 : b.name) || '').trim().replace(/\s+/g, ' ').slice(0, 60);
     let songs = req.body && req.body.songs;
     songs = [...new Set((Array.isArray(songs) ? songs : songs ? [songs] : []).map(String))].filter((id) => SONG_IDS.has(id));
     const back = (q) => res.redirect(303, '/lautermaenner?' + new URLSearchParams(q).toString());
-    if (normName(name).length < 2) return back({ name, fehler: 'Bitte deinen Vor- und Nachnamen eintragen.' });
+    if (normName(name).length < 2) return back({ name, fehler: 'Bitte deinen Namen auswählen (oder bei „Mein Name fehlt“ eintragen).' });
     if (!songs.length) return back({ name, fehler: 'Bitte mindestens ein Lied wählen.' });
     if (songs.length > MAX_VOTES) return back({ name, fehler: `Höchstens ${MAX_VOTES} Lieder.` });
     db.votes[normName(name)] = { name, songs, t: new Date().toISOString() };
