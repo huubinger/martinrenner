@@ -39,6 +39,8 @@ const SONGS = [
   { id: 'liebe', titel: 'Du trägst keine Liebe in dir', interpret: 'Echt', von: ['Werner'] },
   { id: 'tausendmal', titel: 'Tausendmal Du', interpret: 'Münchener Freiheit', von: ['Werner'] },
   { id: 'wunderschoen', titel: 'Wunderschön', interpret: 'Unheilig', von: ['Werner'] },
+  { id: 'lassereden', titel: 'Lasse redn', interpret: 'Die Ärzte · Männerchor-Satz von Carsten Gerlitz', von: ['Jörg'], suche: 'Lasse redn Die Ärzte' },
+  { id: 'deineschuld', titel: 'Deine Schuld', interpret: 'Die Ärzte · Männerchor-Satz von Carsten Gerlitz', von: ['Jörg'], suche: 'Deine Schuld Die Ärzte' },
   { id: 'ohnedich', titel: 'Ohne dich (schlaf’ ich heut’ Nacht nicht ein)', interpret: 'Münchener Freiheit', von: ['Werner'] },
 ].sort((a, b) => a.titel.replace(/^’s /, '').localeCompare(b.titel.replace(/^’s /, ''), 'de'));
 
