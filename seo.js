@@ -241,7 +241,7 @@ const PAGES = [
   },
 ];
 
-const PUBLIC_EXTRA = ['/', '/voctails', '/impressum.html', '/datenschutz.html'];
+const PUBLIC_EXTRA = ['/', '/voctails', '/lokal-map/', '/impressum.html', '/datenschutz.html'];
 
 function projectImage(loadProjects, imageVariants, id) {
   try {
@@ -410,6 +410,8 @@ ${faq}
       // Die Startseite holt ihre Inhalte von dort – Suchmaschinen sollen sie lesen dürfen
       'Allow: /api/projects',
       'Allow: /api/news',
+      // Öffentliche LOKAL-Karte (sonst von „Disallow: /lokal“ miterfasst)
+      'Allow: /lokal-map/',
       // Tools, Logins, Übe-Bereiche und APIs gehören nicht in den Suchindex
       ...['/admin', '/api/', '/tools', '/choerle', '/chorx', '/musicals', '/voctails/intern', '/kameras', '/lokal', '/heizung', '/skript',
         '/buehne', '/licht', '/programmheft', '/bewertung', '/tagebuch', '/kalender', '/buero', '/balkonkraftwerk', '/mpa', '/probenvideo',
