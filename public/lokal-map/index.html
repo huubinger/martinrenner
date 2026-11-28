@@ -9,7 +9,7 @@
 :root{
   --bg:#f5efe6; --paper:#fffdf9; --ink:#1d1a2b; --muted:#6d6577; --line:#e4d9ca;
   --land:#e8dccb; --land-hover:#dccbb4; --land-stroke:#fffaf2;
-  --accent:#e0522b; --accent-dark:#b83b19; --kreatief:#e64889; --shadow:0 18px 50px -18px rgba(40,25,10,.35);
+  --accent:#e0522b; --accent-dark:#b83b19; --r1:#1f7a74; --r1-dark:#135a55; --shadow:0 18px 50px -18px rgba(40,25,10,.35);
   --r:16px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -38,10 +38,10 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:22px;padding:16p
 .pin .treffer{fill:transparent}
 .karte svg.ziehen #gLaender{filter:none}
 .pin .punkt{fill:var(--accent);stroke:#fff;stroke-width:2.2;vector-effect:non-scaling-stroke;transition:fill .15s}
-.pin.kreatief .punkt,.pin.kreatief .halo{fill:var(--kreatief)}
+.pin.r1 .punkt,.pin.r1 .halo{fill:var(--r1)}
 .pin:hover .halo,.pin.aktiv .halo{opacity:.22}
 .pin.aktiv .punkt{fill:var(--accent-dark)}
-.pin.kreatief.aktiv .punkt{fill:#c42f6d}
+.pin.r1.aktiv .punkt{fill:var(--r1-dark)}
 .pin.aus{opacity:.15;pointer-events:none}
 .pin .nr{fill:#fff;font-weight:800;text-anchor:middle;dominant-baseline:central;pointer-events:none}
 .pinlabel{font-weight:700;fill:var(--ink);paint-order:stroke;stroke:var(--paper);stroke-width:3px;stroke-linejoin:round;pointer-events:none;opacity:0;transition:opacity .2s}
@@ -53,18 +53,20 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:22px;padding:16p
 .hinweis{position:absolute;left:16px;bottom:14px;font-size:12.5px;color:var(--muted);background:rgba(255,253,249,.85);padding:5px 10px;border-radius:8px;z-index:2}
 .legende{position:absolute;left:16px;top:14px;display:flex;gap:14px;font-size:12.5px;color:var(--muted);background:rgba(255,253,249,.9);padding:6px 12px;border-radius:999px;z-index:2}
 .legende i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--accent)}
-.legende i.k{background:var(--kreatief)}
+.legende i.k{background:var(--r1)}
 
 /* Infokarte */
 .info{position:absolute;z-index:10;width:340px;max-width:calc(100% - 24px);background:#fff;border-radius:var(--r);box-shadow:0 24px 60px -16px rgba(30,15,5,.45),0 0 0 1px rgba(0,0,0,.04);padding:18px 18px 16px;opacity:0;transform:translateY(6px) scale(.98);transition:opacity .16s,transform .16s;pointer-events:none}
 .info.an{opacity:1;transform:none;pointer-events:auto}
 .info .kopf{display:flex;gap:12px;align-items:flex-start}
 .info .badge{flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px}
-.info.kreatief .badge{background:var(--kreatief)}
+.info.r1 .badge{background:var(--r1)}
 .info h3{padding-right:22px;font-size:17px;line-height:1.25;font-weight:750}
 .info .ort{font-size:13px;color:var(--muted);margin-top:2px}
 .info .projekt{margin-top:12px;font-size:13px;font-weight:700;color:var(--accent-dark);background:#fbebe4;border-radius:8px;padding:6px 10px;display:inline-block}
-.info.kreatief .projekt{color:#b42a63;background:#fde6ef}
+.info.r1 .projekt{color:var(--r1-dark);background:#e1f0ee}
+.info .runde{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent-dark)}
+.info.r1 .runde{color:var(--r1-dark)}
 .info p{margin-top:10px;font-size:14px;line-height:1.5;color:#3c3647}
 .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
 .links a{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:650;text-decoration:none;border-radius:999px;padding:6px 11px 6px 8px;background:#f3eee7;color:var(--ink);transition:background .15s,color .15s}
@@ -84,11 +86,15 @@ aside{background:var(--paper);border-radius:var(--r);box-shadow:var(--shadow);di
 .chips{display:flex;gap:6px;overflow-x:auto;margin:10px -16px 0;padding:0 16px 4px;scrollbar-width:thin}
 .chips button{flex:none;white-space:nowrap;font:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;cursor:pointer;color:var(--muted)}
 .chips button.an{background:var(--ink);border-color:var(--ink);color:#fff}
+.chips button.rc.r1{color:var(--r1-dark);border-color:#b9dcd8}
+.chips button.rc.r2{color:var(--accent-dark);border-color:#f3c7b8}
+.chips button.rc.r1.an{background:var(--r1);border-color:var(--r1);color:#fff}
+.chips button.rc.r2.an{background:var(--accent);border-color:var(--accent);color:#fff}
 ol{list-style:none;overflow-y:auto;flex:1;padding:6px 8px 12px}
 ol li{display:flex;gap:12px;align-items:center;padding:9px 10px;border-radius:10px;cursor:pointer}
 ol li:hover,ol li.aktiv{background:#f6efe6}
 ol li .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center}
-ol li.kreatief .n{background:var(--kreatief)}
+ol li.r1 .n{background:var(--r1)}
 ol li b{display:block;font-size:14px;font-weight:650;line-height:1.3}
 ol li small{color:var(--muted);font-size:12.5px}
 .leer{padding:20px;color:var(--muted);font-size:14px;text-align:center}
@@ -122,7 +128,7 @@ footer a{color:var(--muted)}
 
 <main>
   <section class="karte" id="karte">
-    <div class="legende"><span><i></i>LOKAL-Projekt</span><span><i class="k"></i>Kreatief, Neckarsulm</span></div>
+    <div class="legende"><span><i class="k"></i>1. Förderrunde (2025)</span><span><i></i>2. Förderrunde (2026)</span></div>
     <div class="werkzeug">
       <button id="plus" title="Vergrößern" aria-label="Vergrößern">+</button>
       <button id="minus" title="Verkleinern" aria-label="Verkleinern">−</button>
@@ -156,7 +162,7 @@ const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS,
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const akteure = D.akteure.slice().sort((a, b) => a.y - b.y || a.x - b.x); // Nummern von Nord nach Süd
-akteure.forEach((a, i) => { a.nr = i + 1; a.kreatief = /kreatief/i.test(a.name); });
+akteure.forEach((a, i) => { a.nr = i + 1; });
 document.getElementById('zAkteure').textContent = akteure.length;
 document.getElementById('zLaender').textContent = new Set(akteure.map(a => a.bundesland)).size;
 
@@ -176,7 +182,7 @@ D.laender.forEach(l => {
 // Pins
 const pinEl = new Map(), labEl = new Map();
 akteure.forEach(a => {
-  const g = el('g', { class: 'pin' + (a.kreatief ? ' kreatief' : ''), tabindex: 0, role: 'button', 'aria-label': a.name + ', ' + a.ort });
+  const g = el('g', { class: 'pin r' + a.runde, tabindex: 0, role: 'button', 'aria-label': a.name + ', ' + a.ort });
   el('circle', { class: 'halo', cx: a.x, cy: a.y, r: 22 }, g);
   el('circle', { class: 'punkt', cx: a.x, cy: a.y, r: 11 }, g);
   const t = el('text', { class: 'nr', x: a.x, y: a.y + .5, 'font-size': 10 }, g); t.textContent = a.nr;
@@ -279,7 +285,7 @@ function inhalt(a) {
     links.push(`<a href="${esc(l.url)}" target="_blank" rel="noopener">${ico(l.typ)}${esc(l.label)}</a>`);
   });
   return `<button class="zu" aria-label="Schließen">×</button>
-    <div class="kopf"><div class="badge">${a.nr}</div><div><h3>${esc(a.name)}</h3><div class="ort">${esc(a.ort)} · ${esc(a.bundesland)}</div></div></div>
+    <div class="kopf"><div class="badge">${a.nr}</div><div><h3>${esc(a.name)}</h3><div class="ort">${esc(a.ort)} · ${esc(a.bundesland)}<span class="runde">${a.runde}. Förderrunde</span></div></div></div>
     ${a.projekt ? `<div class="projekt">${esc(a.projekt)}</div>` : ''}
     ${a.text ? `<p>${esc(a.text)}</p>` : ''}
     ${links.length ? `<div class="links">${links.join('')}</div>` : ''}`;
@@ -305,7 +311,7 @@ function zeige(a, fest = false) {
   if (aktiv && aktiv !== a) { pinEl.get(aktiv).classList.remove('aktiv'); }
   aktiv = a;
   const g = pinEl.get(a); g.classList.add('aktiv'); if (gP.lastChild !== g) gP.appendChild(g);
-  info.className = 'info' + (a.kreatief ? ' kreatief' : '') + (fest || (istFest && aktiv === a) ? ' fest' : '');
+  info.className = 'info r' + a.runde + (fest || (istFest && aktiv === a) ? ' fest' : '');
   if (fest) merkeHash(a);
   info.innerHTML = inhalt(a);
   info.querySelector('.zu').onclick = e => { e.stopPropagation(); schliesse(true); };
@@ -334,24 +340,26 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') schliesse(tr
 
 // Liste + Suche + Filter
 const liste = document.getElementById('liste'), such = document.getElementById('such'), chips = document.getElementById('chips');
-let land = null;
+let land = null, runde = null;
 const laender = [...new Set(akteure.map(a => a.bundesland))].sort((a, b) => a.localeCompare(b, 'de'));
-const chip = (txt, wert) => { const b = document.createElement('button'); b.textContent = txt; b.onclick = () => { land = wert; filtern(); }; chips.appendChild(b); return b; };
+const chip = (txt, wert) => { const b = document.createElement('button'); b.textContent = txt; b.onclick = () => { land = wert; if (wert === null) runde = null; filtern(); }; chips.appendChild(b); return b; };
 const chipEl = [chip('Alle', null), ...laender.map(l => chip(l, l))];
+const rundenEl = [1, 2].map(r => { const b = document.createElement('button'); b.textContent = r + '. Runde'; b.className = 'rc r' + r; b.onclick = () => { runde = runde === r ? null : r; filtern(); }; chips.insertBefore(b, chipEl[1]); return b; });
 function passt(a) {
   const q = such.value.trim().toLowerCase();
   const heu = [a.name, a.ort, a.bundesland, a.projekt, a.text].filter(Boolean).join(' ').toLowerCase();
-  return (!land || a.bundesland === land) && (!q || q.split(/\s+/).every(w => heu.includes(w)));
+  return (!land || a.bundesland === land) && (!runde || a.runde === runde) && (!q || q.split(/\s+/).every(w => heu.includes(w)));
 }
 function filtern() {
-  chipEl.forEach((b, i) => b.classList.toggle('an', (i === 0 && !land) || b.textContent === land));
+  chipEl.forEach((b, i) => b.classList.toggle('an', (i === 0 && !land && !runde) || b.textContent === land));
+  rundenEl.forEach((b, i) => b.classList.toggle('an', runde === i + 1));
   liste.innerHTML = '';
   const treffer = akteure.filter(passt);
   if (aktiv && !treffer.includes(aktiv)) schliesse(true);
   akteure.forEach(a => pinEl.get(a).classList.toggle('aus', !treffer.includes(a)));
   if (!treffer.length) { liste.innerHTML = '<div class="leer">Keine Treffer.</div>'; return; }
   treffer.slice().sort((a, b) => a.ort.localeCompare(b.ort, 'de')).forEach(a => {
-    const li = document.createElement('li'); li.dataset.nr = a.nr; if (a.kreatief) li.classList.add('kreatief'); if (a === aktiv) li.classList.add('aktiv');
+    const li = document.createElement('li'); li.dataset.nr = a.nr; li.classList.add('r' + a.runde); if (a === aktiv) li.classList.add('aktiv');
     li.innerHTML = `<span class="n">${a.nr}</span><span><b>${esc(a.name)}</b><small>${esc(a.ort)} · ${esc(a.bundesland)}</small></span>`;
     li.addEventListener('mouseenter', () => { if (hoverOK()) zeige(a); });
     li.addEventListener('mouseleave', spaeterZu);
