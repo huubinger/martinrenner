@@ -50,6 +50,10 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:22px;padding:16p
 .werkzeug{position:absolute;right:14px;top:14px;display:flex;flex-direction:column;gap:6px;z-index:3}
 .werkzeug button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:20px;font-weight:600;cursor:pointer;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .werkzeug button:hover{background:var(--bg)}
+.werkzeug button svg{display:block;margin:auto}
+.karte.vollbild{position:fixed;inset:0;z-index:50;border-radius:0;height:auto!important;min-height:0}
+body.vollbild-an{overflow:hidden}
+.karte:fullscreen{border-radius:0}
 .hinweis{position:absolute;left:16px;bottom:14px;font-size:12.5px;color:var(--muted);background:rgba(255,253,249,.85);padding:5px 10px;border-radius:8px;z-index:2}
 .legende{position:absolute;left:16px;top:14px;display:flex;gap:14px;font-size:12.5px;color:var(--muted);background:rgba(255,253,249,.9);padding:6px 12px;border-radius:999px;z-index:2}
 .legende i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--accent)}
@@ -133,6 +137,7 @@ footer a{color:var(--muted)}
       <button id="plus" title="Vergrößern" aria-label="Vergrößern">+</button>
       <button id="minus" title="Verkleinern" aria-label="Verkleinern">−</button>
       <button id="reset" title="Ganz Deutschland" aria-label="Ganz Deutschland">⤢</button>
+      <button id="voll" title="Vollbild" aria-label="Vollbild"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     </div>
     <svg id="svg" aria-label="Deutschlandkarte mit allen LOKAL-Projekten"><g id="gLaender"></g><g id="gNamen"></g><g id="gLabels"></g><g id="gPins"></g></svg>
     <div class="hinweis">Mit der Maus über einen Punkt fahren · Klick hält die Infokarte offen · Mausrad zoomt, Ziehen verschiebt</div>
@@ -225,6 +230,22 @@ svg.addEventListener('wheel', e => { e.preventDefault(); const p = svgPunkt(e.cl
 document.getElementById('plus').onclick = () => zoom(1 / 1.5);
 document.getElementById('minus').onclick = () => zoom(1.5);
 document.getElementById('reset').onclick = () => { vb = { ...VOLL }; setzeVB(); };
+// Vollbild: echtes Vollbild, wo möglich; sonst (iPhone) Karte über die ganze Seite legen
+const vollBtn = document.getElementById('voll');
+const istVoll = () => karte.classList.contains('vollbild');
+const vollIcon = an => vollBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="${an ? 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5' : 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'}"/></svg>`;
+const setzeVoll = an => {
+  karte.classList.toggle('vollbild', an); document.body.classList.toggle('vollbild-an', an);
+  vollBtn.title = an ? 'Vollbild beenden' : 'Vollbild'; vollBtn.setAttribute('aria-label', vollBtn.title); vollIcon(an);
+  requestAnimationFrame(() => { const war = Math.abs(vb.w - VOLL.w) < 1; passend(); if (war) vb = { ...VOLL }; setzeVB(); });
+};
+vollBtn.onclick = async () => {
+  if (istVoll()) { if (document.fullscreenElement) await document.exitFullscreen().catch(() => {}); setzeVoll(false); return; }
+  setzeVoll(true);
+  if (karte.requestFullscreen) karte.requestFullscreen().catch(() => {});
+};
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && istVoll()) setzeVoll(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && istVoll() && !document.fullscreenElement && !aktiv) setzeVoll(false); });
 // Ziehen + Pinch
 const zeiger = new Map(); let start = null, gezogen = false;
 svg.addEventListener('pointerdown', e => {
